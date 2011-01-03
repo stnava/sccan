@@ -538,7 +538,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
       vMatrix q_perm=PermuteMatrix<Scalar>(q);
       vMatrix r_perm=PermuteMatrix<Scalar>(r);
       sccanobj->SetMatrixQ( q_perm );
-      sccanobj->SetMatrixQ( r_perm );
+      sccanobj->SetMatrixR( r_perm );
       double permcorr=sccanobj->RunSCCAN3();
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobj->GetPWeights();
