@@ -219,7 +219,7 @@ antsSCCANObject<TInputImage, TRealType>
     exit(1);
   }
   else {
-  std::cout << " P-positivity constraints? " <<  this->m_KeepPositiveP << " frac " << this->m_FractionNonZeroP << " Q-positivity constraints?  " << m_KeepPositiveQ << " frac " << this->m_FractionNonZeroQ << std::endl;
+//  std::cout << " P-positivity constraints? " <<  this->m_KeepPositiveP << " frac " << this->m_FractionNonZeroP << " Q-positivity constraints?  " << m_KeepPositiveQ << " frac " << this->m_FractionNonZeroQ << std::endl;
   }
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
