@@ -1,2 +1,6 @@
-you may need the antsCommandLineParser utilities and itk to use this.
+you may need the ants Command Line Parser utilities and itk to use this.
+	antsCommandLineOption.cxx
+	antsCommandLineOption.h
+	antsCommandLineParser.cxx
+	antsCommandLineParser.h
 
