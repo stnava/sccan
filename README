@@ -52,6 +52,8 @@ would do 2-view cca on FA and thickness matrices (FA and TH variables) where the
 
 example variable definitions FA=FA.mhd ;  TH=TH.mhd ; FAMASK=FAmask.nii.gz ; THMASK=THmask.nii.gz ; sparseF=0.5 ; sparseT=0.25 ;  pre=FA_TH_CCA   
 
+if the non-zero fraction variable (sparseX above) is positive, then positivity constraints are enforced.  if it's negative, then we use the abs-val of the constraints to define the nonzero fraction and allow negative weights.
+
 one useful way to define input data for this function is via the meta format. see:
 http://www.itk.org/Wiki/MetaIO/Documentation 
 an example header is here (you would call it FA.mhd) where the raw binary data is in a separate file called FA.raw :
