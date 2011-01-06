@@ -3,4 +3,4 @@ you may need the ants Command Line Parser utilities and itk to use this.
 	antsCommandLineOption.h
 	antsCommandLineParser.cxx
 	antsCommandLineParser.h
-
+you can link the above files from ants to the sccan source directory and compile with cmake, linking to itk, which we assume is compiled and available elsewhere.
