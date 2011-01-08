@@ -333,7 +333,7 @@ antsSCCANObject<TInputImage, TRealType>
     truecorr=corrpq+corrpr+corrqr;
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
-    std::cout << " correlation of projections: pq " << corrpq << " pr " << corrpr << " qr " << corrqr << " at-it " << its << std::endl;
+   // std::cout << " correlation of projections: pq " << corrpq << " pr " << corrpr << " qr " << corrqr << " at-it " << its << std::endl;
     its++;
 
   }
