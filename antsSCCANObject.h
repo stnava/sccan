@@ -105,6 +105,7 @@ public:
   VectorType GetPWeights() { return this->m_WeightsP; }
   VectorType GetQWeights() { return this->m_WeightsQ; }
   VectorType GetRWeights() { return this->m_WeightsR; }
+  RealType GetCorrelationForSignificanceTest() { return this->CorrelationForSignificanceTest; }
 
 protected:
 
@@ -236,6 +237,7 @@ private:
 
   bool m_AlreadyWhitened;
   bool m_SpecializationForHBM2011;
+  RealType m_CorrelationForSignificanceTest;
 };
 
 } // namespace ants

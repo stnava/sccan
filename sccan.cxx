@@ -498,13 +498,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
   vVector w_r=sccanobj->GetRWeights();
-  double corrpq=vnl_pearson_corr<Scalar>( p*w_p , q*w_q );
-  double corrpr=vnl_pearson_corr<Scalar>( p*w_p , r*w_r );
-  double corrqr=vnl_pearson_corr<Scalar>( r*w_r , q*w_q );
-  truecorr=corrpq+corrpr+corrqr;
-  //std::cout << " only correlating with biserial predictions " << std::endl;
-  //  truecorr=corrpr+corrqr;
-  std::cout << " final correlation of projections: pq " << corrpq << " pr " << corrpr << " qr " << corrqr << std::endl;
+  std::cout << " final correlation  " << truecorr  << std::endl;
   std::cout << " Projection-P " << p*w_p << std::endl;
   std::cout << " Projection-Q " << q*w_q << std::endl;
   if ( leave_out < pin.rows() ) {

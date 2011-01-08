@@ -25,6 +25,7 @@ namespace ants {
 template <class TInputImage, class TRealType>
 antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( ) 
 {
+  this->m_CorrelationForSignificanceTest=0;
   this->m_SpecializationForHBM2011=true;
   this->m_AlreadyWhitened=false;
   this->m_PinvTolerance=1.e-6;
@@ -264,7 +265,7 @@ antsSCCANObject<TInputImage, TRealType>
     lastcorr=truecorr;
     ++its;
   }
-
+  this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
 
 }
@@ -338,7 +339,7 @@ antsSCCANObject<TInputImage, TRealType>
   }
 
   if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation3view();
-
+  this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
 
 }
