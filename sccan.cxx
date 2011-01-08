@@ -314,6 +314,8 @@ int SCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixQ( q );
+  sccanobj->SetMaskImageP( mask1 );
+  sccanobj->SetMaskImageQ( mask2 );
 
   double truecorr=sccanobj->RunSCCAN2();
   vVector w_p=sccanobj->GetPWeights();
@@ -489,6 +491,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixQ( q );
   sccanobj->SetMatrixR( r );
+  sccanobj->SetMaskImageP( mask1 );
+  sccanobj->SetMaskImageQ( mask2 );
+  sccanobj->SetMaskImageR( mask3 );
   double truecorr=sccanobj->RunSCCAN3();
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();

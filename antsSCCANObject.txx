@@ -23,6 +23,27 @@ namespace itk {
 namespace ants {
 
 template <class TInputImage, class TRealType>
+antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( ) 
+{
+  this->m_SpecializationForHBM2011=true;
+  this->m_AlreadyWhitened=false;
+  this->m_PinvTolerance=1.e-6;
+  this->m_PercentVarianceForPseudoInverse=0.99;
+  this->m_MaximumNumberOfIterations=15;
+  this->m_MaskImageP=NULL;
+  this->m_MaskImageQ=NULL;
+  this->m_MaskImageR=NULL;
+  this->m_KeepPositiveP=true;
+  this->m_KeepPositiveQ=true;
+  this->m_KeepPositiveR=true;
+  this->m_FractionNonZeroP=0.5;
+  this->m_FractionNonZeroQ=0.5;
+  this->m_FractionNonZeroR=0.5;
+  this->m_NumberOfInputMatrices=0;
+  this->m_ConvergenceThreshold=1.e-6;
+} 
+
+template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::VectorType
 antsSCCANObject<TInputImage, TRealType>
 ::InitializeV( typename antsSCCANObject<TInputImage, TRealType>::MatrixType p ) 
@@ -223,10 +244,13 @@ antsSCCANObject<TInputImage, TRealType>
   }
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
+  if ( !this->m_AlreadyWhitened ) {
   this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
   this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
   this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);  
+  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+  this->m_AlreadyWhitened=true;
+  }  
   RealType truecorr=0;
   //  for (unsigned int loop=0; loop<maxccaits; loop++) 
   double deltacorr=1,lastcorr=1;
@@ -261,15 +285,20 @@ antsSCCANObject<TInputImage, TRealType>
     std::cout<<" N-rows do not match "  << std::endl;
     exit(1);
   }
+
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
   this->m_WeightsR=this->InitializeV(this->m_MatrixR);
+  if ( !this->m_AlreadyWhitened ) {
   this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-  this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
   this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+  this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
   this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);  
+  this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
   this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+  if ( this->m_SpecializationForHBM2011 ) this->SoftThresholdByRMask();
+  this->m_AlreadyWhitened=true;
+  }
   RealType truecorr=0;
   RealType norm=0,deltacorr=1,lastcorr=1;
   unsigned long its=0;
@@ -307,6 +336,8 @@ antsSCCANObject<TInputImage, TRealType>
     its++;
 
   }
+
+  if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation3view();
 
   return truecorr;
 

@@ -73,3 +73,20 @@ ElementDataFile = FA.raw
 
 as you can see there is extraneous junk that assumes this is an image that you're inputting, even though it's a matrix defining data for 24 subjects where each subject measurement has 60417 entries.
 
+*****************------HBM 2011 Notes------******************
+1. Assessing bi-serial correlations in the 3-view sccan i.e.
+gm + cognition and wm + cognition. 
+
+2. If you set the value in the input mask to 2 then you
+will compute 'sub-correlations' where the entries with 
+value 2 in the mask will be zeroed out in the associated 
+weight vector after the sccan solution is computed but 
+before the projections and pearson correlation.  this 
+effectively lets one control for the impact of that 
+variable on the scca outcome.
+
+3. If the R mask (reserved for cognition) has the same number
+of voxels as input R matrix has columns then you will zero
+out the zero-value mask positions in the matrix, but only 
+after whitening.  this is not ideal but should be acceptable.
+*************************************************************
