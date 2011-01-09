@@ -157,6 +157,7 @@ antsSCCANObject<TInputImage, TRealType>
 ::SoftThreshold( typename antsSCCANObject<TInputImage, TRealType>::VectorType
  v_in, TRealType fractional_goal , bool allow_negative_weights )
 {
+//  std::cout <<" allow neg weights? " << allow_negative_weights << std::endl;
   VectorType v_out(v_in);
   if ( fractional_goal > 1 ) return v_out;
   RealType minv=v_in.min_value();
@@ -203,7 +204,7 @@ antsSCCANObject<TInputImage, TRealType>
     else v_out(i)=v_in(i);
   }
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
-  //    std::cout << " frac non-zero " << frac << std::endl;
+  // std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
   return v_out;
 }
 
@@ -309,17 +310,17 @@ antsSCCANObject<TInputImage, TRealType>
    *     w_i \leftarrow \frac{ S( X_i^T ( \sum_{j \ne i} X_j w_j  ) }{norm of above } 
    */
     this->m_WeightsP=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ+this->m_MatrixR*this->m_WeightsR);
-    this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP,this->m_KeepPositiveP);
+    this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP,!this->m_KeepPositiveP);
     norm=this->m_WeightsP.two_norm();
     this->m_WeightsP=this->m_WeightsP/(norm);
 
     this->m_WeightsQ=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP+this->m_MatrixR*this->m_WeightsR);
-    this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ,this->m_KeepPositiveQ);
+    this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ,!this->m_KeepPositiveQ);
     norm=this->m_WeightsQ.two_norm();
     this->m_WeightsQ=this->m_WeightsQ/(norm);
 
     this->m_WeightsR=this->m_MatrixR.transpose()*(this->m_MatrixP*this->m_WeightsP+this->m_MatrixQ*this->m_WeightsQ);
-    this->m_WeightsR=this->SoftThreshold( this->m_WeightsR , this->m_FractionNonZeroR,this->m_KeepPositiveR);
+    this->m_WeightsR=this->SoftThreshold( this->m_WeightsR , this->m_FractionNonZeroR,!this->m_KeepPositiveR);
     norm=this->m_WeightsR.two_norm();
     this->m_WeightsR=this->m_WeightsR/(norm);
 
@@ -337,6 +338,9 @@ antsSCCANObject<TInputImage, TRealType>
     its++;
 
   }
+  //  std::cout << " PNZ-Frac " << this->CountNonZero(this->m_WeightsP) << std::endl;
+  //  std::cout << " QNZ-Frac " << this->CountNonZero(this->m_WeightsQ) << std::endl;
+  //  std::cout << " RNZ-Frac " << this->CountNonZero(this->m_WeightsR) << std::endl;
 
   if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation3view();
   this->m_CorrelationForSignificanceTest=truecorr;

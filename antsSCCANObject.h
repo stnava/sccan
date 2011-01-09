@@ -109,6 +109,14 @@ public:
 
 protected:
 
+  RealType CountNonZero( VectorType v ) 
+  {
+    unsigned long ct=0;
+    for ( unsigned int i=0; i<v.size(); i++) 
+      if ( v[i] != 0 ) ct++;
+    return (RealType)ct/(RealType)v.size();
+  }
+
   RealType PearsonCorr(VectorType v1, VectorType v2 )
   {
   double xysum=0;

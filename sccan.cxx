@@ -474,7 +474,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
-  sccanobj->SetFractionNonZeroQ(FracNonZero3);
+  sccanobj->SetFractionNonZeroR(FracNonZero3);
   
   for ( unsigned int leave_out=pin.rows(); leave_out <= pin.rows();  leave_out++) {
     std::cout << " Leaving Out " << leave_out << std::endl;
