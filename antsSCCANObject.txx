@@ -266,9 +266,20 @@ antsSCCANObject<TInputImage, TRealType>
     lastcorr=truecorr;
     ++its;
   }
+  if ( this->m_WeightsQ.size() < 100 ) {
+  for (unsigned long j=0; j<this->m_WeightsQ.size(); j++) {
+    if ( this->m_WeightsQ(j) > 0) 
+      std::cout << " q-weight " << j << "," << this->m_WeightsQ(j) << std::endl;
+    }
+  }// qsize test
+
+
+  if ( this->m_SpecializationForHBM2011 ){
+    std::cout <<" pre-specialization corr " << truecorr << std::endl;
+    truecorr=this->SpecializedCorrelation();
+  }
   this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
-
 }
 
 template <class TInputImage, class TRealType>
@@ -342,7 +353,7 @@ antsSCCANObject<TInputImage, TRealType>
   //  std::cout << " QNZ-Frac " << this->CountNonZero(this->m_WeightsQ) << std::endl;
   //  std::cout << " RNZ-Frac " << this->CountNonZero(this->m_WeightsR) << std::endl;
 
-  if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation3view();
+  if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation();
   this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
 

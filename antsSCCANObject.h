@@ -82,16 +82,19 @@ public:
   itkSetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
   void SetMatrixP(  MatrixType matrix ) { this->m_MatrixP=matrix; }
+  MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
 
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }
   void SetMatrixQ(  MatrixType  matrix ) { this->m_MatrixQ=matrix; }
+  MatrixType GetMatrixQ(  ) { return this->m_MatrixQ; }
 
   itkSetMacro( FractionNonZeroR, RealType );
   itkSetMacro( KeepPositiveR, bool );
   void SetMaskImageR( ImagePointer mask ) { this->m_MaskImageR=mask; }
   void SetMatrixR(  MatrixType matrix ) { this->m_MatrixR=matrix; }
+  MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 
   RealType RunSCCAN2();
   RealType RunSCCAN3();
@@ -131,6 +134,12 @@ protected:
   return numer/denom;
   }
 
+
+  void FactorOutLastProjections()
+  {
+
+  }
+
   void SoftThresholdByRMask()
   {
     std::cout <<" enter r mask for special cognitive domain processing " << std::endl;
@@ -146,18 +155,17 @@ protected:
       }
     std::cout <<" begin r mask " << std::endl;
     // zero out R weights that correspond to entries with value 0 in the mask 
-    VectorType zero( this->m_MatrixR.rows() );  zero.fill(0);
     Iterator vfIter(this->m_MaskImageR,this->m_MaskImageR->GetLargestPossibleRegion() );
     for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
       if ( vfIter.Get() == 0 ) {
-	//	std::cout << " soft-zeroing " << ct << " of " << this->m_MatrixR.columns() << std::endl;
+        VectorType zero( this->m_MatrixR.rows() );  zero.fill(0);
 	this->m_MatrixR.set_column(ct,zero);
       }
       ct++;
     }
   }
 
-  RealType SpecializedCorrelation3view()
+  RealType SpecializedCorrelation()
   {
     typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
     unsigned long ct=0;
@@ -177,6 +185,7 @@ protected:
     }
     }
     ct=0;
+    if ( this->m_MaskImageR && this->m_WeightsR.size() > 0 )
     {// zero out R weights that correspond to entries with value 2 in the mask 
     Iterator vfIter(this->m_MaskImageR,this->m_MaskImageR->GetLargestPossibleRegion() );
     for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
@@ -190,11 +199,18 @@ protected:
     
     VectorType pvec=this->m_MatrixP*this->m_WeightsP;
     VectorType qvec=this->m_MatrixQ*this->m_WeightsQ;
-    VectorType rvec=this->m_MatrixR*this->m_WeightsR;
-
     double corrpq=this->PearsonCorr( pvec , qvec );
-    double corrpr=this->PearsonCorr( pvec , rvec );
-    double corrqr=this->PearsonCorr( rvec , qvec );
+
+    double corrpr=0;
+    double corrqr=0;
+    VectorType rvec;
+    if ( this->m_MaskImageR && this->m_WeightsR.size() > 0 )
+    {
+      rvec=this->m_MatrixR*this->m_WeightsR;
+      corrpr=this->PearsonCorr( pvec , rvec );
+      corrqr=this->PearsonCorr( rvec , qvec );
+    }
+    else return corrpq;
     /** FIXME!! this is biserial!!! */
     std::cout << "USING pr+qr correlation for significance: " <<corrpr+corrqr<<" not 3corr: "<<corrpr+corrqr+corrpq <<std::endl;
     return corrpr+corrqr;

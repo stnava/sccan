@@ -347,7 +347,7 @@ int SCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       // 0. compute permutation for q ( switch around rows ) 
-      vMatrix q_perm=PermuteMatrix<Scalar>(q);
+      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
       sccanobj->SetMatrixQ( q_perm );
       double permcorr=sccanobj->RunSCCAN2();
       if ( permcorr > truecorr ) perm_exceed_ct++;
@@ -534,8 +534,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
     {
       // 0. compute permutation for q ( switch around rows ) 
       //std::cout << " dont permute q " << std::endl;
-      vMatrix q_perm=PermuteMatrix<Scalar>(q);
-      vMatrix r_perm=PermuteMatrix<Scalar>(r);
+      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
+      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixR() );
       sccanobj->SetMatrixQ( q_perm );
       sccanobj->SetMatrixR( r_perm );
       double permcorr=sccanobj->RunSCCAN3();
