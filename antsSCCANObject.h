@@ -74,7 +74,6 @@ public:
   itkGetConstMacro( ElapsedIterations, unsigned int );
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
-  itkGetConstMacro( NumberOfInputMatrices, unsigned int );
 
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
@@ -103,7 +102,7 @@ public:
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   MatrixType WhitenMatrix(MatrixType p); 
-  VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos);
+  VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, VectorType covar);
 
   VectorType GetPWeights() { return this->m_WeightsP; }
   VectorType GetQWeights() { return this->m_WeightsQ; }
@@ -165,6 +164,33 @@ protected:
     }
   }
 
+  void FactorOutCovariates()
+  {
+    typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
+    unsigned long ct=0;
+    VectorType WP(this->m_WeightsP.size());  WP.fill(0);
+    {// zero out P weights that correspond to entries with value 2 in the mask 
+      Iterator vfIter(this->m_MaskImageP,this->m_MaskImageP->GetLargestPossibleRegion() );
+      for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
+        if ( vfIter.Get() == 2 ) { WP[ct]=this->m_WeightsP[ct]; this->m_WeightsP[ct]=0; }
+        if ( vfIter.Get() != 0 ) ct++;
+      }
+    }
+    ct=0;
+    VectorType WQ(this->m_WeightsQ.size());  WQ.fill(0);
+    {// zero out Q weights that correspond to entries with value 2 in the mask 
+      Iterator vfIter(this->m_MaskImageQ,this->m_MaskImageQ->GetLargestPossibleRegion() );
+      for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
+        if ( vfIter.Get() == 2 ) { WQ[ct]=this->m_WeightsQ[ct]; /*std::cout << " wt " << WQ[ct] << std::endl; */this->m_WeightsQ[ct]=0;  }
+        if ( vfIter.Get() != 0 ) ct++;
+      }
+    }
+    //    this->m_CovariatesQ=this->m_MatrixQ*WQ;
+    // this->m_CovariatesP=this->m_MatrixP*WP;
+    this->m_CovariatesQ=this->m_CovariatesQ+this->m_MatrixQ*WQ*0.2;
+    this->m_CovariatesP=this->m_CovariatesP+this->m_MatrixP*WP*0.2;
+  }
+
   RealType SpecializedCorrelation()
   {
     typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
@@ -180,7 +206,8 @@ protected:
     {// zero out Q weights that correspond to entries with value 2 in the mask 
     Iterator vfIter(this->m_MaskImageQ,this->m_MaskImageQ->GetLargestPossibleRegion() );
     for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
-      if ( vfIter.Get() == 2 ) this->m_WeightsQ[ct]=0;
+      if ( vfIter.Get() == 2 ) { //std::cout << " zeroing " <<  this->m_WeightsQ[ct] << std::endl; 
+	this->m_WeightsQ[ct]=0; }
       if ( vfIter.Get() != 0 ) ct++;
     }
     }
@@ -190,7 +217,7 @@ protected:
     Iterator vfIter(this->m_MaskImageR,this->m_MaskImageR->GetLargestPossibleRegion() );
     for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ){
       if ( vfIter.Get() == 2 ) {
-	std::cout << " post-zeroing " << ct << " wt " << this->m_WeightsR[ct] <<std::endl;
+	//	std::cout << " post-zeroing " << ct << " wt " << this->m_WeightsR[ct] <<std::endl;
         this->m_WeightsR[ct]=0;
       }
       if ( vfIter.Get() != 0 ) ct++;
@@ -210,7 +237,10 @@ protected:
       corrpr=this->PearsonCorr( pvec , rvec );
       corrqr=this->PearsonCorr( rvec , qvec );
     }
-    else return corrpq;
+    else {
+      std::cout <<" pre-specialization corr " << this->m_CorrelationForSignificanceTest << " post-specialization " <<  corrpq << std::endl;
+      return corrpq;
+    }
     /** FIXME!! this is biserial!!! */
     std::cout << "USING pr+qr correlation for significance: " <<corrpr+corrqr<<" not 3corr: "<<corrpr+corrqr+corrpq <<std::endl;
     return corrpr+corrqr;
@@ -245,19 +275,21 @@ private:
   ImagePointer m_MaskImageP;
   RealType   m_FractionNonZeroP;
   bool       m_KeepPositiveP;
+  VectorType m_CovariatesP;
 
   VectorType m_WeightsQ;
   MatrixType m_MatrixQ;
   ImagePointer m_MaskImageQ;
   RealType   m_FractionNonZeroQ;
   bool       m_KeepPositiveQ;
+  VectorType m_CovariatesQ;
 
   VectorType m_WeightsR;
   MatrixType m_MatrixR;
   ImagePointer m_MaskImageR;
   RealType   m_FractionNonZeroR;
   bool       m_KeepPositiveR;
-  unsigned int m_NumberOfInputMatrices;
+  VectorType m_CovariatesR;
 
   bool m_AlreadyWhitened;
   bool m_SpecializationForHBM2011;

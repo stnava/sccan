@@ -44,6 +44,8 @@ sccan's core features:
 
 * permutation based significance estimates for the total correlation and for each weight within each variate.  this gives you some idea of the 'voxel-wise' significance.
 
+* enabling 'partial scca' where covariates are controlled by the masking.  
+
 an example call:
 
 sccan  --matrix-pair-operation scca_vnl[$FA,$TH,$FAMASK,$THMASK,${sparseF},${sparseT}]   -o $pre.nii.gz -p 100
@@ -78,15 +80,15 @@ as you can see there is extraneous junk that assumes this is an image that you'r
 gm + cognition and wm + cognition. 
 
 2. If you set the value in the input mask to 2 then you
-will compute 'sub-correlations' where the entries with 
-value 2 in the mask will be zeroed out in the associated 
-weight vector after the sccan solution is computed but 
-before the projections and pearson correlation.  this 
+will compute 'partial-sparse-correlations' where the entries  
+with value 2 in the mask will be partialed out in the 
+associated weight vector as the sccan solution is computed 
+and before the projections and pearson correlation.  this 
 effectively lets one control for the impact of that 
 variable on the scca outcome.
 
-3. If the R mask (reserved for cognition) has the same number
-of voxels as input R matrix has columns then you will zero
-out the zero-value mask positions in the matrix, but only 
-after whitening.  this is not ideal but should be acceptable.
+3. additional thoughts: partial correlation - correctness?, 
+canonical loads, multivariate regression, multiple variates, 
+testing/training. should the variates sum to one?
 *************************************************************
+

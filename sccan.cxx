@@ -133,6 +133,12 @@ PermuteMatrix( vnl_matrix<TComp> q , bool doperm=true)
   for (unsigned long i=0; i < q.rows(); i++)
     permvec.push_back(i);
   std::random_shuffle(permvec.begin(), permvec.end());
+  //  for (unsigned long i=0; i < q.rows(); i++)
+  //  std::cout << " permv " << i << " is " << permvec[i] << std::endl;
+  std::random_shuffle(permvec.begin(), permvec.end());
+  std::random_shuffle(permvec.begin(), permvec.end());
+  // for (unsigned long i=0; i < q.rows(); i++)
+  //  std::cout << " permv " << i << " is " << permvec[i] << std::endl;
   // 1. permute q
   vMatrix q_perm(q.rows(),q.columns()); 
   for (unsigned long i=0; i < q.rows(); i++)

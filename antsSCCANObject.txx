@@ -26,11 +26,11 @@ template <class TInputImage, class TRealType>
 antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( ) 
 {
   this->m_CorrelationForSignificanceTest=0;
-  this->m_SpecializationForHBM2011=true;
+  this->m_SpecializationForHBM2011=false;
   this->m_AlreadyWhitened=false;
   this->m_PinvTolerance=1.e-6;
   this->m_PercentVarianceForPseudoInverse=0.99;
-  this->m_MaximumNumberOfIterations=15;
+  this->m_MaximumNumberOfIterations=50;
   this->m_MaskImageP=NULL;
   this->m_MaskImageQ=NULL;
   this->m_MaskImageR=NULL;
@@ -40,7 +40,6 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_FractionNonZeroP=0.5;
   this->m_FractionNonZeroQ=0.5;
   this->m_FractionNonZeroR=0.5;
-  this->m_NumberOfInputMatrices=0;
   this->m_ConvergenceThreshold=1.e-6;
 } 
 
@@ -212,13 +211,13 @@ antsSCCANObject<TInputImage, TRealType>
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::VectorType
 antsSCCANObject<TInputImage, TRealType>
-::TrueCCAPowerUpdate( TRealType penalty1,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType p , typename antsSCCANObject<TInputImage, TRealType>::VectorType  w_q ,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType q, bool keep_pos )
+::TrueCCAPowerUpdate( TRealType penalty1,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType p , typename antsSCCANObject<TInputImage, TRealType>::VectorType  w_q ,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType q, bool keep_pos ,   typename antsSCCANObject<TInputImage, TRealType>::VectorType covariate )
 {
   RealType norm=0;
   // inverse covar is symmetric but we transpose anyway for clarity
   // we bracket the computation and use associativity to make sure its done efficiently 
   //vVector wpnew=( (CppInv.transpose()*p.transpose())*(q*CqqInv) )*w_q;
-  VectorType wpnew=p.transpose()*(q*w_q);
+  VectorType wpnew=p.transpose()*(q*w_q - covariate);
   wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );
   norm=wpnew.two_norm();
   if ( norm > 0 )
@@ -231,51 +230,59 @@ TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2( ) 
 {
-  unsigned int nc1=this->m_MatrixP.rows();
-  unsigned int nc2=this->m_MatrixQ.rows();
-  if ( nc1 != nc2 ) 
+  RealType truecorr=0;
+  unsigned int nr1=this->m_MatrixP.rows();
+  unsigned int nr2=this->m_MatrixQ.rows();
+  if ( nr1 != nr2 ) 
   {
     std::cout<< " P rows " << this->m_MatrixP.rows() << " cols " << this->m_MatrixP.cols() << std::endl;
     std::cout<< " Q rows " << this->m_MatrixQ.rows() << " cols " << this->m_MatrixQ.cols() << std::endl;
     std::cout<< " R rows " << this->m_MatrixR.rows() << " cols " << this->m_MatrixR.cols() << std::endl;
-    std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nc1 << " vs " << nc2 << std::endl;
+    std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nr1 << " vs " << nr2 << std::endl;
     exit(1);
   }
   else {
 //  std::cout << " P-positivity constraints? " <<  this->m_KeepPositiveP << " frac " << this->m_FractionNonZeroP << " Q-positivity constraints?  " << m_KeepPositiveQ << " frac " << this->m_FractionNonZeroQ << std::endl;
   }
+
+  this->m_CovariatesP.set_size( nr1 );
+  this->m_CovariatesQ.set_size( nr2 );
+  this->m_CovariatesP.fill(0);
+  this->m_CovariatesQ.fill(0);
+
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
+
   if ( !this->m_AlreadyWhitened ) {
-  this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
-  this->m_AlreadyWhitened=true;
+    this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
+    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    this->m_AlreadyWhitened=true;
   }  
-  RealType truecorr=0;
-  //  for (unsigned int loop=0; loop<maxccaits; loop++) 
+  truecorr=0;
   double deltacorr=1,lastcorr=1;
   unsigned long its=0;
   while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  )
   {
-    this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP);
-    this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ);
+    this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ);
+    this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP);
     truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
     ++its;
+
+//    this->FactorOutCovariates();
+//  std::cout << " internal-it  corr " << truecorr << std::endl;
+
   }
   if ( this->m_WeightsQ.size() < 100 ) {
-  for (unsigned long j=0; j<this->m_WeightsQ.size(); j++) {
-    if ( this->m_WeightsQ(j) > 0) 
-      std::cout << " q-weight " << j << "," << this->m_WeightsQ(j) << std::endl;
-    }
+      std::cout << " q-weight--------" << this->m_WeightsQ << std::endl;
   }// qsize test
 
 
+  this->m_CorrelationForSignificanceTest=truecorr;
   if ( this->m_SpecializationForHBM2011 ){
-    std::cout <<" pre-specialization corr " << truecorr << std::endl;
     truecorr=this->SpecializedCorrelation();
   }
   this->m_CorrelationForSignificanceTest=truecorr;
