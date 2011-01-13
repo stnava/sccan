@@ -121,6 +121,19 @@ DeleteRow(vnl_matrix<TComp> p_in , unsigned int row)
   return p;
 }
 
+class myRandIntClass
+{
+public:
+myRandIntClass() {}
+int operator() (int aRange)
+{
+  //srand(42);//seed of your choice here
+srand ( time(NULL) );
+int result = rand() % aRange;
+return result;
+}
+};
+
 
 template <class TComp>
 vnl_matrix<TComp> 
@@ -128,11 +141,12 @@ PermuteMatrix( vnl_matrix<TComp> q , bool doperm=true)
 {
   typedef vnl_matrix<TComp> vMatrix;
   typedef vnl_vector<TComp> vVector;
+  myRandIntClass myRand;
 
   std::vector<unsigned long> permvec; 
   for (unsigned long i=0; i < q.rows(); i++)
     permvec.push_back(i);
-  std::random_shuffle(permvec.begin(), permvec.end());
+  std::random_shuffle(permvec.begin(), permvec.end(),myRand);
   //  for (unsigned long i=0; i < q.rows(); i++)
   //  std::cout << " permv " << i << " is " << permvec[i] << std::endl;
   std::random_shuffle(permvec.begin(), permvec.end());

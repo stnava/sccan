@@ -1,5 +1,6 @@
 /*=========================================================================
 
+
   Program:   Advanced Normalization Tools
   Module:    $RCSfile: antsSCCANObject.txx,v $
   Language:  C++
@@ -30,7 +31,7 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_AlreadyWhitened=false;
   this->m_PinvTolerance=1.e-6;
   this->m_PercentVarianceForPseudoInverse=0.99;
-  this->m_MaximumNumberOfIterations=50;
+  this->m_MaximumNumberOfIterations=25;
   this->m_MaskImageP=NULL;
   this->m_MaskImageQ=NULL;
   this->m_MaskImageR=NULL;
@@ -260,6 +261,7 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
     this->m_AlreadyWhitened=true;
   }  
+  for (unsigned int outer_it=0; outer_it<2; outer_it++) {
   truecorr=0;
   double deltacorr=1,lastcorr=1;
   unsigned long its=0;
@@ -271,15 +273,16 @@ antsSCCANObject<TInputImage, TRealType>
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
     ++its;
+    if ( outer_it == 1 ) 
+      this->FactorOutCovariates();
+ // std::cout << " internal-it  corr " << truecorr << std::endl;
 
-//    this->FactorOutCovariates();
-//  std::cout << " internal-it  corr " << truecorr << std::endl;
-
-  }
+  }// inner_it
   if ( this->m_WeightsQ.size() < 100 ) {
       std::cout << " q-weight--------" << this->m_WeightsQ << std::endl;
+//      std::cout << " cov-wght--------" << this->m_CovariatesQ << std::endl;
   }// qsize test
-
+  }//outer_it 
 
   this->m_CorrelationForSignificanceTest=truecorr;
   if ( this->m_SpecializationForHBM2011 ){
