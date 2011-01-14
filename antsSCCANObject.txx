@@ -86,10 +86,11 @@ antsSCCANObject<TInputImage, TRealType>
   return np;
 }
 
+
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
-::WhitenMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin ) 
+::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix ) 
 {
 
   if (  rin.columns() > rin.rows() ) 
@@ -117,8 +118,10 @@ antsSCCANObject<TInputImage, TRealType>
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
 	}
       MatrixType evecs=rin.transpose()*r_eigvecs;
-      return (rin*evecs)*(r_diag_inv*evecs.transpose());
-
+     if ( whiten_else_invcovmatrix ) 
+       return (rin*evecs)*(r_diag_inv*evecs.transpose());
+     else // return inv cov matrix 
+       return (evecs)*(r_diag_inv*evecs.transpose());
     }
   else 
     {     
@@ -145,11 +148,16 @@ antsSCCANObject<TInputImage, TRealType>
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
 	}
       MatrixType wmatrix=r_eigvecs*r_diag_inv*r_eigvecs.transpose();
-      return (rin*wmatrix);
-
+      
+     if ( whiten_else_invcovmatrix ) 
+       return (rin*wmatrix);
+      else // return inv cov matrix 
+       return wmatrix;
     }
 
 }
+
+
 
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::VectorType
@@ -217,7 +225,7 @@ antsSCCANObject<TInputImage, TRealType>
   RealType norm=0;
   // inverse covar is symmetric but we transpose anyway for clarity
   // we bracket the computation and use associativity to make sure its done efficiently 
-  //vVector wpnew=( (CppInv.transpose()*p.transpose())*(q*CqqInv) )*w_q;
+  //vVector wpnew=( (CppInv.transpose()*p.transpose())*(CqqInv*q) )*w_q;
   VectorType wpnew=p.transpose()*(q*w_q - covariate);
   wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );
   norm=wpnew.two_norm();
@@ -257,8 +265,8 @@ antsSCCANObject<TInputImage, TRealType>
   if ( !this->m_AlreadyWhitened ) {
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    this->m_MatrixP=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixQ);
     this->m_AlreadyWhitened=true;
   }  
   for (unsigned int outer_it=0; outer_it<2; outer_it++) {
@@ -314,11 +322,11 @@ antsSCCANObject<TInputImage, TRealType>
   this->m_WeightsR=this->InitializeV(this->m_MatrixR);
   if ( !this->m_AlreadyWhitened ) {
   this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
-  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+  this->m_MatrixP=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixP);  
   this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);  
+  this->m_MatrixQ=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixQ);  
   this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
-  this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+  this->m_MatrixR=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixR);  
   if ( this->m_SpecializationForHBM2011 ) this->SoftThresholdByRMask();
   this->m_AlreadyWhitened=true;
   }

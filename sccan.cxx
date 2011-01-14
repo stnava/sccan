@@ -419,7 +419,7 @@ int SCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
 	       unsigned int permct,
-  itk::ants::CommandLineParser::OptionType *outputOption = NULL )
+	       itk::ants::CommandLineParser::OptionType *outputOption = NULL , bool run_partial_scca = false )
 {
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
@@ -514,7 +514,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser::OptionType *option,
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
   sccanobj->SetMaskImageR( mask3 );
-  double truecorr=sccanobj->RunSCCAN3();
+  double truecorr=0;
+  if ( run_partial_scca ) truecorr=sccanobj->RunSCCAN2Partial();
+  else truecorr=sccanobj->RunSCCAN3();
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
   vVector w_r=sccanobj->GetRWeights();
@@ -617,7 +619,11 @@ int matrixPairOperation( itk::ants::CommandLineParser::OptionType *option, unsig
   }
   else if (  strcmp( value.c_str(), "mscca_vnl" ) == 0  ) 
   {
-    mSCCA_vnl<3, float>( option, nperms, outputOption );
+    mSCCA_vnl<3, float>( option, nperms, outputOption , false );
+  }
+  else if (  strcmp( value.c_str(), "pscca_vnl" ) == 0  ) 
+  {
+    mSCCA_vnl<3, float>( option, nperms, outputOption , true );
   }
   else 
   {
@@ -739,12 +745,12 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   {
   std::string description =
     std::string( "Matrix-based scca operations for 2 and 3 views." ) +
-    std::string( "For both, the FracNonZero terms set the fraction of variables to use in the estimate. E.g. if one sets 0.5 then half of the variables will have non-zero values.  If the FracNonZero is (+) then the weight vectors must be positive.  If they are negative, weights can be (+) or (-).  ");
+    std::string( "For {m,p}scca_vnl, the FracNonZero terms set the fraction of variables to use in the estimate. E.g. if one sets 0.5 then half of the variables will have non-zero values.  If the FracNonZero is (+) then the weight vectors must be positive.  If they are negative, weights can be (+) or (-). pscca_vnl does partial scca for 2 views while partialing out the 3rd view. ");
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "matrix-pair-operation" );
   option->SetUsageOption( 0, "scca_vnl[matrix-view1.mhd,matrix-view2.mhd,mask1,mask2,FracNonZero1,FracNonZero2] ");
   option->SetUsageOption( 1, "mscca_vnl[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
-  //  option->SetUsageOption( 3, "mscca_vnl[matrix-view%0d.mhd,mask%0d.nii.gz,lambda%0d.mhd]" );
+  option->SetUsageOption( 2, "pscca_vnl[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
   option->SetDescription( description );
   parser->AddOption( option );
   }

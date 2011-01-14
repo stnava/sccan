@@ -96,13 +96,19 @@ public:
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 
   RealType RunSCCAN2();
+  RealType RunSCCAN2Partial() {  MatrixType InvCovR=this->InverseCovarianceMatrix(this->m_MatrixR); return 0; }
   RealType RunSCCAN3();
  
   VectorType SoftThreshold( VectorType v_in, RealType fractional_goal , bool allow_negative_weights );
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
-  MatrixType WhitenMatrix(MatrixType p); 
+  /** needed for partial scca */
+  MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true ); 
+  MatrixType InverseCovarianceMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false); }
   VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, VectorType covar);
+  MatrixType PartialOutZ( MatrixType X, MatrixType Y, MatrixType Z ) {
+    /** compute the effect of Z and store it for later use */
+  }
 
   VectorType GetPWeights() { return this->m_WeightsP; }
   VectorType GetQWeights() { return this->m_WeightsQ; }
@@ -131,12 +137,6 @@ protected:
   double denom=sqrt( ( xsqr - frac*xsum*xsum)*( ysqr - frac*ysum*ysum) );
   if ( denom <= 0 ) return 0;
   return numer/denom;
-  }
-
-
-  void FactorOutLastProjections()
-  {
-
   }
 
   void SoftThresholdByRMask()
