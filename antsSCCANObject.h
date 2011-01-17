@@ -293,6 +293,9 @@ private:
   RealType   m_FractionNonZeroR;
   bool       m_KeepPositiveR;
   VectorType m_CovariatesR;
+/** a special variable for pscca, holds R^T R */
+  MatrixType m_MatrixRRt;
+
 
   bool m_AlreadyWhitened;
   bool m_SpecializationForHBM2011;

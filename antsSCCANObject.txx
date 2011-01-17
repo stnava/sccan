@@ -223,10 +223,14 @@ antsSCCANObject<TInputImage, TRealType>
 ::TrueCCAPowerUpdate( TRealType penalty1,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType p , typename antsSCCANObject<TInputImage, TRealType>::VectorType  w_q ,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType q, bool keep_pos ,   typename antsSCCANObject<TInputImage, TRealType>::VectorType covariate )
 {
   RealType norm=0;
-  // inverse covar is symmetric but we transpose anyway for clarity
+  // recall that the matrices below have already be whitened ....
   // we bracket the computation and use associativity to make sure its done efficiently 
   //vVector wpnew=( (CppInv.transpose()*p.transpose())*(CqqInv*q) )*w_q;
-  VectorType wpnew=p.transpose()*(q*w_q - covariate);
+  VectorType wpnew;
+  if ( this->m_MatrixR.size() > 0 )
+    wpnew=p.transpose()*( q*w_q - this->m_MatrixRRt*(q*w_q) ); 
+  else 
+    wpnew=p.transpose()*(q*w_q - covariate);
   wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );
   norm=wpnew.two_norm();
   if ( norm > 0 )
@@ -269,10 +273,17 @@ antsSCCANObject<TInputImage, TRealType>
   if ( !this->m_AlreadyWhitened ) {
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-    this->m_MatrixP=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixP);  
-    this->m_MatrixQ=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixQ);
+    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    if ( this->m_MatrixR.size() > 0 ) {
+      this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
+      this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+    }
     this->m_AlreadyWhitened=true;
   }  
+  if ( this->m_MatrixR.size() > 0 ) {
+    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+  }
   for (unsigned int outer_it=0; outer_it<2; outer_it++) {
   truecorr=0;
   double deltacorr=1,lastcorr=1;

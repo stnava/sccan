@@ -502,8 +502,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       FracNonZero3=fabs(FracNonZero3);
       sccanobj->SetKeepPositiveR(false);
     }
-
-  std::cout << " VNL mSCCA " << std::endl;
   vMatrix pin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
   vMatrix qin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader2->GetOutput() );
   vMatrix rin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader3->GetOutput() );
@@ -523,52 +521,17 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vMatrix p=DeleteRow<MatrixImageType,Scalar>( pin , leave_out );
   vMatrix q=DeleteRow<MatrixImageType,Scalar>( qin , leave_out );
   vMatrix r=DeleteRow<MatrixImageType,Scalar>( rin , leave_out );
-
-  sccanobj->SetMatrixP( p );
-  sccanobj->SetMatrixQ( q );
-  sccanobj->SetMatrixR( r );
-  sccanobj->SetMaskImageP( mask1 );
-  sccanobj->SetMaskImageQ( mask2 );
-  sccanobj->SetMaskImageR( mask3 );
   double truecorr=0;
   if ( run_partial_scca ){ 
-    std::cout <<" begin partial PR " << std::endl;
-
-    typename SCCANType::Pointer sccanobjPR=SCCANType::New();
-    sccanobjPR->SetMatrixP( p );
-    sccanobjPR->SetMatrixQ( r );
-    sccanobjPR->SetFractionNonZeroP(FracNonZero1);
-    sccanobjPR->SetFractionNonZeroQ(FracNonZero3);
-    sccanobjPR->SetMaskImageP( mask1 );
-    sccanobjPR->SetMaskImageQ( mask3 );
-    truecorr=sccanobjPR->RunSCCAN2();
-    std::cout << " pr-partialed out corr " << truecorr << std::endl;
-
-    std::cout <<" begin partial QR " << std::endl;
-    typename SCCANType::Pointer sccanobjQR=SCCANType::New();
-    sccanobjQR->SetMatrixP( q );
-    sccanobjQR->SetMatrixQ( r );
-    sccanobjQR->SetFractionNonZeroP(FracNonZero2);
-    sccanobjQR->SetFractionNonZeroQ(FracNonZero3);
-    sccanobjQR->SetMaskImageP( mask2 );
-    sccanobjQR->SetMaskImageQ( mask3 );
-    truecorr=sccanobjQR->RunSCCAN2();
-    std::cout << " qr-partialed out corr " << truecorr << std::endl;
-
     std::cout <<" begin partial PQ " << std::endl;
     typename SCCANType::Pointer sccanobjCovar=SCCANType::New();
     sccanobjCovar->SetMatrixP( p );
     sccanobjCovar->SetMatrixQ( q );
+    sccanobjCovar->SetMatrixR( r );
     sccanobjCovar->SetFractionNonZeroP(FracNonZero1);
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-    vVector w_pr=r*sccanobjPR->GetQWeights();
-    vVector w_qr=r*sccanobjQR->GetQWeights();
-    sccanobjCovar->SetCovariatesP( w_pr );
-    sccanobjCovar->SetCovariatesQ( w_qr );
-    //  std::cout << " Covar-P " << w_pr << std::endl;
-    //  std::cout << " Covar-Q " << w_qr << std::endl;
     truecorr=sccanobjCovar->RunSCCAN2();
     std::cout << " partialed out corr " << truecorr << std::endl;
 
@@ -602,31 +565,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
-      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjPR->GetMatrixQ() );
-
-      sccanobjPR->SetMatrixP( p );
-      sccanobjPR->SetMatrixQ( r_perm );
-      sccanobjPR->SetFractionNonZeroP(FracNonZero1);
-      sccanobjPR->SetFractionNonZeroQ(FracNonZero3);
-      sccanobjPR->SetMaskImageP( mask1 );
-      sccanobjPR->SetMaskImageQ( mask3 );
-      sccanobjPR->RunSCCAN2();
-      
-      typename SCCANType::Pointer sccanobjQR=SCCANType::New();
-      sccanobjQR->SetMatrixP( q_perm );
-      sccanobjQR->SetMatrixQ( r_perm );
-      sccanobjQR->SetFractionNonZeroP(FracNonZero2);
-      sccanobjQR->SetFractionNonZeroQ(FracNonZero3);
-      sccanobjQR->SetMaskImageP( mask2 );
-      sccanobjQR->SetMaskImageQ( mask3 );
-      sccanobjQR->RunSCCAN2();
-
-
+      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixR() );
       sccanobjCovar->SetMatrixQ( q_perm );
-      w_pr=r*sccanobjPR->GetQWeights();
-      w_qr=r*sccanobjQR->GetQWeights();
-      sccanobjCovar->SetCovariatesP( w_pr );
-      sccanobjCovar->SetCovariatesQ( w_qr );
+      sccanobjCovar->SetMatrixR( r_perm );
       double permcorr=sccanobjCovar->RunSCCAN2();
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobjCovar->GetPWeights();
@@ -675,7 +616,14 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 
     exit(0);
   }
-  else truecorr=sccanobj->RunSCCAN3();
+  std::cout << " VNL mSCCA " << std::endl;
+  sccanobj->SetMatrixP( p );
+  sccanobj->SetMatrixQ( q );
+  sccanobj->SetMatrixR( r );
+  sccanobj->SetMaskImageP( mask1 );
+  sccanobj->SetMaskImageQ( mask2 );
+  sccanobj->SetMaskImageR( mask3 );
+  truecorr=sccanobj->RunSCCAN3();
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
   vVector w_r=sccanobj->GetRWeights();
