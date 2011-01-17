@@ -253,12 +253,16 @@ antsSCCANObject<TInputImage, TRealType>
   else {
 //  std::cout << " P-positivity constraints? " <<  this->m_KeepPositiveP << " frac " << this->m_FractionNonZeroP << " Q-positivity constraints?  " << m_KeepPositiveQ << " frac " << this->m_FractionNonZeroQ << std::endl;
   }
-
-  this->m_CovariatesP.set_size( nr1 );
-  this->m_CovariatesQ.set_size( nr2 );
-  this->m_CovariatesP.fill(0);
-  this->m_CovariatesQ.fill(0);
-
+  if (  this->m_CovariatesP.size() == 0 ){
+    this->m_CovariatesP.set_size( nr1 );
+    this->m_CovariatesQ.set_size( nr2 );
+    this->m_CovariatesP.fill(0);
+    this->m_CovariatesQ.fill(0);
+  }
+  else {
+//    std::cout <" P Covar " << this->m_CovariatesP << std::endl;
+//    std::cout <" Q Covar " << this->m_CovariatesQ << std::endl;
+  }
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
 
@@ -281,8 +285,8 @@ antsSCCANObject<TInputImage, TRealType>
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
     ++its;
-    if ( outer_it == 1 ) 
-      this->FactorOutCovariates();
+//    if ( outer_it == 1 ) 
+//      this->FactorOutCovariates();
  // std::cout << " internal-it  corr " << truecorr << std::endl;
 
   }// inner_it

@@ -95,8 +95,7 @@ public:
   void SetMatrixR(  MatrixType matrix ) { this->m_MatrixR=matrix; }
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 
-  RealType RunSCCAN2();
-  RealType RunSCCAN2Partial() {  MatrixType InvCovR=this->InverseCovarianceMatrix(this->m_MatrixR); return 0; }
+  RealType RunSCCAN2( );
   RealType RunSCCAN3();
  
   VectorType SoftThreshold( VectorType v_in, RealType fractional_goal , bool allow_negative_weights );
@@ -105,6 +104,7 @@ public:
   /** needed for partial scca */
   MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true ); 
   MatrixType InverseCovarianceMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false); }
+  MatrixType WhitenMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p); }
   VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, VectorType covar);
   MatrixType PartialOutZ( MatrixType X, MatrixType Y, MatrixType Z ) {
     /** compute the effect of Z and store it for later use */
@@ -114,6 +114,9 @@ public:
   VectorType GetQWeights() { return this->m_WeightsQ; }
   VectorType GetRWeights() { return this->m_WeightsR; }
   RealType GetCorrelationForSignificanceTest() { return this->CorrelationForSignificanceTest; }
+
+  void SetCovariatesP(VectorType vec) { this->m_CovariatesP=vec; }
+  void SetCovariatesQ(VectorType vec) { this->m_CovariatesQ=vec; }
 
 protected:
 

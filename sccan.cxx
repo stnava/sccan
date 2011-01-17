@@ -426,6 +426,7 @@ template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	       unsigned int permct , bool run_partial_scca = false )
 {
+  std::cout <<" Entering MSCCA " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -434,7 +435,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     }
   itk::ants::CommandLineParser::OptionType::Pointer option =
     parser->GetOption( "matrix-pair-operation" );
-
+  std::cout << outputOption << std::endl;
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
@@ -455,6 +456,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 
   /** read the matrix images */
   typename matReaderType::Pointer matreader1 = matReaderType::New();
+  std::cout << option->GetParameter( 0 ) << std::endl;
   matreader1->SetFileName( option->GetParameter( 0 ) );
   matreader1->Update();
  
@@ -529,7 +531,150 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   sccanobj->SetMaskImageQ( mask2 );
   sccanobj->SetMaskImageR( mask3 );
   double truecorr=0;
-  if ( run_partial_scca ) truecorr=sccanobj->RunSCCAN2Partial();
+  if ( run_partial_scca ){ 
+    std::cout <<" begin partial PR " << std::endl;
+
+    typename SCCANType::Pointer sccanobjPR=SCCANType::New();
+    sccanobjPR->SetMatrixP( p );
+    sccanobjPR->SetMatrixQ( r );
+    sccanobjPR->SetFractionNonZeroP(FracNonZero1);
+    sccanobjPR->SetFractionNonZeroQ(FracNonZero3);
+    sccanobjPR->SetMaskImageP( mask1 );
+    sccanobjPR->SetMaskImageQ( mask3 );
+    truecorr=sccanobjPR->RunSCCAN2();
+    std::cout << " pr-partialed out corr " << truecorr << std::endl;
+
+    std::cout <<" begin partial QR " << std::endl;
+    typename SCCANType::Pointer sccanobjQR=SCCANType::New();
+    sccanobjQR->SetMatrixP( q );
+    sccanobjQR->SetMatrixQ( r );
+    sccanobjQR->SetFractionNonZeroP(FracNonZero2);
+    sccanobjQR->SetFractionNonZeroQ(FracNonZero3);
+    sccanobjQR->SetMaskImageP( mask2 );
+    sccanobjQR->SetMaskImageQ( mask3 );
+    truecorr=sccanobjQR->RunSCCAN2();
+    std::cout << " qr-partialed out corr " << truecorr << std::endl;
+
+    std::cout <<" begin partial PQ " << std::endl;
+    typename SCCANType::Pointer sccanobjCovar=SCCANType::New();
+    sccanobjCovar->SetMatrixP( p );
+    sccanobjCovar->SetMatrixQ( q );
+    sccanobjCovar->SetFractionNonZeroP(FracNonZero1);
+    sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
+    sccanobjCovar->SetMaskImageP( mask1 );
+    sccanobjCovar->SetMaskImageQ( mask2 );
+    vVector w_pr=r*sccanobjPR->GetQWeights();
+    vVector w_qr=r*sccanobjQR->GetQWeights();
+    sccanobjCovar->SetCovariatesP( w_pr );
+    sccanobjCovar->SetCovariatesQ( w_qr );
+    //  std::cout << " Covar-P " << w_pr << std::endl;
+    //  std::cout << " Covar-Q " << w_qr << std::endl;
+    truecorr=sccanobjCovar->RunSCCAN2();
+    std::cout << " partialed out corr " << truecorr << std::endl;
+
+  vVector w_p=sccanobjCovar->GetPWeights();
+  vVector w_q=sccanobjCovar->GetQWeights();
+  std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
+  std::cout << " true-corr " << truecorr << std::endl; 
+  std::cout << " Projection-P " << p*w_p << std::endl;
+  std::cout << " Projection-Q " << q*w_q << std::endl;
+ //  double corr=vnl_pearson_corr<Scalar>( p*w_p , q*w_q );
+  //  std::cout << " w_q " << w_q<< std::endl;
+ 
+  if( outputOption )
+    {
+      std::string filename =  outputOption->GetValue( 0 );
+      std::cout << " write " << filename << std::endl;
+      std::string post=std::string("View1vec");
+      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
+      post=std::string("View2vec");
+      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q , mask2);
+    }
+
+  /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
+   q=q*CqqInv;
+  sermuted ;  2. scca ;  3. test corrs and weights significance */
+  if ( permct > 0 ) {
+  unsigned long perm_exceed_ct=0;
+  vVector w_p_signif_ct(w_p.size(),0);
+  vVector w_q_signif_ct(w_q.size(),0);
+  for (unsigned long pct=0; pct<=permct; pct++)
+    {
+      // 0. compute permutation for q ( switch around rows ) 
+      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
+      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjPR->GetMatrixQ() );
+
+      sccanobjPR->SetMatrixP( p );
+      sccanobjPR->SetMatrixQ( r_perm );
+      sccanobjPR->SetFractionNonZeroP(FracNonZero1);
+      sccanobjPR->SetFractionNonZeroQ(FracNonZero3);
+      sccanobjPR->SetMaskImageP( mask1 );
+      sccanobjPR->SetMaskImageQ( mask3 );
+      sccanobjPR->RunSCCAN2();
+      
+      typename SCCANType::Pointer sccanobjQR=SCCANType::New();
+      sccanobjQR->SetMatrixP( q_perm );
+      sccanobjQR->SetMatrixQ( r_perm );
+      sccanobjQR->SetFractionNonZeroP(FracNonZero2);
+      sccanobjQR->SetFractionNonZeroQ(FracNonZero3);
+      sccanobjQR->SetMaskImageP( mask2 );
+      sccanobjQR->SetMaskImageQ( mask3 );
+      sccanobjQR->RunSCCAN2();
+
+
+      sccanobjCovar->SetMatrixQ( q_perm );
+      w_pr=r*sccanobjPR->GetQWeights();
+      w_qr=r*sccanobjQR->GetQWeights();
+      sccanobjCovar->SetCovariatesP( w_pr );
+      sccanobjCovar->SetCovariatesQ( w_qr );
+      double permcorr=sccanobjCovar->RunSCCAN2();
+      if ( permcorr > truecorr ) perm_exceed_ct++;
+      vVector w_p_perm=sccanobjCovar->GetPWeights();
+      vVector w_q_perm=sccanobjCovar->GetQWeights();
+      for (unsigned long j=0; j<w_p.size(); j++)
+	if ( w_p_perm(j) > w_p(j)) 
+	  {
+	    w_p_signif_ct(j)=w_p_signif_ct(j)++;
+	  }
+      for (unsigned long j=0; j<w_q.size(); j++)
+	if ( w_q_perm(j) > w_q(j) ) 
+	  {
+	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
+	  }	
+      // end solve cca permutation
+      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+    }
+  unsigned long psigct=0,qsigct=0;
+  Scalar pinvtoler=1.e-6;
+  for (unsigned long j=0; j<w_p.size(); j++){
+    if ( w_p(j) > pinvtoler ) {
+      w_p_signif_ct(j)=1.0-(float)w_p_signif_ct(j)/(float)(permct);
+      if ( w_p_signif_ct(j) > 0.949 ) psigct++;
+    } else w_p_signif_ct(j)=0;
+  }
+  for (unsigned long j=0; j<w_q.size(); j++) {
+    if ( w_q(j) > pinvtoler ) {
+      w_q_signif_ct(j)=1.0-(float)w_q_signif_ct(j)/(float)(permct);
+      if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
+    } else w_q_signif_ct(j)=0;
+    }
+  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (float)psigct/w_p.size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (float)qsigct/w_q.size() << " ct " << permct << std::endl;
+
+    if( outputOption )
+    { 
+      std::string filename =  outputOption->GetValue( 0 );
+      std::cout << " write " << filename << std::endl;
+      std::string post=std::string("View1pval");
+      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
+      post=std::string("View2pval");
+      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q_signif_ct , mask2);
+    }
+  }
+
+    exit(0);
+  }
   else truecorr=sccanobj->RunSCCAN3();
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
@@ -601,54 +746,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 }
 
 
-
-
-
-template <unsigned int ImageDimension, class PixelType>
-int matrixPairOperation( itk::ants::CommandLineParser *parser, unsigned int nperms,
-    itk::ants::CommandLineParser::OptionType *outputOption = NULL )
-{
-  std::string funcName=std::string("matrixPairOperation");
-  itk::ants::CommandLineParser::OptionType::Pointer option =
-    parser->GetOption( funcName );
-  std::cout << funcName << std::endl;
-  typedef itk::Image<PixelType, ImageDimension> ImageType;
-  typedef float  matPixelType;
-  typedef itk::Image<matPixelType,2> MatrixImageType;
-  typedef itk::ImageFileReader<MatrixImageType> ReaderType;
-  if( option->GetNumberOfParameters( 0 ) < 2 )
-    {
-      std::cerr << funcName << "  Incorrect number of parameters." <<  option->GetNumberOfParameters( 0 ) <<  std::endl;
-    return EXIT_FAILURE;
-    }
-
-  std::string value = option->GetValue( 0 );
-  //  std::cout << " value " << value << std::endl;
-  // call RCCA_eigen or RCCA_vnl 
-  if (  strcmp( value.c_str(), "rcca_vnl" ) == 0  ) 
-  {
-    std::cout <<" not implemented " << std::endl;
-  }
-  else if (  strcmp( value.c_str(), "scca_vnl" ) == 0  ) 
-  {
-    SCCA_vnl<3, float>( parser , nperms );
-  }
-  else if (  strcmp( value.c_str(), "mscca_vnl" ) == 0  ) 
-  {
-    mSCCA_vnl<3, float>( parser, nperms,  false );
-  }
-  else if (  strcmp( value.c_str(), "pscca_vnl" ) == 0  ) 
-  {
-    mSCCA_vnl<3, float>( parser, nperms , true );
-  }
-  else 
-  {
-    std::cout <<" unrecognized option in " << funcName << std::endl;
-    return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
-}
-
 int sumba( itk::ants::CommandLineParser *parser )
 {
   // Get dimensionality
@@ -683,7 +780,40 @@ int sumba( itk::ants::CommandLineParser *parser )
   //  operations on pairs of matrices
   else if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
     {
-      matrixPairOperation<2, float>( parser, permct, outputOption );
+      if( matrixPairOption && matrixPairOption->GetNumberOfParameters() < 2 )
+    { 
+      std::cerr << "  Incorrect number of parameters."<<  std::endl;
+    return EXIT_FAILURE;
+    }
+  typedef double PixelType;
+  typedef itk::Image<PixelType, 3> ImageType;
+  typedef float  matPixelType;
+  typedef itk::Image<matPixelType,2> MatrixImageType;
+  typedef itk::ImageFileReader<MatrixImageType> ReaderType;
+  std::string initializationStrategy = matrixPairOption->GetValue();
+  // call RCCA_eigen or RCCA_vnl 
+  if (  !initializationStrategy.compare( std::string( "scca_vnl" ) )  ) 
+  {
+    std::cout << " scca_vnl "<< std::endl;
+    SCCA_vnl<3, float>( parser , permct );
+  }
+  else if (  !initializationStrategy.compare( std::string("mscca_vnl") )  ) 
+  {
+    std::cout << " mscca_vnl "<< std::endl;
+    mSCCA_vnl<3, float>( parser, permct,  false );
+  }
+  else if ( !initializationStrategy.compare( std::string("pscca_vnl") )   ) 
+  {
+    std::cout << " pscca_vnl "<< std::endl;
+    mSCCA_vnl<3, float>( parser, permct , true );
+  }
+  else 
+  {
+    std::cout <<" unrecognized option in matrixPairOperation " << std::endl;
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+
       return EXIT_SUCCESS;
     }
   else {
