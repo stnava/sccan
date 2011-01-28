@@ -227,8 +227,10 @@ antsSCCANObject<TInputImage, TRealType>
   // we bracket the computation and use associativity to make sure its done efficiently 
   //vVector wpnew=( (CppInv.transpose()*p.transpose())*(CqqInv*q) )*w_q;
   VectorType wpnew;
-  if ( this->m_MatrixR.size() > 0 )
-    wpnew=p.transpose()*( q*w_q - this->m_MatrixRRt*(q*w_q) ); 
+  if ( this->m_MatrixRRt.size() > 0 ){
+    VectorType temp=q*w_q;
+    wpnew=p.transpose()*( temp - this->m_MatrixRRt*temp ); 
+  }
   else 
     wpnew=p.transpose()*(q*w_q - covariate);
   wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );

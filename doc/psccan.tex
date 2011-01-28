@@ -1,0 +1,103 @@
+\documentclass{llncs}
+\newcommand{\Section}[1]{\vspace{-8pt}\section{\hskip-1em.~~#1}\vspace{-3pt}}
+\newcommand{\SubSection}[1]{\vspace{-3pt}\subsection{\hskip -1em.~~#1}\vspace{-3pt}}
+\usepackage{amsmath,amssymb}
+\usepackage{times}
+\usepackage{setspace,verbatim}
+\usepackage{epsfig}
+
+\begin{document}
+\vspace{-0.1in}
+\title{Partial sparse canonical correlation analysis for population
+  studies in neuroimaging}
+\author{Anonymous}
+\institute{Anonymous}
+\maketitle              
+%\vspace{-0.1in}
+\begin{abstract}
+Sparse canonical correlation analysis (SCCA) is a powerful,
+multivariate statistical tool for making unbiased inferences about the
+relationship between different types of measurements taken on the same
+population.  Previously, SCCA depended upon univariate models to
+factor out the effects of confounding variables.  Here, we present a
+new algorithm for computing partial sparse canonical correlation
+analysis (PSCCA).  PSCCA employs three views of the data with one
+treated as a special set of measurements whose effect on the other two
+should be factored out.  For instance, the relationship between
+cognition and neuroanatomy should be measured independently of the
+effect of age and gender.  This work gives a concise summary of the
+theory and algorithms underlying PSCCA along with a brief example
+application taken from neuroimaging.
+\end{abstract}
+%\vspace{-0.2in}
+\section{Introduction}
+% pubmed references to MRI :  
+% 2000-2001 --- 25561
+% 2001-2002 --- 27053
+% 2003-2004 --- 31708
+% 2005-2006 --- 38620
+% 2008-2009 --- 49288
+% 2009-2010 --- 49323
+% pubmed references to MRI brain :  
+% 2000-2001 --- 9938
+% 2001-2002 --- 
+% 2003-2004 --- 12655
+% 2005-2006 --- 
+% 2008-2009 --- 
+% 2009-2010 --- 19676
+The number of neuroimaging studies published annually doubled from
+9938 in 2000-2001 to 19676 in 2009-2010
+(http://www.ncbi.nlm.nih.gov/pubmed/).  This growth has been
+accompanied by increasing diversity in the types of data being
+collected such that neuroimaging studies include not only various
+structural and functional modalities but also neurocognitive
+batteries, genetics and environmental measurements.  At the same
+time, the statistical methods used in neuroimaging have changed
+relatively little from twenty years ago with the exception of a small
+number of recent SVM classification studies \cite{}.
+
+Why SCCA
+
+Why PSCCA
+
+What we are doing here ( a few sentences )
+
+%\vspace{-0.2in}
+\section{PSCCA Theory}
+SCCA will maximize:
+\begin{equation}
+\text{argmax}( \omega_T,\omega_{J}) :
+% \omega_T {\bf T}^T {\bf J} \omega_{J}  - ( \lambda_T \| \omega_T \|_1 + \lambda_F \|  \omega_{J}  \|_1 ),
+ ~\text{Corr}~(\underbrace{  {\bf T} ~\omega_T~}_{\text{Thickness Projections}} ,~\underbrace{ {\bf J} ~\omega_{J}~}_{\text{Jacobian Projections}}~) - \lambda_T \| \omega_T \|_1 - \lambda_J \|  \omega_{J}  \|_1 , 
+\end{equation} 
+where ${\bf T}$ is a matrix with columns containing voxels from the $\beta_T$ images and $n$-subjects number of rows, 
+where ${\bf J}$ is a matrix with columns containing voxels from the $\beta_J$ images and $n$-subjects number of rows, 
+ Corr computes Pearson correlation and the
+$\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
+
+{\bf notes:}
+
+PSCCA will not apply sparseness to the covariate view.  
+
+Follow Timm's notation.  Let's use {\bf  X}, {\bf Y} and {\bf Z} to describe the theory, with {\bf Z} as the
+'covariate'.   
+
+\section{PSCCA Algorithm}
+Use the Lanczos algorithm and soft-max.
+
+\section{Results}
+Apply to one of our imaging datasets, potentially Phil's OCT data.
+
+\section{Discussion}
+%\vspace{-0.1in}
+
+\noindent{\bf Acknowledgment}
+ This work is supported by Grant XXX 
+% 1R01EB006266-01 
+% from the ...
+%National Institute Of Biomedical Imaging and Bioengineering and administered through the UCLA Center for Computational Biology.
+% %\vspace{-0.1in}
+\bibliographystyle{IEEEbib}
+% \bibliography{avantsAll,ftdcbdlong}
+
+\end{document}
