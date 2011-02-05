@@ -60,7 +60,31 @@ Why SCCA
 
 Why PSCCA
 
+for instance, consider a standard neuroimaging population study.  each
+subject in the study is between 20 and 40 years of age, has a
+quantitative imaging measurement, is a member of one of two groups
+(patient or control) and is either male or female.  a standard
+regression analysis will treat the quantitative imaging measurement as the dependent variable and the
+age, gender and diagnosis group as predictors where each test is
+performed independently at each voxel.  detection power is
+compromised by the multiple comparisons problem incurred by the huge
+number of imaging measurements (millions) as well as the confounding
+variables (age, gender).  the pscca version of the
+problem is formulated similarly.  however, the test itself is
+performed globally via a sparse multivariate formulation over the
+whole region of interest (e.g. all voxels in the cortex).  thus, pscca
+uses only a single test on the full set of data.   the sparseness
+parameter in pscca selects the subest of the brain most associated
+with the variable of interest (diagnosis) while factoring out
+confounding effects (age, gender).  
+
 What we are doing here ( a few sentences )
+
+this paper will detail and illustrate our approach to performing
+neuroimaging studies in the style of traditional formulations but
+using a new, powerful multivariate pscca.  we highlight in both
+simulated and real data the advantages and disadvantages of this
+method.
 
 %\vspace{-0.2in}
 \section{PSCCA Theory}
@@ -86,7 +110,36 @@ Follow Timm's notation.  Let's use {\bf  X}, {\bf Y} and {\bf Z} to describe the
 Use the Lanczos algorithm and soft-max.
 
 \section{Results}
+\subsection{synthetic data}
+we simulate three view data with and without a significant association
+between the primary and secondary variables.  this analysis can be
+achieved by simulating imaging data and two other views (age,
+cognition) in such a way that the age is the true hidden variable that
+generates both cognition and imaging measurements.  pscca should then
+detect an insignificant association between cognition and imaging when
+age is used as the confounding variable.  similarly, pscca should
+detect a significant association between age and imaging when
+cognition is a confounding variable.   
+
+\subsection{real data versus regression}
 Apply to one of our imaging datasets, potentially Phil's OCT data.
+Alternatively, the oasis data. 
+
+We employ a subset of the freely available OASIS dataset and compare
+regression and pscca-based detection of gray matter effects
+attributable to dementia.
+
+PSCCA shows significant effects using a global multivariate test at
+the $p<0.05$ level, permutation tested.  
+
+Regression does not reveal signficant effects at the FDR-corrected
+$q<0.05$ level.  
+
+Selected slices of the results compare the regression-based p-value
+map to the pscca weight vector map.  
+
+we use only the primary eigenvector from pscca.  future work will
+analyze the effect of including additional eigenvectors. 
 
 \section{Discussion}
 %\vspace{-0.1in}

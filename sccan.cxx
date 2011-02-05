@@ -172,7 +172,7 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 {
   std::string funcName=std::string("matrixOperation");
   typedef itk::Image<PixelType, ImageDimension> ImageType;
-  typedef float  matPixelType;
+  typedef double  matPixelType;
   typedef itk::Image<matPixelType,2> MatrixImageType;
   typename ImageType::Pointer outputImage = NULL;
 
@@ -319,13 +319,13 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   typename ImageType::Pointer mask2=imgreader2->GetOutput();
 
   /** the penalties define the fraction of non-zero values for each view */
-  float FracNonZero1 = parser->Convert<float>( option->GetParameter( 4 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 4 ) );
   if ( FracNonZero1 < 0 )
     {
       FracNonZero1=fabs(FracNonZero1);
       sccanobj->SetKeepPositiveP(false);
     }
-  float FracNonZero2 = parser->Convert<float>( option->GetParameter( 5 ) );
+  double FracNonZero2 = parser->Convert<double>( option->GetParameter( 5 ) );
   if ( FracNonZero2 < 0 )
     {
       FracNonZero2=fabs(FracNonZero2);
@@ -390,24 +390,24 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
     }
   unsigned long psigct=0,qsigct=0;
   for (unsigned long j=0; j<w_p.size(); j++){
     if ( w_p(j) > pinvtoler ) {
-      w_p_signif_ct(j)=1.0-(float)w_p_signif_ct(j)/(float)(permct);
+      w_p_signif_ct(j)=1.0-(double)w_p_signif_ct(j)/(double)(permct);
       if ( w_p_signif_ct(j) > 0.949 ) psigct++;
     } else w_p_signif_ct(j)=0;
   }
   for (unsigned long j=0; j<w_q.size(); j++) {
     if ( w_q(j) > pinvtoler ) {
-      w_q_signif_ct(j)=1.0-(float)w_q_signif_ct(j)/(float)(permct);
+      w_q_signif_ct(j)=1.0-(double)w_q_signif_ct(j)/(double)(permct);
       if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
     } else w_q_signif_ct(j)=0;
     }
-  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
-  std::cout << " p-vox " <<  (float)psigct/w_p.size() << " ct " << permct << std::endl;
-  std::cout << " q-vox " <<  (float)qsigct/w_q.size() << " ct " << permct << std::endl;
+  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (double)psigct/w_p.size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (double)qsigct/w_q.size() << " ct " << permct << std::endl;
 
     if( outputOption )
     { 
@@ -484,19 +484,19 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   typename ImageType::Pointer mask3=imgreader3->GetOutput();
 
   /** the penalties define the fraction of non-zero values for each view */
-  float FracNonZero1 = parser->Convert<float>( option->GetParameter( 6 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 6 ) );
   if ( FracNonZero1 < 0 )
     {
       FracNonZero1=fabs(FracNonZero1);
       sccanobj->SetKeepPositiveP(false);
     }
-  float FracNonZero2 = parser->Convert<float>( option->GetParameter( 7 ) );
+  double FracNonZero2 = parser->Convert<double>( option->GetParameter( 7 ) );
   if ( FracNonZero2 < 0 )
     {
       FracNonZero2=fabs(FracNonZero2);
       sccanobj->SetKeepPositiveQ(false);
     }
-  float FracNonZero3 = parser->Convert<float>( option->GetParameter( 8 ) );
+  double FracNonZero3 = parser->Convert<double>( option->GetParameter( 8 ) );
   if ( FracNonZero3 < 0 )
     {
       FracNonZero3=fabs(FracNonZero3);
@@ -564,10 +564,10 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       // 0. compute permutation for q ( switch around rows ) 
-      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
-      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixR() );
-      sccanobjCovar->SetMatrixQ( q_perm );
-      sccanobjCovar->SetMatrixR( r_perm );
+      vMatrix p_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixP() );
+      sccanobjCovar->SetMatrixP( p_perm );
+      sccanobjCovar->SetMatrixQ( sccanobjCovar->GetMatrixQ() );
+      sccanobjCovar->SetMatrixR( sccanobjCovar->GetMatrixR() );
       double permcorr=sccanobjCovar->RunSCCAN2();
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobjCovar->GetPWeights();
@@ -583,25 +583,25 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
     }
   unsigned long psigct=0,qsigct=0;
   Scalar pinvtoler=1.e-6;
   for (unsigned long j=0; j<w_p.size(); j++){
     if ( w_p(j) > pinvtoler ) {
-      w_p_signif_ct(j)=1.0-(float)w_p_signif_ct(j)/(float)(permct);
+      w_p_signif_ct(j)=1.0-(double)w_p_signif_ct(j)/(double)(permct);
       if ( w_p_signif_ct(j) > 0.949 ) psigct++;
     } else w_p_signif_ct(j)=0;
   }
   for (unsigned long j=0; j<w_q.size(); j++) {
     if ( w_q(j) > pinvtoler ) {
-      w_q_signif_ct(j)=1.0-(float)w_q_signif_ct(j)/(float)(permct);
+      w_q_signif_ct(j)=1.0-(double)w_q_signif_ct(j)/(double)(permct);
       if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
     } else w_q_signif_ct(j)=0;
     }
-  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
-  std::cout << " p-vox " <<  (float)psigct/w_p.size() << " ct " << permct << std::endl;
-  std::cout << " q-vox " <<  (float)qsigct/w_q.size() << " ct " << permct << std::endl;
+  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (double)psigct/w_p.size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (double)qsigct/w_q.size() << " ct " << permct << std::endl;
 
     if( outputOption )
     { 
@@ -680,15 +680,15 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  }
       //      std::cout << " only testing correlation with biserial predictions " << std::endl;
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
       for (unsigned long j=0; j<w_r.size(); j++) {
 	if ( w_r(j) > 0) 
-	std::cout << " r entry " << j << " signif " <<  (float)w_r_signif_ct(j)/(float)(pct+1) << std::endl;
+	std::cout << " r entry " << j << " signif " <<  (double)w_r_signif_ct(j)/(double)(pct+1) << std::endl;
       }
 
     }
   }
-  //  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct+1) << " ct " << permct << std::endl;
+  //  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct+1) << " ct " << permct << std::endl;
   }
   return EXIT_SUCCESS;
 }
@@ -722,7 +722,7 @@ int sumba( itk::ants::CommandLineParser *parser )
 
   if( matrixOption && matrixOption->GetNumberOfValues() > 0 )
     {
-      matrixOperation<2, float>( matrixOption, outputOption );
+      matrixOperation<2, double>( matrixOption, outputOption );
       return EXIT_SUCCESS;
     }
   //  operations on pairs of matrices
@@ -735,7 +735,7 @@ int sumba( itk::ants::CommandLineParser *parser )
     }
   typedef double PixelType;
   typedef itk::Image<PixelType, 3> ImageType;
-  typedef float  matPixelType;
+  typedef double  matPixelType;
   typedef itk::Image<matPixelType,2> MatrixImageType;
   typedef itk::ImageFileReader<MatrixImageType> ReaderType;
   std::string initializationStrategy = matrixPairOption->GetValue();
@@ -743,17 +743,17 @@ int sumba( itk::ants::CommandLineParser *parser )
   if (  !initializationStrategy.compare( std::string( "scca_vnl" ) )  ) 
   {
     std::cout << " scca_vnl "<< std::endl;
-    SCCA_vnl<3, float>( parser , permct );
+    SCCA_vnl<3, double>( parser , permct );
   }
   else if (  !initializationStrategy.compare( std::string("mscca_vnl") )  ) 
   {
     std::cout << " mscca_vnl "<< std::endl;
-    mSCCA_vnl<3, float>( parser, permct,  false );
+    mSCCA_vnl<3, double>( parser, permct,  false );
   }
   else if ( !initializationStrategy.compare( std::string("pscca_vnl") )   ) 
   {
     std::cout << " pscca_vnl "<< std::endl;
-    mSCCA_vnl<3, float>( parser, permct , true );
+    mSCCA_vnl<3, double>( parser, permct , true );
   }
   else 
   {
@@ -963,7 +963,7 @@ testM(0,2)= 4;testM(1,2)=0; testM(2,2)=3;
 
 
   /*
-						  //1.0/(float)q.columns(); //randgen.drand32();
+						  //1.0/(double)q.columns(); //randgen.drand32();
   for (unsigned int it=0; it<4; it++)
   {
     //    std::cout << " 2norm(v0) " << v_0.two_norm() << std::endl;
