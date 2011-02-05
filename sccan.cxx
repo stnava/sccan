@@ -172,7 +172,7 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 {
   std::string funcName=std::string("matrixOperation");
   typedef itk::Image<PixelType, ImageDimension> ImageType;
-  typedef float  matPixelType;
+  typedef double  matPixelType;
   typedef itk::Image<matPixelType,2> MatrixImageType;
   typename ImageType::Pointer outputImage = NULL;
 
@@ -194,7 +194,7 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 
 template <unsigned int ImageDimension, class PixelType>
 typename itk::Image<PixelType,2>::Pointer 
-ConvertImageListToMatrix( std::string imagelist, std::string maskfn   ) 
+ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::string outname  ) 
 {
   typedef itk::Image<PixelType,ImageDimension> ImageType;
   typedef itk::Image<PixelType,2> MatrixImageType;
@@ -206,8 +206,9 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn   )
   typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
   Iterator mIter( reader1->GetOutput(),reader1->GetOutput()->GetLargestPossibleRegion() );
   for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
-    if (mIter.Get() >= 0.5) voxct++;
-
+    {
+      if (mIter.Get() >= 0.5) voxct++;
+    }
   std::vector<std::string> image_fn_list;
   // first, count the number of files
   const unsigned int maxChar = 512;
@@ -287,7 +288,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
     std::cerr << "Warning:  no output option set." << std::endl;
     }
   itk::ants::CommandLineParser::OptionType::Pointer option =
-    parser->GetOption( "matrix-pair-operation" );
+    parser->GetOption( "scca" );
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
@@ -319,13 +320,13 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   typename ImageType::Pointer mask2=imgreader2->GetOutput();
 
   /** the penalties define the fraction of non-zero values for each view */
-  float FracNonZero1 = parser->Convert<float>( option->GetParameter( 4 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 4 ) );
   if ( FracNonZero1 < 0 )
     {
       FracNonZero1=fabs(FracNonZero1);
       sccanobj->SetKeepPositiveP(false);
     }
-  float FracNonZero2 = parser->Convert<float>( option->GetParameter( 5 ) );
+  double FracNonZero2 = parser->Convert<double>( option->GetParameter( 5 ) );
   if ( FracNonZero2 < 0 )
     {
       FracNonZero2=fabs(FracNonZero2);
@@ -390,24 +391,24 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
     }
   unsigned long psigct=0,qsigct=0;
   for (unsigned long j=0; j<w_p.size(); j++){
     if ( w_p(j) > pinvtoler ) {
-      w_p_signif_ct(j)=1.0-(float)w_p_signif_ct(j)/(float)(permct);
+      w_p_signif_ct(j)=1.0-(double)w_p_signif_ct(j)/(double)(permct);
       if ( w_p_signif_ct(j) > 0.949 ) psigct++;
     } else w_p_signif_ct(j)=0;
   }
   for (unsigned long j=0; j<w_q.size(); j++) {
     if ( w_q(j) > pinvtoler ) {
-      w_q_signif_ct(j)=1.0-(float)w_q_signif_ct(j)/(float)(permct);
+      w_q_signif_ct(j)=1.0-(double)w_q_signif_ct(j)/(double)(permct);
       if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
     } else w_q_signif_ct(j)=0;
     }
-  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
-  std::cout << " p-vox " <<  (float)psigct/w_p.size() << " ct " << permct << std::endl;
-  std::cout << " q-vox " <<  (float)qsigct/w_q.size() << " ct " << permct << std::endl;
+  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (double)psigct/w_p.size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (double)qsigct/w_q.size() << " ct " << permct << std::endl;
 
     if( outputOption )
     { 
@@ -434,7 +435,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     std::cerr << "Warning:  no output option set." << std::endl;
     }
   itk::ants::CommandLineParser::OptionType::Pointer option =
-    parser->GetOption( "matrix-pair-operation" );
+    parser->GetOption( "scca" );
   std::cout << outputOption << std::endl;
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
@@ -484,19 +485,19 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   typename ImageType::Pointer mask3=imgreader3->GetOutput();
 
   /** the penalties define the fraction of non-zero values for each view */
-  float FracNonZero1 = parser->Convert<float>( option->GetParameter( 6 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 6 ) );
   if ( FracNonZero1 < 0 )
     {
       FracNonZero1=fabs(FracNonZero1);
       sccanobj->SetKeepPositiveP(false);
     }
-  float FracNonZero2 = parser->Convert<float>( option->GetParameter( 7 ) );
+  double FracNonZero2 = parser->Convert<double>( option->GetParameter( 7 ) );
   if ( FracNonZero2 < 0 )
     {
       FracNonZero2=fabs(FracNonZero2);
       sccanobj->SetKeepPositiveQ(false);
     }
-  float FracNonZero3 = parser->Convert<float>( option->GetParameter( 8 ) );
+  double FracNonZero3 = parser->Convert<double>( option->GetParameter( 8 ) );
   if ( FracNonZero3 < 0 )
     {
       FracNonZero3=fabs(FracNonZero3);
@@ -528,6 +529,33 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetMatrixP( p );
     sccanobjCovar->SetMatrixQ( q );
     sccanobjCovar->SetMatrixR( r );
+
+    itk::ants::CommandLineParser::OptionType::Pointer partialccaOpt =
+      parser->GetOption( "partial-scca-option" );
+    std::string partialccaoption=std::string("PQ");
+    if( partialccaOpt )
+    {
+      //  enum SCCANFormulationType{ PQ , PminusRQ ,  PQminusR ,  PminusRQminusR , PQR  };
+      if ( partialccaOpt->GetNumberOfValues() > 0 )
+        partialccaoption=parser->Convert<std::string>( partialccaOpt->GetValue() );
+      std::cout <<" Partial SCCA option " << partialccaoption << std::endl;
+      if( !partialccaoption.compare( std::string( "PQ" ) ) )
+      {
+        sccanobjCovar->SetSCCANFormulation(  SCCANType::PQ );
+      }
+      else if( !partialccaoption.compare( std::string( "PminusRQ" ) ) )
+      {
+        sccanobjCovar->SetSCCANFormulation(  SCCANType::PminusRQ );
+      }
+      else if( !partialccaoption.compare( std::string( "PQminusR" ) ) )
+      {
+        sccanobjCovar->SetSCCANFormulation(  SCCANType::PQminusR );
+      }
+      else if( !partialccaoption.compare( std::string( "PminusRQminusR" ) ) )
+      {
+        sccanobjCovar->SetSCCANFormulation(  SCCANType::PminusRQminusR );
+      }
+    }
     sccanobjCovar->SetFractionNonZeroP(FracNonZero1);
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
@@ -583,25 +611,25 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
     }
   unsigned long psigct=0,qsigct=0;
   Scalar pinvtoler=1.e-6;
   for (unsigned long j=0; j<w_p.size(); j++){
     if ( w_p(j) > pinvtoler ) {
-      w_p_signif_ct(j)=1.0-(float)w_p_signif_ct(j)/(float)(permct);
+      w_p_signif_ct(j)=1.0-(double)w_p_signif_ct(j)/(double)(permct);
       if ( w_p_signif_ct(j) > 0.949 ) psigct++;
     } else w_p_signif_ct(j)=0;
   }
   for (unsigned long j=0; j<w_q.size(); j++) {
     if ( w_q(j) > pinvtoler ) {
-      w_q_signif_ct(j)=1.0-(float)w_q_signif_ct(j)/(float)(permct);
+      w_q_signif_ct(j)=1.0-(double)w_q_signif_ct(j)/(double)(permct);
       if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
     } else w_q_signif_ct(j)=0;
     }
-  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
-  std::cout << " p-vox " <<  (float)psigct/w_p.size() << " ct " << permct << std::endl;
-  std::cout << " q-vox " <<  (float)qsigct/w_q.size() << " ct " << permct << std::endl;
+  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (double)psigct/w_p.size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (double)qsigct/w_q.size() << " ct " << permct << std::endl;
 
     if( outputOption )
     { 
@@ -680,96 +708,102 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  }
       //      std::cout << " only testing correlation with biserial predictions " << std::endl;
       // end solve cca permutation
-      std::cout << permcorr << " overall " <<  (float)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
+      std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
       for (unsigned long j=0; j<w_r.size(); j++) {
 	if ( w_r(j) > 0) 
-	std::cout << " r entry " << j << " signif " <<  (float)w_r_signif_ct(j)/(float)(pct+1) << std::endl;
+	std::cout << " r entry " << j << " signif " <<  (double)w_r_signif_ct(j)/(double)(pct+1) << std::endl;
       }
 
     }
   }
-  //  std::cout <<  " overall " <<  (float)perm_exceed_ct/(permct+1) << " ct " << permct << std::endl;
+  //  std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct+1) << " ct " << permct << std::endl;
   }
   return EXIT_SUCCESS;
 }
 
 
-int sumba( itk::ants::CommandLineParser *parser )
+int sccan( itk::ants::CommandLineParser *parser )
 {
-  // Get dimensionality
+  // Define dimensionality
+  typedef double PixelType;
+  const unsigned int ImageDimension=3;
+  typedef itk::Image<PixelType, ImageDimension> ImageType;
+  typedef double  matPixelType;
+  typedef itk::Image<matPixelType,2> MatrixImageType;
+  typedef itk::ImageFileReader<MatrixImageType> ReaderType;
   
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
     {
-    std::cerr << "Warning:  no output option set." << std::endl;
+      std::cerr << "Warning:  no output option set." << std::endl;
     }
-
   unsigned int permct=0;
   itk::ants::CommandLineParser::OptionType::Pointer permoption =
     parser->GetOption( "n_permutations" );
   if( !permoption || permoption->GetNumberOfValues() == 0 )
     {
-    std::cerr << "Warning:  no output option set." << std::endl;
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
     }
   else permct=parser->Convert<unsigned int>( permoption->GetValue() );
-  std::cout <<" you will assess significance with " << permct << " permutations." << std::endl;
+
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
-    parser->GetOption( "matrix-operation" );
+    parser->GetOption( "imageset-to-matrix" );
   itk::ants::CommandLineParser::OptionType::Pointer matrixPairOption =
-    parser->GetOption( "matrix-pair-operation" );
-
+    parser->GetOption( "scca" );
   if( matrixOption && matrixOption->GetNumberOfValues() > 0 )
-    {
-      matrixOperation<2, float>( matrixOption, outputOption );
+    { 
+      std::string outname =  outputOption->GetValue( 0 );
+      std::string imagelist=matrixOption->GetParameter( 0 );
+      std::string maskfn=matrixOption->GetParameter( 1 );
+      typedef itk::Image<double,2> MyImageType;
+      MyImageType::Pointer matimage=
+        ConvertImageListToMatrix<ImageDimension,double>( imagelist,  maskfn  , outname );
+      typedef itk::ImageFileWriter<MyImageType> WriterType;
+      WriterType::Pointer writer = WriterType::New();
+      writer->SetFileName( outname );
+      writer->SetInput( matimage );
+      writer->Update();     
       return EXIT_SUCCESS;
     }
+  std::cout <<" you will assess significance with " << permct << " permutations." << std::endl;
   //  operations on pairs of matrices
-  else if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
+  if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
     {
       if( matrixPairOption && matrixPairOption->GetNumberOfParameters() < 2 )
-    { 
-      std::cerr << "  Incorrect number of parameters."<<  std::endl;
-    return EXIT_FAILURE;
-    }
-  typedef double PixelType;
-  typedef itk::Image<PixelType, 3> ImageType;
-  typedef float  matPixelType;
-  typedef itk::Image<matPixelType,2> MatrixImageType;
-  typedef itk::ImageFileReader<MatrixImageType> ReaderType;
-  std::string initializationStrategy = matrixPairOption->GetValue();
-  // call RCCA_eigen or RCCA_vnl 
-  if (  !initializationStrategy.compare( std::string( "scca_vnl" ) )  ) 
-  {
-    std::cout << " scca_vnl "<< std::endl;
-    SCCA_vnl<3, float>( parser , permct );
-  }
-  else if (  !initializationStrategy.compare( std::string("mscca_vnl") )  ) 
-  {
-    std::cout << " mscca_vnl "<< std::endl;
-    mSCCA_vnl<3, float>( parser, permct,  false );
-  }
-  else if ( !initializationStrategy.compare( std::string("pscca_vnl") )   ) 
-  {
-    std::cout << " pscca_vnl "<< std::endl;
-    mSCCA_vnl<3, float>( parser, permct , true );
-  }
-  else 
-  {
-    std::cout <<" unrecognized option in matrixPairOperation " << std::endl;
-    return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
-
+      { 
+        std::cerr << "  Incorrect number of parameters."<<  std::endl;
+        return EXIT_FAILURE;
+      }
+      std::string initializationStrategy = matrixPairOption->GetValue();
+      // call RCCA_eigen or RCCA_vnl 
+      if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
+      {
+      std::cout << " scca 2-view "<< std::endl;
+      SCCA_vnl<ImageDimension, double>( parser , permct );
+      }
+      else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
+      {
+      std::cout << " mscca 3-view "<< std::endl;
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false );
+      }
+      else if ( !initializationStrategy.compare( std::string("partial") )   ) 
+      {
+      std::cout << " pscca "<< std::endl;
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true );
+      }
+      else 
+      {
+      std::cout <<" unrecognized option in matrixPairOperation " << std::endl;
+      return EXIT_FAILURE;
+      }
       return EXIT_SUCCESS;
     }
   else {
     std::cout << " no option specified " << std::endl;
   }
- 
-
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
 
 void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
@@ -779,7 +813,6 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   typedef itk::ants::CommandLineParser::OptionType OptionType;
   {
   std::string description = std::string( "Print the help menu (short version)." );
-
   OptionType::Pointer option = OptionType::New();
   option->SetShortName( 'h' );
   option->SetDescription( description );
@@ -789,7 +822,6 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
 
   {
   std::string description = std::string( "Print the help menu (long version)." );
-
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "help" );
   option->SetDescription( description );
@@ -799,8 +831,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
 
   {
   std::string description =
-    std::string( "Ouput dependent on which option is called." );
-
+    std::string( "Output dependent on which option is called." );
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "output" );
   option->SetShortName( 'o' );
@@ -820,18 +851,23 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   parser->AddOption( option );
   }
 
-
+  {
+  std::string description =
+    std::string( "Choices for pscca: PQ, PminusRQ, PQminusR, PminusRQminusR " );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "partial-scca-option" );
+  option->SetUsageOption( 0, "PminusRQ" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
 
   {
   std::string description =
-    std::string( "Matrix operations such as invert," ) +
-    std::string( "multiply, etc." );
-
+    std::string( "takes a list of image files names (one per line) " ) +
+    std::string( "and converts it to a 2D matrix / image." );
   OptionType::Pointer option = OptionType::New();
-  option->SetLongName( "matrix-operation" );
-  option->SetUsageOption( 0, "invert[matrix.mhd]" );
-  option->SetUsageOption( 1, "ridge[matrix.mhd]" );
-  option->SetUsageOption( 2, "multires_matrix_invert[list.txt,maskhighres.nii.gz,masklowres.nii.gz,matrix.mhd]" );
+  option->SetLongName( "imageset-to-matrix" );
+  option->SetUsageOption( 0, "[list.txt,mask.nii.gz]" );
   option->SetDescription( description );
   parser->AddOption( option );
   }
@@ -839,12 +875,12 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   {
   std::string description =
     std::string( "Matrix-based scca operations for 2 and 3 views." ) +
-    std::string( "For {m,p}scca_vnl, the FracNonZero terms set the fraction of variables to use in the estimate. E.g. if one sets 0.5 then half of the variables will have non-zero values.  If the FracNonZero is (+) then the weight vectors must be positive.  If they are negative, weights can be (+) or (-). pscca_vnl does partial scca for 2 views while partialing out the 3rd view. ");
+    std::string( "For all these options, the FracNonZero terms set the fraction of variables to use in the estimate. E.g. if one sets 0.5 then half of the variables will have non-zero values.  If the FracNonZero is (+) then the weight vectors must be positive.  If they are negative, weights can be (+) or (-).  partial does partial scca for 2 views while partialing out the 3rd view. ");
   OptionType::Pointer option = OptionType::New();
-  option->SetLongName( "matrix-pair-operation" );
-  option->SetUsageOption( 0, "scca_vnl[matrix-view1.mhd,matrix-view2.mhd,mask1,mask2,FracNonZero1,FracNonZero2] ");
-  option->SetUsageOption( 1, "mscca_vnl[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
-  option->SetUsageOption( 2, "pscca_vnl[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
+  option->SetLongName( "scca" );
+  option->SetUsageOption( 0, "two-view[matrix-view1.mhd,matrix-view2.mhd,mask1,mask2,FracNonZero1,FracNonZero2] ");
+  option->SetUsageOption( 1, "three-view[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
+  option->SetUsageOption( 2, "partial[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
   option->SetDescription( description );
   parser->AddOption( option );
   }
@@ -861,8 +897,8 @@ int main( int argc, char *argv[] )
   parser->SetCommand( argv[0] );
 
   std::string commandDescription =
-    std::string( "A tool for sparse statistical analysis and matrix operations on images : " ) +
-    std::string( " works on individual images or image sets.  " );
+    std::string( "A tool for sparse statistical analysis on images : " ) +
+    std::string( " scca, pscca (with options), mscca.  Can also convert an imagelist/mask pair to a binary matrix image.  " );
 
   parser->SetCommandDescription( commandDescription );
   InitializeCommandLineOptions( parser );
@@ -913,7 +949,7 @@ int main( int argc, char *argv[] )
 
 
   // Call main routine
-  sumba( parser );
+  sccan( parser );
 
   exit( EXIT_SUCCESS );
 
@@ -963,7 +999,7 @@ testM(0,2)= 4;testM(1,2)=0; testM(2,2)=3;
 
 
   /*
-						  //1.0/(float)q.columns(); //randgen.drand32();
+						  //1.0/(double)q.columns(); //randgen.drand32();
   for (unsigned int it=0; it<4; it++)
   {
     //    std::cout << " 2norm(v0) " << v_0.two_norm() << std::endl;

@@ -1,6 +1,12 @@
 \documentclass{llncs}
 \newcommand{\Section}[1]{\vspace{-8pt}\section{\hskip-1em.~~#1}\vspace{-3pt}}
 \newcommand{\SubSection}[1]{\vspace{-3pt}\subsection{\hskip -1em.~~#1}\vspace{-3pt}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\z}{{\bf z}}
 \usepackage{amsmath,amssymb}
 \usepackage{times}
 \usepackage{setspace,verbatim}
@@ -21,13 +27,16 @@ relationship between different types of measurements taken on the same
 population.  Previously, SCCA depended upon univariate models to
 factor out the effects of confounding variables.  Here, we present a
 new algorithm for computing partial sparse canonical correlation
-analysis (PSCCA).  PSCCA employs three views of the data with one
-treated as a special set of measurements whose effect on the other two
+analysis (PSCCA).  Our PSCCA implementation extends our novel SCCA
+methodology to include a formulation for covariates.  PSCCA employs
+three views of the data with one treated as a special set of
+measurements whose effect on the other one or two views of the data
 should be factored out.  For instance, the relationship between
 cognition and neuroanatomy should be measured independently of the
 effect of age and gender.  This work gives a concise summary of the
-theory and algorithms underlying PSCCA along with a brief example
-application taken from neuroimaging.
+theory and algorithms underlying both part and partial sparse
+canonical correlation analysis via a representative example
+application taken from neuroimaging.  
 \end{abstract}
 %\vspace{-0.2in}
 \section{Introduction}
@@ -60,33 +69,136 @@ Why SCCA
 
 Why PSCCA
 
+Consider a standard neuroimaging population study.  Each subject in
+the study is between 20 and 40 years of age, has a quantitative
+imaging measurement, is a member of one of two groups (patient or
+control) and is either male or female.  A standard regression analysis
+will treat the quantitative imaging measurement as the dependent
+variable and the age, gender and diagnosis group as predictors where
+each test is performed independently at each voxel.  Detection power
+is compromised by the multiple comparisons problem incurred by the
+number of imaging measurements (millions) as well as the confounding
+variables (age, gender).  The alternative PSCCA of the problem is
+formulated similarly.  However, the test itself is performed globally
+via a sparse multivariate formulation over the whole region of
+interest (e.g. all voxels in the cortex).  Thus, PSCCA uses only a
+single test on the full set of data.  The sparseness parameter in
+PSCCA selects the subset of the brain most associated with the
+variable of interest (diagnosis) while factoring out confounding
+effects (age, gender).  It is up to the researcher to use his or her
+domain knowledge to select the desired sparseness for a given problem
+or to experiment with a training dataset to optimize the sparseness
+parameter.
+
 What we are doing here ( a few sentences )
+
+This paper will detail and illustrate our approach to performing
+neuroimaging studies in the style of traditional formulations but
+using a new, powerful multivariate pscca.  We highlight in both
+simulated and real data the advantages and disadvantages of this
+method.
 
 %\vspace{-0.2in}
 \section{PSCCA Theory}
 SCCA will maximize:
 \begin{equation}
-\text{argmax}( \omega_T,\omega_{J}) :
-% \omega_T {\bf T}^T {\bf J} \omega_{J}  - ( \lambda_T \| \omega_T \|_1 + \lambda_F \|  \omega_{J}  \|_1 ),
- ~\text{Corr}~(\underbrace{  {\bf T} ~\omega_T~}_{\text{Thickness Projections}} ,~\underbrace{ {\bf J} ~\omega_{J}~}_{\text{Jacobian Projections}}~) - \lambda_T \| \omega_T \|_1 - \lambda_J \|  \omega_{J}  \|_1 , 
+\text{argmax}( \x,\y) :
+~\text{Corr}~( \X \x , \Y \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
 \end{equation} 
-where ${\bf T}$ is a matrix with columns containing voxels from the $\beta_T$ images and $n$-subjects number of rows, 
-where ${\bf J}$ is a matrix with columns containing voxels from the $\beta_J$ images and $n$-subjects number of rows, 
- Corr computes Pearson correlation and the
+where $\X$ is a matrix with columns containing voxels from one set of
+images of $n$ subjects, 
+and $\Y$ is a matrix with columns containing voxels from the second
+set of images from the same $n$ subjects. 
+Corr computes Pearson correlation and the
 $\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
+
+The covariance formulation of SCCA .... 
+
+The partial SCCA formulation will maximize 
+\begin{equation}
+\text{argmax}( \x,\y) :
+~\text{Corr}~( \X_{\Z} \x , \Y_{\Z} \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
+\end{equation} 
+where $\Z$ is a matrix of confounding variables and $\X_{\Z}$ and
+$\Y_{\Z}$ represent $\X$, $\Y$ with the effect of $\Z$ factored out.
 
 {\bf notes:}
 
+One should use SCCA to test for relationships between {\X} and {\Z} and, separately, {\Y} and {\Z}.  Results will dictate whether
+one should use standard, part or partial SCCA to assess the {\X} and {\Y}
+relationship.
+
 PSCCA will not apply sparseness to the covariate view.  
 
-Follow Timm's notation.  Let's use {\bf  X}, {\bf Y} and {\bf Z} to describe the theory, with {\bf Z} as the
-'covariate'.   
+Follow Timm's notation.  Let's use {\X}, {\Y} and {\Z} to describe the theory, with {\Z} as the
+'covariate'.   However, our code uses P, Q and R variables ....
+ 
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{ccc}
+% \includegraphics[width=70mm]{r16slice.png} &
+% \includegraphics[width=70mm]{r16icm.png} \\
+(a) & (b) & (c) \\
+\end{tabular}
+\end{center}
+\caption{\baselineskip 12pt \small Cartoons illustrating (a) SCCA ;
+  (b) partial SCCA ; (c) part SCCA.  }
+\label{fig:cartoon}
+\end{figure}
 
 \section{PSCCA Algorithm}
-Use the Lanczos algorithm and soft-max.
+\vspace{0.1in}
+\noindent{\bf Algorithm for computing first set of canonical variates}
+\vspace{-0.1in}
+\begin{description}
+\item [Whiten:]Apply the whitening transformation to {\X}, {\Y}, {\Z}.
+%    VectorType temp=q*w_q;
+%    wpnew=p.transpose()*( temp - this->m_MatrixRRt*temp ); 
+\item [Begin Loop:]for power iteration. 
+\item [~~View 1:]Compute  $\x= {\X}^T {\Y} \y -  {\X}^T  {\Z} {\Z}^T {\Y} \y$.
+\item [~~Soft-Max Sparseness \& Normalization $\x$:] Enforce $\x$
+  sparseness and set $\x \leftarrow \frac{\x}{\|\x\|}$.
+\item [~~View 2:]Compute  $\y= {\Y}^T {\X} \x -  {\Y}^T  {\Z} {\Z}^T
+  {\X} \x$
+\item [~~Soft-Max Sparseness \& Normalization $\y$:] As in $\x$ step.
+\item [~~CC:]Compute $Corr( {\X} \x ,  {\Y} \y )$.
+\item [End loop:]Check the correlation and stop when converged.
+\end{description}
+ 
+For multiple eigenvectors, use the Lanczos algorithm.
 
 \section{Results}
+\subsection{synthetic data}
+we simulate three view data with and without a significant association
+between the primary and secondary variables.  this analysis can be
+achieved by simulating imaging data and two other views (age,
+cognition) in such a way that the age is the true hidden variable that
+generates both cognition and imaging measurements.  pscca should then
+detect an insignificant association between cognition and imaging when
+age is used as the confounding variable.  similarly, pscca should
+detect a significant association between age and imaging when
+cognition is a confounding variable.   
+
+\subsection{real data versus regression}
 Apply to one of our imaging datasets, potentially Phil's OCT data.
+Alternatively, the oasis data. 
+
+We employ a subset of the freely available OASIS dataset and compare
+regression and pscca-based detection of gray matter effects
+attributable to dementia.
+
+PSCCA shows significant effects using a global multivariate test at
+the $p<0.05$ level, permutation tested.  
+
+Regression does not reveal signficant effects at the FDR-corrected
+$q<0.05$ level.  
+
+Selected slices of the results compare the regression-based p-value
+map to the pscca weight vector map.  
+
+we use only the primary eigenvector from pscca.  future work will
+analyze the effect of including additional eigenvectors. 
 
 \section{Discussion}
 %\vspace{-0.1in}

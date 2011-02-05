@@ -63,7 +63,7 @@ public:
   typedef vnl_vector<RealType>        VectorType;
   typedef vnl_diag_matrix<RealType>   DiagonalMatrixType;
 
-  enum SCCANFormulationType{ biSCCA, triSCCA };
+  enum SCCANFormulationType{ PQ , PminusRQ ,  PQminusR ,  PminusRQminusR , PQR  };
 
   /** ivars Set/Get functionality */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
@@ -105,7 +105,7 @@ public:
   MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true ); 
   MatrixType InverseCovarianceMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false); }
   MatrixType WhitenMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p); }
-  VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, VectorType covar);
+  VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, VectorType covar, bool factorOutR);
   MatrixType PartialOutZ( MatrixType X, MatrixType Y, MatrixType Z ) {
     /** compute the effect of Z and store it for later use */
   }
@@ -261,6 +261,7 @@ protected:
   }
 
 private:
+
   antsSCCANObject(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
@@ -300,6 +301,7 @@ private:
   bool m_AlreadyWhitened;
   bool m_SpecializationForHBM2011;
   RealType m_CorrelationForSignificanceTest;
+
 };
 
 } // namespace ants
