@@ -121,19 +121,11 @@ DeleteRow(vnl_matrix<TComp> p_in , unsigned int row)
   return p;
 }
 
-class myRandIntClass
+int sccanRandom(int n)
 {
-public:
-myRandIntClass() {}
-int operator() (int aRange)
-{
-  //srand(42);//seed of your choice here
-srand ( time(NULL) );
-int result = rand() % aRange;
-return result;
+    return rand() % n ;
 }
-};
-
+ 
 
 template <class TComp>
 vnl_matrix<TComp> 
@@ -141,16 +133,13 @@ PermuteMatrix( vnl_matrix<TComp> q , bool doperm=true)
 {
   typedef vnl_matrix<TComp> vMatrix;
   typedef vnl_vector<TComp> vVector;
-  myRandIntClass myRand;
-
+  
   std::vector<unsigned long> permvec; 
   for (unsigned long i=0; i < q.rows(); i++)
     permvec.push_back(i);
-  std::random_shuffle(permvec.begin(), permvec.end(),myRand);
-  //  for (unsigned long i=0; i < q.rows(); i++)
+  std::random_shuffle(permvec.begin(), permvec.end(),sccanRandom);
+  //    for (unsigned long i=0; i < q.rows(); i++)
   //  std::cout << " permv " << i << " is " << permvec[i] << std::endl;
-  std::random_shuffle(permvec.begin(), permvec.end());
-  std::random_shuffle(permvec.begin(), permvec.end());
   // for (unsigned long i=0; i < q.rows(); i++)
   //  std::cout << " permv " << i << " is " << permvec[i] << std::endl;
   // 1. permute q
@@ -593,9 +582,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix p_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixP() );
+      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
+      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixR() );
       sccanobjCovar->SetMatrixP( p_perm );
-      sccanobjCovar->SetMatrixQ( sccanobjCovar->GetMatrixQ() );
-      sccanobjCovar->SetMatrixR( sccanobjCovar->GetMatrixR() );
+      sccanobjCovar->SetMatrixQ( q_perm );
+      sccanobjCovar->SetMatrixR( r_perm );
       double permcorr=sccanobjCovar->RunSCCAN2();
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobjCovar->GetPWeights();
