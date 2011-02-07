@@ -592,10 +592,10 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       // 0. compute permutation for q ( switch around rows ) 
-      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
-      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixR() );
-      sccanobjCovar->SetMatrixQ( q_perm );
-      sccanobjCovar->SetMatrixR( r_perm );
+      vMatrix p_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixP() );
+      sccanobjCovar->SetMatrixP( p_perm );
+      sccanobjCovar->SetMatrixQ( sccanobjCovar->GetMatrixQ() );
+      sccanobjCovar->SetMatrixR( sccanobjCovar->GetMatrixR() );
       double permcorr=sccanobjCovar->RunSCCAN2();
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobjCovar->GetPWeights();
