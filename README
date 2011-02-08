@@ -1,10 +1,10 @@
 /*=========================================================================
 
-  Program:   Advanced Normalization Tools
-  Module:    $RCSfile: antsAtroposSegmentationImageFilter.h,v $
+  Program:   SCCAN
+  Module:    master 
   Language:  C++
-  Date:      $Date: $
-  Version:   $Revision: $
+  Date:      Feb 7, 2011
+  Version:   0.0
 
   Copyright (c) ConsortiumOfANTS. All rights reserved.
   See http://sourceforge.net/projects/advants/files/ANTS/ANTSCopyright.txt
@@ -44,11 +44,11 @@ sccan's core features:
 
 * permutation based significance estimates for the total correlation and for each weight within each variate.  this gives you some idea of the 'voxel-wise' significance.
 
-* enabling 'partial scca' where covariates are controlled by the masking.  
+* enabling 'partial scca' i.e. scca with covariates (new method).  
 
 an example call:
 
-sccan  --matrix-pair-operation scca_vnl[$FA,$TH,$FAMASK,$THMASK,${sparseF},${sparseT}]   -o $pre.nii.gz -p 100
+sccan  --scca two-view[$FA,$TH,$FAMASK,$THMASK,${sparseF},${sparseT}]   -o $pre.nii.gz -p 100
 
 would do 2-view cca on FA and thickness matrices (FA and TH variables) where the region of interest is defined by FAMASK and THMASK variables and non-zero fraction by sparseF and sparseT variables.   you would use 100 permutations (should use 1000s in practice) to test significance.  the output will be the first canonical variates in image format , the permutation-based significance (to standard out) and the voxel-wise significance estimates in image format. 
 
@@ -75,20 +75,12 @@ ElementDataFile = FA.raw
 
 as you can see there is extraneous junk that assumes this is an image that you're inputting, even though it's a matrix defining data for 24 subjects where each subject measurement has 60417 entries.
 
-*****************------HBM 2011 Notes------******************
-1. Assessing bi-serial correlations in the 3-view sccan i.e.
-gm + cognition and wm + cognition. 
+you can also convert a set of images to a matrix that is readable by sccan via:
 
-2. If you set the value in the input mask to 2 then you
-will compute 'partial-sparse-correlations' where the entries  
-with value 2 in the mask will be partialed out in the 
-associated weight vector as the sccan solution is computed 
-and before the projections and pearson correlation.  this 
-effectively lets one control for the impact of that 
-variable on the scca outcome.
+sccan  --imageset-to-matrix [list.txt,mask.nii.gz] -o  matrix.mhd 
 
-3. additional thoughts: partial correlation - correctness?, 
-canonical loads, multivariate regression, multiple variates, 
-testing/training. should the variates sum to one?
+the list.txt should contain one image filename per line and each image should be in the same space as the mask.
+
 *************************************************************
-
+see doc directory for additional information
+*************************************************************
