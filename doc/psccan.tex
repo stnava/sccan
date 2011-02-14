@@ -10,12 +10,12 @@
 \usepackage{amsmath,amssymb}
 \usepackage{times}
 \usepackage{setspace,verbatim}
-\usepackage{epsfig}
+\usepackage{epsfig,url}
 
 \begin{document}
 \vspace{-0.1in}
-\title{Partial sparse canonical correlation analysis for population
-  studies in neuroimaging}
+\title{Partial Sparse Canonical Correlation Analysis (PSCCA) for population
+  studies in Neuroimaging}
 \author{Anonymous}
 \institute{Anonymous}
 \maketitle              
@@ -24,19 +24,16 @@
 Sparse canonical correlation analysis (SCCA) is a powerful,
 multivariate statistical tool for making unbiased inferences about the
 relationship between different types of measurements taken on the same
-population.  Previously, SCCA depended upon univariate models to
-factor out the effects of confounding variables.  Here, we present a
-new algorithm for computing partial sparse canonical correlation
-analysis (PSCCA).  Our PSCCA implementation extends our novel SCCA
-methodology to include a formulation for covariates.  PSCCA employs
-three views of the data with one treated as a special set of
-measurements whose effect on the other one or two views of the data
-should be factored out.  For instance, the relationship between
+population. Generally, SCCA depends upon univariate models to
+factor out the effects of confounding variables.  In this paper we present a
+novel algorithm for computing partial sparse canonical correlation
+analysis (PSCCA) and factor (``partial'') out the effect of unwanted covariates. PSCCA employs
+three views (modalities) of the data with one of them treated as a special set of
+measurements whose effect on either  one or both other modalities should be factored out.  For instance, the relationship between
 cognition and neuroanatomy should be measured independently of the
-effect of age and gender.  This work gives a concise summary of the
-theory and algorithms underlying both part and partial sparse
-canonical correlation analysis via a representative example
-application taken from neuroimaging.  
+effect of age and gender.  We provide  theory and algorithms underlying partial sparse
+canonical correlation analysis (PSCCA) via a representative neuroimaging
+application.  
 \end{abstract}
 %\vspace{-0.2in}
 \section{Introduction}
@@ -56,7 +53,7 @@ application taken from neuroimaging.
 % 2009-2010 --- 19676
 The number of neuroimaging studies published annually doubled from
 9938 in 2000-2001 to 19676 in 2009-2010
-(http://www.ncbi.nlm.nih.gov/pubmed/).  This growth has been
+(\url{http://www.ncbi.nlm.nih.gov/pubmed/}).  This growth has been
 accompanied by increasing diversity in the types of data being
 collected such that neuroimaging studies include not only various
 structural and functional modalities but also neurocognitive
@@ -65,24 +62,24 @@ time, the statistical methods used in neuroimaging have changed
 relatively little from twenty years ago with the exception of a small
 number of recent studies \cite{Tosun2010a}.
 
-Why SCCA
-
-Why PSCCA
+%Why SCCA
+%Why PSCCA
 
 Consider a standard neuroimaging population study.  Each subject in
 the study is between 20 and 40 years of age, has a quantitative
 imaging measurement, is a member of one of two groups (patient or
 control) and is either male or female.  A standard regression analysis
 will treat the quantitative imaging measurement as the dependent
-variable and the age, gender and diagnosis group as predictors where
+variable ($\y$) and age, gender and diagnosis group as covariates $({\X})$ where
 each test is performed independently at each voxel.  Detection power
-is compromised by the multiple comparisons problem incurred by the
+is compromised by the multiple-comparison problem incurred by the
 number of imaging measurements (millions) as well as the confounding
-variables (age, gender).  The alternative PSCCA of the problem is
-formulated similarly.  However, the test itself is performed globally
-via a sparse multivariate formulation over the whole region of
-interest (e.g. all voxels in the cortex).  Thus, PSCCA uses only a
-single test on the full set of data.  The sparseness parameter in
+variables (age, gender).  If we are using linear regression then we can not do much about the first problem but for the second problem we can factor out the effects of these unwanted (confounding) variables by regressing on the residuals ($\y -\X\beta$). 
+
+
+An alternative methodology that one can use to approach the above neuroimaging  problem is by using CCA (Canonical Correlation Analysis)~\cite{hotellingcca} which inherently handles the multiple-comparison problem arising from large number of imaging measurements as it maximizes the correlation between the two views of the data ($\Y$ and $\X$ in our case)~\footnote{Note that here {$\X$} is same as earlier but $\Y$ is a matrix of all the imaging measurements and not a vector as was the case for linear regression study. As far as notation is concerned, we denote matrices by uppercase bold fonts and vectors by lowercase bold fonts, throughout this paper. }. Recently, sparse versions of CCA~\cite{parkhomenko,witten,lykou} have been proposed which give sparse loadings and work in the high dimensional setting, $p >n$, where $n$ is the number of observations (number of subjects in our neuroimaging study) and $p$ is the number of covariates. 
+
+We are unaware of any previous work which studies factoring (``partialing'') out the confounding covariates in the case of Sparse CCA. In this paper, we provide the theory of Partial Sparse CCA (PSCCA) and present a novel and efficient iterative algorithm for PSCCA. As mentioned earlier, PSCCA like CCA does not do multiple-comparisons but rather performs a single global sparse multivariate test  over the whole region of interest (e.g. all voxels in the cortex). The sparseness parameter in
 PSCCA selects the subset of the brain most associated with the
 variable of interest (diagnosis) while factoring out confounding
 effects (age, gender).  It is up to the researcher to use his or her
@@ -90,13 +87,15 @@ domain knowledge to select the desired sparseness for a given problem
 or to experiment with a training dataset to optimize the sparseness
 parameter.
 
-What we are doing here ( a few sentences )
+The rest of the paper is organized as follows, in the next Section we provide a brief review of CCA and Sparse CCA. In Section 3, we present the theory behind Partial Sparse CCA (PSCCA) and describe our novel iterative algorithm for performing PSCCA. In Section 4, we provide experimental results on synthetic and real world neuroimaging datasets and we conclude with a brief summary in Section 5.
 
-This paper will detail and illustrate our approach to performing
-neuroimaging studies in the style of traditional formulations but
-using a new, powerful multivariate pscca.  We highlight in both
-simulated and real data the advantages and disadvantages of this
-method.
+%What we are doing here ( a few sentences )
+
+%This paper will detail and illustrate our approach to performing
+%neuroimaging studies in the style of traditional formulations but
+%using a new, powerful multivariate pscca.  We highlight in both
+%simulated and real data the advantages and disadvantages of this
+%method.
 
 %\vspace{-0.2in}
 \section{PSCCA Theory}
@@ -222,6 +221,6 @@ analyze the effect of including additional eigenvectors.
 %National Institute Of Biomedical Imaging and Bioengineering and administered through the UCLA Center for Computational Biology.
 % %\vspace{-0.1in}
 \bibliographystyle{IEEEbib}
-\bibliography{./cca.bib}
+\bibliography{./cca}
 
 \end{document}
