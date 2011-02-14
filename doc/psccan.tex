@@ -98,6 +98,54 @@ The rest of the paper is organized as follows, in the next Section we provide a 
 %method.
 
 %\vspace{-0.2in}
+
+\section{Brief Review: CCA and Sparse CCA (SCCA)}
+
+CCA~\cite{hotellingcca} is the analog to Principal
+Component Analysis (PCA) for pairs of matrices. PCA
+computes the directions of maximum covariance between elements in a
+single matrix, whereas CCA computes the directions of maximal correlation
+between a pair of matrices. 
+See~\cite{taylor:cca} for a general review of CCA along with some representative applications. 
+Unlike PCA, CCA does not depend on how the observations
+are scaled.  
+
+More specifically, given a set of $n$ paired observation vectors
+$\{(y_1,x_1),...,(y_n,x_n)\}$--in our case the two matrices are the
+quantitative imaging measurement ({\bf Y}) and age, gender, diagnosis ({\bf X}) matrices\footnote{For
+  notational convenience we assume that samples have zero mean.} --we would like to simultaneously find the directions
+${\boldsymbol{\boldsymbol\Phi_y}}$ and
+${\boldsymbol{\boldsymbol\Phi_x}}$ that maximize the correlation of
+the projections of ${\bf Y}$ onto ${\boldsymbol{\boldsymbol\Phi_y}}$
+with the projections of ${\bf X}$ onto
+${\boldsymbol{\boldsymbol\Phi_x}}$. This is expressed as
+
+\begin{equation}
+\label{cca1}
+\max_{{\boldsymbol\Phi_y}, {\boldsymbol\Phi_x}}
+\frac{\mathbb{E}[\langle {\bf Y}, {\boldsymbol\Phi_y} \rangle \langle
+    {\bf X},{\boldsymbol\Phi_x} \rangle]}{\sqrt{\mathbb{E}[\langle
+      {\bf Y},{\boldsymbol\Phi_y} \rangle^2] \mathbb{E}[\langle {\bf
+        X},{\boldsymbol\Phi_x} \rangle^2] }}
+\end{equation}
+where $\mathbb{E}$ denotes the empirical expectation. We denote the
+covariance matrix of ${\bf Y}$ with ${\bf X}$ by {\bf C} and use the
+notation ${\bf C_{yx}}$ ${(\bf C_{yy})}$ to denote the cross (auto)
+covariance matrices between {\bf Y} and {\bf X}. 
+
+The left and right canonical correlates are
+the eigenvectors of the following equations:
+\begin{eqnarray}
+\label{eigvecs}
+\nonumber
+{\bf C_{yy}}^{-1/2}{\bf C_{yx}}{\bf C_{xx}}^{-1/2}{\bf C_{xx}}^{-1/2}{\bf C_{xy}}{\bf C_{yy}}^{-1/2}{\boldsymbol\Phi_y} = \lambda {\boldsymbol\Phi_y} \\
+{\bf C_{xx}}^{-1/2}{\bf C_{xy}}{\bf C_{yy}}^{-1/2}{\bf C_{yy}}^{-1/2}{\bf C_{yx}}{\bf C_{xx}}^{-1/2}{\boldsymbol\Phi_x} = \lambda {\boldsymbol\Phi_x}
+\end{eqnarray}
+
+
+
+
+
 \section{PSCCA Theory}
 SCCA will maximize:
 \begin{equation}
