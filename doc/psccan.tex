@@ -114,6 +114,18 @@ $\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
 
 The covariance formulation of SCCA .... 
 
+Let's compute the canonical correlation between two matrices where we
+assume the matrices have been normalized and, as such, CCA computes
+$$ \rho = \frac{ x \X^T \Y y  }{ \sqrt{x  \X^T \X x}\sqrt{x  \Y^T \Y y}  } $$.  Now, we change bases by
+using the whitening transform.  
+Redefine $\x =  ... $ Then, $\X \leftarrow \X \Sigma^{-1/2}_{XX}$ (same for $\Y$) and
+$$ \rho = \frac{ x \X_w^T \Y_w \y  }{ ||x|| || y||} $$.
+$$\rho = \frac{c^T \Sigma^{-1/2}_{XX} \Sigma_{XY}
+  \Sigma^{-1/2}_{YY}}{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
+if matrices are whitened, then $\X \leftarrow \X \Sigma^{-1/2}_{XX}$
+$$ \rho = \frac{c^T \Sigma_{XY}  d }{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
 The partial SCCA formulation will maximize 
 \begin{equation}
 \text{argmax}( \x,\y) :
