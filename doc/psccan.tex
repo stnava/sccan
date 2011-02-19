@@ -7,7 +7,9 @@
 \newcommand{\y}{{\bf y}}
 \newcommand{\Z}{{\bf Z}}
 \newcommand{\z}{{\bf z}}
-\usepackage{amsmath,amssymb}
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\bSigma}{\boldsymbol \Sigma}
+\usepackage{amsmath,amssymb,algorithm,algorithmic}
 \usepackage{times}
 \usepackage{setspace,verbatim}
 \usepackage{epsfig,url}
@@ -112,121 +114,154 @@ are scaled.
 
 More specifically, given a set of $n$ paired observation vectors
 $\{(y_1,x_1),...,(y_n,x_n)\}$--in our case the two matrices are the
-quantitative imaging measurement ({\bf Y}) and age, gender, diagnosis ({\bf X}) matrices\footnote{For
+quantitative imaging measurement ({\Y}) and age, gender, diagnosis ({\X}) matrices\footnote{For
   notational convenience we assume that samples have zero mean.} --we would like to simultaneously find the directions
-${\boldsymbol{\boldsymbol\Phi_y}}$ and
-${\boldsymbol{\boldsymbol\Phi_x}}$ that maximize the correlation of
-the projections of ${\bf Y}$ onto ${\boldsymbol{\boldsymbol\Phi_y}}$
-with the projections of ${\bf X}$ onto
-${\boldsymbol{\boldsymbol\Phi_x}}$. This is expressed as
+${\bs{\bs\phi_Y}}$ and
+${\bs{\bs\phi_X}}$ that maximize the correlation of
+the projections of ${\Y}$ onto ${\bs{\bs\phi_Y}}$
+with the projections of ${\X}$ onto
+${\bs{\bs\phi_X}}$. This is expressed as
 
 \begin{equation}
 \label{cca1}
-\max_{{\boldsymbol\Phi_y}, {\boldsymbol\Phi_x}}
-\frac{\mathbb{E}[\langle {\bf Y}, {\boldsymbol\Phi_y} \rangle \langle
-    {\bf X},{\boldsymbol\Phi_x} \rangle]}{\sqrt{\mathbb{E}[\langle
-      {\bf Y},{\boldsymbol\Phi_y} \rangle^2] \mathbb{E}[\langle {\bf
-        X},{\boldsymbol\Phi_x} \rangle^2] }}
+\rho=\max_{{\bs\phi_Y}, {\bs\phi_X}}
+\frac{{\bs\phi_X^T\bSigma_{XY}}\bs\phi_Y}{\sqrt{\bs\phi_X^T\bSigma_{XX}\bs\phi_X}\sqrt{\bs\phi_Y^T\bSigma_{YY}\bs\phi_Y}}
 \end{equation}
-where $\mathbb{E}$ denotes the empirical expectation. We denote the
-covariance matrix of ${\bf Y}$ with ${\bf X}$ by {\bf C} and use the
-notation ${\bf C_{yx}}$ ${(\bf C_{yy})}$ to denote the cross (auto)
-covariance matrices between {\bf Y} and {\bf X}. 
+where ${\bSigma_{XX}}$, ${\bSigma_{YY}}$ and ${\bSigma_{XY}}$ are the auto and cross covariance matrices i.e. $\X^T\X$, $\Y^T\Y$ and $\X^T\Y$ respectively. The above objective can also be thought of as maximizing the numerator $\bs\phi_X^T\bSigma_{XY}\bs\phi_Y$ subject to $\bs\phi_X^T\bSigma_{XX}\bs\phi_X =1$ and $\bs\phi_Y^T\bSigma_{YY}\bs\phi_Y=1$
 
-The left and right canonical correlates are
-the eigenvectors of the following equations:
-\begin{eqnarray}
-\label{eigvecs}
-\nonumber
-{\bf C_{yy}}^{-1/2}{\bf C_{yx}}{\bf C_{xx}}^{-1/2}{\bf C_{xx}}^{-1/2}{\bf C_{xy}}{\bf C_{yy}}^{-1/2}{\boldsymbol\Phi_y} = \lambda {\boldsymbol\Phi_y} \\
-{\bf C_{xx}}^{-1/2}{\bf C_{xy}}{\bf C_{yy}}^{-1/2}{\bf C_{yy}}^{-1/2}{\bf C_{yx}}{\bf C_{xx}}^{-1/2}{\boldsymbol\Phi_x} = \lambda {\boldsymbol\Phi_x}
-\end{eqnarray}
+Now, define change of basis as:
 
-
-
-
-
-\section{PSCCA Theory}
-SCCA will maximize:
 \begin{equation}
-\text{argmax}( \x,\y) :
-~\text{Corr}~( \X \x , \Y \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
-\end{equation} 
-where $\X$ is a matrix with columns containing voxels from one set of
-images of $n$ subjects, 
-and $\Y$ is a matrix with columns containing voxels from the second
-set of images from the same $n$ subjects. 
-Corr computes Pearson correlation and the
-$\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
+\label{basisChange}
+\bs\phi_X = \bSigma_{XX}^{1/2}\bs\phi_X, \;\;\;\;\;\;   \bs\phi_Y = \bSigma_{YY}^{1/2}\bs\phi_Y 
+\end{equation}
 
-The covariance formulation of SCCA .... 
+Now, substituting~(\ref{basisChange}) in~(\ref{cca1}) we get 
 
-Let's compute the canonical correlation between two matrices where we
-assume the matrices have been normalized and, as such, CCA computes
-$$ \rho = \frac{ x \X^T \Y y  }{ \sqrt{x  \X^T \X x}\sqrt{x  \Y^T \Y y}  } $$.  Now, we change bases by
-using the whitening transform.  
-Redefine $\x =  ... $ Then, $\X \leftarrow \X \Sigma^{-1/2}_{XX}$ (same for $\Y$) and
-$$ \rho = \frac{ x \X_w^T \Y_w \y  }{ ||x|| || y||} $$.
-$$\rho = \frac{c^T \Sigma^{-1/2}_{XX} \Sigma_{XY}
-  \Sigma^{-1/2}_{YY}}{\sqrt{c^Tc}\sqrt{d^Td}}$$
-
-if matrices are whitened, then $\X \leftarrow \X \Sigma^{-1/2}_{XX}$
-$$ \rho = \frac{c^T \Sigma_{XY}  d }{\sqrt{c^Tc}\sqrt{d^Td}}$$
-
-The partial SCCA formulation will maximize 
 \begin{equation}
-\text{argmax}( \x,\y) :
-~\text{Corr}~( \X_{\Z} \x , \Y_{\Z} \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
-\end{equation} 
-where $\Z$ is a matrix of confounding variables and $\X_{\Z}$ and
-$\Y_{\Z}$ represent $\X$, $\Y$ with the effect of $\Z$ factored out.
+\label{subs}
+\rho= \max_{{\bs\phi_Y}, {\bs\phi_X}} \frac{\bs\phi_X^T \bSigma_{XX}^{-1/2}\bSigma_{XY}\bSigma_{YY}^{-1/2}\bs\phi_Y}{\|\bs\phi_X\| \|\bs\phi_Y\|}
+\end{equation}
 
-{\bf notes:}
+Applying the whitening transform~\footnote{Whitening transform is used to convert covariances to correlations and also to de-correlate the auto-correlation matrices so that CCA can ``truly'' maximize the cross-correlation. The standard whitening transform is defined as $\X_w= \X\bSigma_{XX}^{-1/2}$ and $\Y_w= \Y\bSigma_{YY}^{-1/2}$} to~(\ref{subs})
 
-One should use SCCA to test for relationships between {\X} and {\Z} and, separately, {\Y} and {\Z}.  Results will dictate whether
-one should use standard, part or partial SCCA to assess the {\X} and {\Y}
-relationship.
+\begin{equation}
+\label{simplifiedcca}
+Corr(\X_w\bs\phi_X,\Y_w\bs\phi_Y)=\rho=\max_{{\bs\phi_Y}, {\bs\phi_X}} \frac{\bs\phi_X^T \bSigma_{X_wY_w}\bs\phi_Y}{\|\bs\phi_X\| \|\bs\phi_Y\|}
+\end{equation}
+where $\bSigma_{X_wY_w} = \X_w^T\Y_w$. 
 
-PSCCA will not apply sparseness to the covariate view.  
+As mentioned earlier, CCA results in vectors $\bs\phi_X$, $\bs\phi_Y$ that are not sparse, and these vectors are not unique if $p > n$. In certain biomedical imaging applications if $p$ is large, one might be interested in finding a linear combination of the variables in $\X_w$ and $\Y_w$ that has large correlation but is also sparse in the variables used. To this end, several sparse versions of CCA have been proposed. ~\cite{parkhomenko} use penalized matrix decomposition to enforce sparsity;~\cite{parkhomenko} use soft-max thresholding in an iterative algorithm and~\cite{lykou} propose a LARS~\cite{lars} style algorithm for getting sparsity in loadings.
 
-Follow Timm's notation.  Let's use {\X}, {\Y} and {\Z} to describe the theory, with {\Z} as the
-'covariate'.   However, our code uses P, Q and R variables ....
- 
+However, none of the previous works provide a way of ``partialing'' out the confounding variables-- a highly desirable modeling property for many biomedical and neuroimaging applications. 
 
-\begin{figure}
-\begin{center}
-\begin{tabular}{ccc}
+In the next section, we describe the main contribution of this paper i.e. a way of ``partialing'' out these confounding variables in the SCCA setting and also provide a power iteration based algorithm to efficiently compute the directions of maximum correlation. Our work is a natural extension of the SCCA formulations by~\cite{parkhomenko,witten} and is called Partial Sparse CCA (PSCCA).
+
+
+
+\section{PSCCA (Partial Sparse Canonical Correlation Analysis)}
+As earlier, let $\X_w$ be the (whitened) matrix with columns containing voxels from one set of
+images of $n$ subjects; $\Y_w$ is the matrix with columns containing voxels from the second
+set of images from the same $n$ subjects and further let $\Z_w$ be the matrix of confounding variables (age, diagnosis, gender etc.) for our neuroimaging problem. Also, let $\lambda_X$ and $\lambda_Y$ ($\in [0,1]$) (higher indicates more sparsity) be the user defined sparsity parameters which control the sparsity for either set of the canonical variates. They can be chosen automatically (``data driven'') so as to maximize the correlation (or likelihood) between the canonical variates, but such an approach would not naturally render itself  to scientific interpretability which is very important for neuroimaging studies. 
+
+PSCCA~\cite{timm} finds the correlation between $\X$ and $\Y$ after
+removing (``partialing out'') the linear effect of the confounding
+variables $\Z$.  We denote the $\X$ and $\Y$ matrices with the effect
+of $\Z$ partialed out as $\X_Z$ and $\Y_Z$.  Minimizing $\| \X - \Z
+\bs\beta \|^2 $ by standard least squares gives
+ $\bs\beta = \bSigma_{ZZ}^{-1} \Z^T \X$ such that $\X_Z = \X - \Z  \bSigma_{ZZ}^{-1} \Z^T \X$.  Whitening $\Z$ gives $\X_Z=\X - \Z_w \Z_w^T \X$
+ and similarly for $\Y$. 
+Then the PSCCA objective can be written compactly as:
+\begin{equation}
+\label{pscca}
+\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma_{X_Z Y_{Z}}\bs\phi_Y
+\end{equation}
+subject to the constraints that $\bs\phi_X^T \bSigma_{XX_Z} \bs\phi_X 
+=  \bs\phi_Y^T \bSigma_{YY_Z} \bs\phi_Y = 1$.
+Similarly as (\ref{simplifiedcca}) the above objective is seen as maximizing the numerator subject to  $\bs\phi_X^T\bs\phi_X=1$ and $\bs\phi_Y^T\bs\phi_Y=1$.
+
+%The matrices $\bSigma_{X_wX_w\backslash Z_w}$ etc. are the variance-covariance matrices of the residual vectors $\bs r_X$ and $\bs r_Y$ and are defined as:
+
+%\begin{eqnarray}
+%\label{matrices}
+%\begin{bmatrix}
+% \bSigma_{11\backslash 3} & \bSigma_{12\backslash 3} \\
+%  \bSigma_{21\backslash 3} & \bSigma_{22\backslash 3} 
+%\end{bmatrix}
+%&=&
+%\begin{bmatrix}
+% \bSigma_{11} -\bSigma_{13}\bSigma_{33}^{-1}\bSigma_{31} &\;\;\;\; \bSigma_{12} -\bSigma_{13}\bSigma_{33}^{-1}\bSigma_{32}\\
+%  \bSigma_{21} -\bSigma_{23}\bSigma_{33}^{-1}\bSigma_{31} &\;\;\;\; \bSigma_{22} -\bSigma_{23}\bSigma_{33}^{-1}\bSigma_{33}
+%\end{bmatrix}
+%\end{eqnarray}
+%where we denote $\X_w \rightarrow 1$, $\Y_w \rightarrow 2$ and $\Z_w \rightarrow 3$ as shorthand.
+
+% Equation~(\ref{matrices}) can easily be extended to handle more than two matrices and also to ``partial'' out the effect of more than one confounding covariate matrices.
+
+%\begin{figure}
+%\begin{center}
+%\begin{tabular}{ccc}
 % \includegraphics[width=70mm]{r16slice.png} &
 % \includegraphics[width=70mm]{r16icm.png} \\
-(a) & (b) & (c) \\
-\end{tabular}
-\end{center}
-\caption{\baselineskip 12pt \small Cartoons illustrating (a) SCCA ;
-  (b) partial SCCA ; (c) part SCCA.  }
-\label{fig:cartoon}
-\end{figure}
+%(a) & (b) & (c) \\
+%\end{tabular}
+%\end{center}
 
-\section{PSCCA Algorithm}
-\vspace{0.1in}
-\noindent{\bf Algorithm for computing first set of canonical variates}
-\vspace{-0.1in}
-\begin{description}
-\item [Whiten:]Apply the whitening transformation to {\X}, {\Y}, {\Z}.
+
+%\caption{\baselineskip 12pt \small Cartoons illustrating (a) SCCA ;
+%  (b) partial SCCA ; (c) part SCCA.  }
+%\label{fig:cartoon}
+%\end{figure}
+
+\subsection{PSCCA Algorithm}
+Following \cite{golub}, we propose a power iteration based algorithm for PSCCA for the general problem of finding principal eigenvectors of the matrices.
+
+
+\begin{algorithm}[htdp]
+\small \caption{\bf Computing principal eigenvectors for PSCCA}
+\label{partial-mic}
+\begin{algorithmic}[1]
+\STATE Apply the whitening transformation to {\Z} to get $\Z_{w}$.
+\STATE Compute $\X_Z$ and $\Y_Z$ and whiten each to get $\X_{w}$ and $\Y_{w}$. 
+% \STATE Compute $\Sigma_{11\backslash 3}$ and $\Sigma_{22\backslash 3}$ using (\ref{matrices}).
+\STATE Select the (fractional) sparsity parameters $\lambda_X$ and $\lambda_Y$
+\STATE Randomly initialize $\bs \phi_X^0$ and $\bs \phi_Y^0$ ($\sim \mathcal{N}(0,1)$) and set $k=0$.
+
+\WHILE {$\Delta$ Corr($\bs X_w \bs \phi_X^{k+1}$, $\bs Y_w \bs \phi_Y^{k+1}$) $<$ $\epsilon$}
+\STATE Compute  $\bs \phi_X^{k+1}= {\X_w}^T {\Y_w} \bs \phi_Y^{k} $ %-  {\X_w}^T  {\Z_w} {\Z_w}^T {\Y_w} \bs \phi_Y^{k}$
+\STATE Soft-Max Sparseness:  $\bs \phi_X^{k+1} \leftarrow (\|\bs \phi_X^{k+1}\|  - max(\bs \phi_X^{k+1})*\lambda_X)_+$
+\STATE Normalize: $\bs \phi_X^{k+1} \leftarrow \frac{\bs \phi_X^{k+1}}{\|\bs \phi_X^{k+1}\|}$\\
+//Repeat Same Procedure for $\bs \phi_Y$ \\
+\STATE Compute  $\bs \phi_Y^{k+1}= {\Y_w}^T {\X_w} \bs \phi_X^{k+1} $
+% -  {\Y_w}^T  {\Z_w} {\Z_w}^T {\X_w} \bs \phi_X^{k+1}$
+\STATE Soft-Max Sparseness: $\bs \phi_Y^{k+1} \leftarrow (\|\bs \phi_Y^{k+1}\|  - max(\bs \phi_Y^{k+1})*\lambda_Y)_+$
+\STATE Normalize: $\bs \phi_Y^{k+1} \leftarrow \frac{\bs \phi_Y^{k+1}}{\|\bs \phi_Y^{k+1}\|}$
+\STATE k $\leftarrow$ k+1
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+where $(x)_+$ in the above Algorithm is equal to $x$ is $x \geq 0$ and $0$ is $x <0$
+
+
+%\noindent{}
+%\vspace{-0.1in}
+%\begin{description}
+%\item [Whiten:]Apply the whitening transformation to {\X}, {\Y}, {\Z}.
 %    VectorType temp=q*w_q;
 %    wpnew=p.transpose()*( temp - this->m_MatrixRRt*temp ); 
-\item [Begin Loop:]for power iteration. 
-\item [~~View 1:]Compute  $\x= {\X}^T {\Y} \y -  {\X}^T  {\Z} {\Z}^T {\Y} \y$.
-\item [~~Soft-Max Sparseness \& Normalization $\x$:] Enforce $\x$
-  sparseness and set $\x \leftarrow \frac{\x}{\|\x\|}$.
-\item [~~View 2:]Compute  $\y= {\Y}^T {\X} \x -  {\Y}^T  {\Z} {\Z}^T
-  {\X} \x$
-\item [~~Soft-Max Sparseness \& Normalization $\y$:] As in $\x$ step.
-\item [~~CC:]Compute $Corr( {\X} \x ,  {\Y} \y )$.
-\item [End loop:]Check the correlation and stop when converged.
-\end{description}
+%\item [Begin Loop:]for power iteration. 
+%\item [~~View 1:]Compute  $\x= {\X}^T {\Y} \y -  {\X}^T  {\Z} {\Z}^T {\Y} \y$.
+%\item [~~Soft-Max Sparseness \& Normalization $\x$:] Enforce $\x$
+%  sparseness and set $\x \leftarrow \frac{\x}{\|\x\|}$.
+%\item [~~View 2:]Compute  $\y= {\Y}^T {\X} \x -  {\Y}^T  {\Z} {\Z}^T
+%  {\X} \x$
+%\item [~~Soft-Max Sparseness \& Normalization $\y$:] As in $\x$ step.
+%\item [~~CC:]Compute $Corr( {\X} \x ,  {\Y} \y )$.
+%\item [End loop:]Check the correlation and stop when converged.
+%\end{description}
  
-For multiple eigenvectors, use the Lanczos algorithm.
-
+%For multiple eigenvectors, use the Lanczos algorithm.
+Paramveer: Done till here
 \section{Results}
 \subsection{synthetic data}
 we simulate three view data with and without a significant association
@@ -272,3 +307,31 @@ analyze the effect of including additional eigenvectors.
 \bibliography{./cca}
 
 \end{document}
+
+
+<<<<<<< HEAD
+\text{argmax}( \x,\y) :
+~\text{Corr}~( \X \x , \Y \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
+\end{equation} 
+where $\X$ is a matrix with columns containing voxels from one set of
+images of $n$ subjects, 
+and $\Y$ is a matrix with columns containing voxels from the second
+set of images from the same $n$ subjects. 
+Corr computes Pearson correlation and the
+$\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
+
+The covariance formulation of SCCA .... 
+
+Let's compute the canonical correlation between two matrices where we
+assume the matrices have been normalized and, as such, CCA computes
+$$ \rho = \frac{ x \X^T \Y y  }{ \sqrt{x  \X^T \X x}\sqrt{x  \Y^T \Y y}  } $$.  Now, we change bases by
+using the whitening transform.  
+Redefine $\x =  ... $ Then, $\X \leftarrow \X \Sigma^{-1/2}_{XX}$ (same for $\Y$) and
+$$ \rho = \frac{ x \X_w^T \Y_w \y  }{ ||x|| || y||} $$.
+$$\rho = \frac{c^T \Sigma^{-1/2}_{XX} \Sigma_{XY}
+  \Sigma^{-1/2}_{YY}}{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
+if matrices are whitened, then $\X \leftarrow \X \Sigma^{-1/2}_{XX}$
+$$ \rho = \frac{c^T \Sigma_{XY}  d }{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
+The partial SCCA formulation will maximize 
