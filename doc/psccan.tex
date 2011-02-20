@@ -182,13 +182,6 @@ subject to the constraints that $\bs\phi_X^T \X^T \X_Z \bs\phi_X
 Similarly as (\ref{simplifiedcca}) the above objective is seen as maximizing the numerator subject to  $\bs\phi_X^T\bs\phi_X=1$ and $\bs\phi_Y^T\bs\phi_Y=1$.
 
 %PSCCAN will then seek to 
-%\begin{eqnarray}
-%\label{matrices}
-%\begin{bmatrix}
-%\X^T \X - \X^T \Z_w \Z_w^T \X  ~~~~&~~~~   \X^T \Y - \X^T \Z_w \Z_w^T \Y  \\
-%\Y^T \X - \Y^T \Z_w \Z_w^T \X   ~~~~&~~~~  \Y^T \Y- \Y^T \Z_w \Z_w^T \Y 
-%\end{bmatrix}
-%\end{eqnarray}
 We compute the basis change as in SCCA but use $\bs\phi_X=\bSigma^{1/2}_{XX_Z}\bs\phi_X$
 (similarly for $\bs\phi_Y$).  We then minimize,
 \begin{eqnarray}
@@ -196,7 +189,21 @@ We compute the basis change as in SCCA but use $\bs\phi_X=\bSigma^{1/2}_{XX_Z}\b
 \max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma^{-1/2}_{XX_Z} \X^T \Y_Z \bSigma^{-1/2}_{YY_Z}\bs\phi_Y 
 \end{eqnarray}
 subject to the constraints that $\bs\phi_X^T \bs\phi_X 
-=  \bs\phi_Y^T \bs\phi_Y = 1$.
+=  \bs\phi_Y^T \bs\phi_Y = 1$.~~Equivalently, we may write (using
+whitening to absorb the inverse covariance matrices)
+\begin{eqnarray}
+\label{pscca}
+\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \X_w^T \Y_{wZ} \bs\phi_Y 
+\end{eqnarray}
+
+
+\begin{eqnarray}
+\label{matrices}
+\begin{bmatrix}
+\X^T \X - \X^T \Z_w \Z_w^T \X  ~~~~&~~~~   \X^T \Y - \X^T \Z_w \Z_w^T \Y  \\
+\Y^T \X - \Y^T \Z_w \Z_w^T \X   ~~~~&~~~~  \Y^T \Y- \Y^T \Z_w \Z_w^T \Y 
+\end{bmatrix}
+\end{eqnarray}
 
 
 %The matrices $\bSigma_{X_wX_w\backslash Z_w}$ etc. are the variance-covariance matrices of the residual vectors $\bs r_X$ and $\bs r_Y$ and are defined as:
