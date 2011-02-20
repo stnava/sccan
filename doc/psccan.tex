@@ -170,31 +170,40 @@ variables $\Z$.  We denote the $\X$ and $\Y$ matrices with the effect
 of $\Z$ partialed out as $\X_Z$ and $\Y_Z$.  Minimizing $\| \X - \Z
 \bs\beta \|^2 $ by standard least squares gives
  $\bs\beta = \bSigma_{ZZ}^{-1} \Z^T \X$ such that $\X_Z = \X - \Z  \bSigma_{ZZ}^{-1} \Z^T \X$.  Whitening $\Z$ gives $\X_Z=\X - \Z_w \Z_w^T \X$
- and similarly for $\Y$. 
-Then the PSCCA objective can be written compactly as:
+ and similarly for $\Y$.
+The PSCCA objective then becomes 
 \begin{eqnarray}
 \label{pscca}
+\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T  \X_Z^T \Y_Z \bs\phi_Y \\ \notag
+\end{eqnarray}
+subject to the constraints that $\bs\phi_X^T \X_Z^T \X_Z \bs\phi_X 
+=  \bs\phi_Y^T \Y_Z^T \Y_Z \bs\phi_Y = 1$. 
+As has been show in traditional PCCA~\cite{timm}, one may trivially simplify this objective to:
+\begin{eqnarray}
+\label{simplifiedpscca}
 \max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T  \X^T \Y_Z \bs\phi_Y \\ \notag
 % \max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma_{X_Z Y_{Z}}\bs\phi_Y
 \end{eqnarray}
 subject to the constraints that $\bs\phi_X^T \X^T \X_Z \bs\phi_X 
-=  \bs\phi_Y^T \Y^T \Y_Z \bs\phi_Y = 1$.
-Similarly as (\ref{simplifiedcca}) the above objective is seen as maximizing the numerator subject to  $\bs\phi_X^T\bs\phi_X=1$ and $\bs\phi_Y^T\bs\phi_Y=1$.
+=  \bs\phi_Y^T \Y^T \Y_Z \bs\phi_Y = 1$.   Like the original objective
+(\ref{pscca}),
+(\ref{simplifiedpscca}) is a symmetric function despite the initial appearance of asymmetry. 
+%Similarly as (\ref{simplifiedcca}) the above objective is seen as maximizing the numerator subject to  $\bs\phi_X^T\bs\phi_X=1$ and $\bs\phi_Y^T\bs\phi_Y=1$.
 
 %PSCCAN will then seek to 
-We compute the basis change as in SCCA but use $\bs\phi_X=\bSigma^{1/2}_{XX_Z}\bs\phi_X$
+Beginning from (\ref{pscca}), we compute the basis change as in SCCA but use $\bs\phi_X=\bSigma^{1/2}_{X_ZX_Z}\bs\phi_X$
 (similarly for $\bs\phi_Y$).  We then minimize,
 \begin{eqnarray}
-\label{pscca}
-\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma^{-1/2}_{XX_Z} \X^T \Y_Z \bSigma^{-1/2}_{YY_Z}\bs\phi_Y 
+\label{pscca2}
+\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma^{-1/2}_{X_ZX_Z} \X_Z^T \Y_Z \bSigma^{-1/2}_{Y_ZY_Z}\bs\phi_Y 
 \end{eqnarray}
 subject to the constraints that $\bs\phi_X^T \bs\phi_X 
-=  \bs\phi_Y^T \bs\phi_Y = 1$ and user-selected $L_1$ sparsity on 
+=  \bs\phi_Y^T \bs\phi_Y = 1$ and user-selected sparsity on 
 $\bs\phi_X$ and $\bs\phi_Y$.~~Equivalently, we may write (using
 whitening to absorb the inverse covariance matrices)
 \begin{eqnarray}
-\label{pscca}
-\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \X_w^T \Y_{wZ} \bs\phi_Y 
+\label{pscca3}
+\max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \X_{wZ}^T \Y_{wZ} \bs\phi_Y 
 \end{eqnarray}
 FIXME --- need to add sparsity constraints to the objective function.
 
@@ -249,17 +258,17 @@ Following \cite{golub}, we propose a power iteration based algorithm for PSCCA f
 \label{partial-mic}
 \begin{algorithmic}[1]
 \STATE Apply the whitening transformation to {\Z} to get $\Z_{w}$.
-\STATE Compute $\X_Z$ and $\Y_Z$ and whiten each to get $\X_{w}$ and $\Y_{w}$. 
+\STATE Compute $\X_Z$ and $\Y_Z$ and whiten each to get $\X_{wZ}$ and $\Y_{wZ}$. 
 % \STATE Compute $\Sigma_{11\backslash 3}$ and $\Sigma_{22\backslash 3}$ using (\ref{matrices}).
 \STATE Select the (fractional) sparsity parameters $\lambda_X$ and $\lambda_Y$
 \STATE Randomly initialize $\bs \phi_X^0$ and $\bs \phi_Y^0$ ($\sim \mathcal{N}(0,1)$) and set $k=0$.
 
 \WHILE {$\Delta$ Corr($\bs X_w \bs \phi_X^{k+1}$, $\bs Y_w \bs \phi_Y^{k+1}$) $<$ $\epsilon$}
-\STATE Compute  $\bs \phi_X^{k+1}= {\X_w}^T {\Y_w} \bs \phi_Y^{k} $ %-  {\X_w}^T  {\Z_w} {\Z_w}^T {\Y_w} \bs \phi_Y^{k}$
+\STATE Compute  $\bs \phi_X^{k+1}= {\X_{wZ}}^T {\Y_{wZ}} \bs \phi_Y^{k} $ %-  {\X_w}^T  {\Z_w} {\Z_w}^T {\Y_w} \bs \phi_Y^{k}$
 \STATE Soft-Max Sparseness:  $\bs \phi_X^{k+1} \leftarrow (\|\bs \phi_X^{k+1}\|  - max(\bs \phi_X^{k+1})*\lambda_X)_+$
 \STATE Normalize: $\bs \phi_X^{k+1} \leftarrow \frac{\bs \phi_X^{k+1}}{\|\bs \phi_X^{k+1}\|}$\\
 //Repeat Same Procedure for $\bs \phi_Y$ \\
-\STATE Compute  $\bs \phi_Y^{k+1}= {\Y_w}^T {\X_w} \bs \phi_X^{k+1} $
+\STATE Compute  $\bs \phi_Y^{k+1}= {\Y_{wZ}}^T {\X_{wZ}} \bs \phi_X^{k+1} $
 % -  {\Y_w}^T  {\Z_w} {\Z_w}^T {\X_w} \bs \phi_X^{k+1}$
 \STATE Soft-Max Sparseness: $\bs \phi_Y^{k+1} \leftarrow (\|\bs \phi_Y^{k+1}\|  - max(\bs \phi_Y^{k+1})*\lambda_Y)_+$
 \STATE Normalize: $\bs \phi_Y^{k+1} \leftarrow \frac{\bs \phi_Y^{k+1}}{\|\bs \phi_Y^{k+1}\|}$
