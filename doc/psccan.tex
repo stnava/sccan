@@ -189,13 +189,14 @@ We compute the basis change as in SCCA but use $\bs\phi_X=\bSigma^{1/2}_{XX_Z}\b
 \max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \bSigma^{-1/2}_{XX_Z} \X^T \Y_Z \bSigma^{-1/2}_{YY_Z}\bs\phi_Y 
 \end{eqnarray}
 subject to the constraints that $\bs\phi_X^T \bs\phi_X 
-=  \bs\phi_Y^T \bs\phi_Y = 1$.~~Equivalently, we may write (using
+=  \bs\phi_Y^T \bs\phi_Y = 1$ and user-selected $L_1$ sparsity on 
+$\bs\phi_X$ and $\bs\phi_Y$.~~Equivalently, we may write (using
 whitening to absorb the inverse covariance matrices)
 \begin{eqnarray}
 \label{pscca}
 \max_{{\bs\phi_Y}, {\bs\phi_X}} \bs\phi_X^T \X_w^T \Y_{wZ} \bs\phi_Y 
 \end{eqnarray}
-
+FIXME --- need to add sparsity constraints to the objective function.
 
 \begin{eqnarray}
 \label{matrices}
