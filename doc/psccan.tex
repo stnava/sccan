@@ -198,14 +198,14 @@ Now, changing the basis as for simple CCA, we get
 
 \begin{equation}
 \label{basisChangePSCCA}
-\bs\psi_{\X} = \bs(\Sigma_{\X\X}^{\backslash \Z})^{1/2}\bs\phi_{\X}, \;\;\;\;\;\;   \bs\psi_{\Y} = \bs(\Sigma_{\Y\Y}^{\backslash \Z})^{1/2}\bs\phi_{\Y} 
+\bs\psi_{\X} = (\bs\Sigma_{\X\X}^{\backslash \Z})^{1/2}\bs\phi_{\X}, \;\;\;\;\;\;   \bs\psi_{\Y} = (\bs\Sigma_{\Y\Y}^{\backslash \Z})^{1/2}\bs\phi_{\Y} 
 \end{equation}
 
 Now, substituting~(\ref{basisChangePSCCA}) in~(\ref{pscca}) we get 
 
 \begin{equation}
 \label{subsPSCCA}
-\rho_{PCCA}= \max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \frac{\bs\psi_{\X}^T \bs(\Sigma_{\X\X}^{\backslash \Z})^{-1/2}\bs\Sigma_{\X\Y}\bs(\Sigma_{\Y\Y}^{\backslash \Z})^{-1/2}\bs\psi_{\Y}}{\|\bs\psi_{\X}\| \|\bs\psi_{\Y}\|}
+\rho_{PCCA}= \max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \frac{\bs\psi_{\X}^T (\bs\Sigma_{\X\X}^{\backslash \Z})^{-1/2}\bs\Sigma_{\X\Y}(\bs\Sigma_{\Y\Y}^{\backslash \Z})^{-1/2}\bs\psi_{\Y}}{\|\bs\psi_{\X}\| \|\bs\psi_{\Y}\|}
 \end{equation}
 
 After some algebraic manipulation we can write the PCCA objective compactly as
@@ -214,7 +214,7 @@ After some algebraic manipulation we can write the PCCA objective compactly as
 \label{psccacompact}
 \rho_{PCCA}=\max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \frac{\bs\psi_{\X}^T \bs\Sigma_{\X_w\Y_w}^{\backslash \Z}\bs\psi_{\Y}}{\|\bs\psi_{\X}\| \|\bs\psi_{\Y}\|}
 \end{equation}
-where $\X_w=\X\bs(\Sigma_{\X\X}^{\backslash \Z})^{-1/2}$ and $\Y_w=\Y\bs(\Sigma_{\Y\Y}^{\backslash \Z})^{-1/2}$. Note the difference in whitening transform from the one used in simple CCA; here we are using the covariance matrix with $\Z$ ``partialed'' out, to whiten.
+where $\X_w=\X(\bs\Sigma_{\X\X}^{\backslash \Z})^{-1/2}$ and $\Y_w=\Y(\bs\Sigma_{\Y\Y}^{\backslash \Z})^{-1/2}$. Note the difference in whitening transform from the one used in simple CCA; here we are using the covariance matrix with $\Z$ ``partialed'' out, to whiten.
 
 
 Finally, the above objective after incorporating the user specified $\ell_1$ sparsity penalties ($\lambda_{\X}$ and $\lambda_{\Y}$) and under the constraints $\bs\psi_{\X}^T\bs\psi_{\X}=\bs\psi_{\Y}^T\bs\psi_{\Y}=1$ can be finally written as:
