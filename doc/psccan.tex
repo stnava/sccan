@@ -267,8 +267,11 @@ Using (\ref{matrices}), we propose a power iteration based algorithm for PSCCA w
 \ENDWHILE
 \end{algorithmic}
 \end{algorithm}
-where $(x)_+$ in the above Algorithm is equal to $x$ is $x \geq 0$ and $0$ is $x <0$
+where $(x)_+$ in the above Algorithm is equal to $x$ is $x \geq 0$ and $0$ is $x <0$ and 
 
+ \begin{equation}
+Sign(x)= \begin{cases} -1, & \mbox{if } x<0 \\0, & \mbox{if } x=0 \\1, & \mbox{if } x>0 \end{cases}
+\end{equation}
 
 %\noindent{}
 %\vspace{-0.1in}
