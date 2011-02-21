@@ -120,6 +120,9 @@ public:
 
 protected:
 
+// for pscca 
+  void UpdatePandQbyR( );
+
   RealType CountNonZero( VectorType v ) 
   {
     unsigned long ct=0;

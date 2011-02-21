@@ -241,6 +241,45 @@ antsSCCANObject<TInputImage, TRealType>
 }
 
 template <class TInputImage, class TRealType>
+void
+antsSCCANObject<TInputImage, TRealType>
+::UpdatePandQbyR( ) 
+{
+// R is already whitened 
+    switch( this->m_SCCANFormulation )
+    {
+    case PQ:
+      {
+// do nothing
+      break;
+      }
+    case PminusRQ:
+      {
+        this->m_MatrixP=(this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP);
+      break;
+      }
+    case PQminusR:
+      {
+        this->m_MatrixQ=(this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ);
+      break;
+      }
+    case PminusRQminusR :
+      {
+/** P_R =   P - R_w R_w^T P */
+/** Q_R =   Q - R_w R_w^T Q */
+        this->m_MatrixP=(this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP);
+        this->m_MatrixQ=(this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ);
+      break;
+    case PQR :
+      std::cout <<" You should call mscca not pscca " << std::endl;
+      break;
+      }
+    }
+
+}
+
+
+template <class TInputImage, class TRealType>
 TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2( ) 
@@ -275,54 +314,24 @@ antsSCCANObject<TInputImage, TRealType>
   if ( !this->m_AlreadyWhitened ) {
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
     if ( this->m_MatrixR.size() > 0 ) {
       this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
       this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+      this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+      this->UpdatePandQbyR( );
     }
+    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
     this->m_AlreadyWhitened=true;
   }  
-  if ( this->m_MatrixR.size() > 0 ) {
-    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
-  }
   for (unsigned int outer_it=0; outer_it<2; outer_it++) {
   truecorr=0;
   double deltacorr=1,lastcorr=1;
   unsigned long its=0;
   while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  )
   {
-   
-    switch( this->m_SCCANFormulation )
-    {
-    case PQ:
-      {
-        this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,false);
-        this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,false);
-      break;
-      }
-    case PminusRQ:
-      {
-        this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,true);
-        this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,false);
-      break;
-      }
-    case PQminusR:
-      {
-        this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,false);
-        this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,true);
-      break;
-      }
-    case PminusRQminusR :
-      {
-        this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,true);
-        this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,true);
-      break;
-    case PQR :
-      std::cout <<" You should call mscca not pscca " << std::endl;
-      break;
-      }
-    }
+    this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,false);
+    this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,false);    
     truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
@@ -331,7 +340,7 @@ antsSCCANObject<TInputImage, TRealType>
 //      this->FactorOutCovariates();
  // std::cout << " internal-it  corr " << truecorr << std::endl;
 
-  }// inner_it
+  }// inner_it 
   if ( this->m_WeightsQ.size() < 100 ) {
       std::cout << " q-weight--------" << this->m_WeightsQ << std::endl;
 //      std::cout << " cov-wght--------" << this->m_CovariatesQ << std::endl;
