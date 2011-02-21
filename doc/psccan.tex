@@ -221,7 +221,7 @@ Finally, the above objective after incorporating the user specified $\ell_1$ spa
 
 \begin{equation}
 \label{psccaSparseConst}
-\rho_{PSCCA}=\max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \{ \bs\psi_{\X}^T \bs\Sigma_{\X_w\Y_w}^{\backslash \Z}\bs\psi_{\Y} - \lambda_{\X}\|\psi_{\X}\|_1 - \lambda_{\Y}\|\psi_{\Y}\|_1\}
+\rho_{PSCCA}=\max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \{ \bs\psi_{\X}^T \bs\Sigma_{\X_w\Y_w}^{\backslash \Z}\bs\psi_{\Y} - \lambda_{\X}\|\bs\psi_{\X}\|_1 - \lambda_{\Y}\|\bs\psi_{\Y}\|_1\}
 \end{equation}
 One could use LARS~\cite{lars} style methods to enforce sparsity, however we use soft thresholding due to its simplicity and solve  (\ref{psccaSparseConst}) in an iterative fashion as we describe in next subsection.
 
