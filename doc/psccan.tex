@@ -203,23 +203,38 @@ Corr(\X_w\bs\psi_{\X},\Y_w\bs\psi_{\Y})=\rho=\max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}
 \end{equation}
 where $\bs\Sigma_{\X_w\Y_w} = \X_w^T\Y_w$. 
 
-As mentioned earlier, CCA results in vectors $\bs\psi_{\X}$, $\bs\psi_{\Y}$ that are not sparse, and these vectors are not unique if $p > n$. In certain biomedical imaging applications if $p$ is large, one might be interested in finding a linear combination of the variables in $\X_w$ and $\Y_w$ that has large correlation but is also sparse in the variables used. To this end, several sparse versions of CCA have been proposed. ~\cite{witten} use penalized matrix decomposition to enforce sparsity;~\cite{parkhomenko} use soft-max thresholding in an iterative algorithm and~\cite{lykou} propose a LARS~\cite{lars} style algorithm for getting sparsity in loadings.
+As mentioned earlier, CCA results in vectors $\bs\psi_{\X}$,
+$\bs\psi_{\Y}$ that are not sparse, and these vectors are not unique
+if $p > n$. In certain biomedical imaging applications if $p$ is
+large, one might be interested in finding a linear combination of the
+variables in $\X_w$ and $\Y_w$ that has large correlation but is also
+sparse in the variables used. To this end, several SCCovA
+approximations to SCCA have been proposed: ~\cite{witten} use
+penalized matrix decomposition to enforce sparsity;~\cite{parkhomenko}
+use soft-max thresholding in an iterative algorithm.  Both~\cite{parkhomenko,witten} assume that
+within-view covariance matrices are well-approximated by the
+identity.  Finally,~\cite{lykou} propose a LARS~\cite{lars} style algorithm for getting sparsity in
+loadings. 
 
-However, none of the previous works provide a way of ``partialing'' out the confounding variables-- a highly desirable modeling property for many biomedical and neuroimaging applications. 
-
-In the next section, we describe the main contribution of this paper
-i.e. a way of ``partialing'' out these confounding variables in the
-SCCA setting and also provide a power iteration based algorithm to
-efficiently compute the directions of maximum correlation. Our work is
-a natural extension of the SCovCA formulations, which assume that
-within-view covariance matrices are well-approximated by the identity, by~\cite{parkhomenko,witten}
-and is called Partial Sparse CCA (PSCCA).  
-
+However, none of the previous works provide a way of ``partialing''
+out the confounding variables-- a highly desirable modeling property
+for many biomedical and neuroimaging applications.  In the next
+section, we describe the main contribution of this paper i.e. a way of
+``partialing'' out these confounding variables in the SCCA setting and
+also provide a power iteration based algorithm to efficiently compute
+the directions of maximum correlation. Our approach incorporates the
+normalization constraints required for correlation (versus covariance)
+analysis and is called Partial Sparse CCA (PSCCA).
 
 \section{PSCCA (Partial Sparse Canonical Correlation Analysis)}
 As earlier, let $\X$ be the matrix with columns containing voxels from one set of
-images of $n$ subjects; $\Y$ is the matrix with columns containing voxels from the second
-set of images from the same $n$ subjects and further let $\Z$ be the matrix of confounding variables (age, diagnosis, gender etc.) for our neuroimaging problem. Also, let $\lambda_{\X}$ and $\lambda_{\Y}$ ($\in [0,1]$) (higher indicates more sparsity) be the user defined sparsity parameters which control the sparsity for either set of the canonical variates. They can be chosen automatically (``data driven'') so as to maximize the correlation (or likelihood) between the canonical variates, but such an approach would not naturally render itself  to scientific interpretability which is very important for neuroimaging studies. 
+images of $n$ subjects; $\Y$ is the matrix with columns containing
+the second set of measurements from the same $n$ subjects and further
+let $\Z$ be the matrix of confounding variables (age, gender etc.) for
+our neuroimaging problem.  The second set of measurements may be
+voxels from another imaging modality, scores from a battery of
+neuropsychological tests or a much simpler feature such as a binary
+diagnosis variable.  Also, let $\lambda_{\X}$ and $\lambda_{\Y}$ ($\in [0,1]$) (higher indicates more sparsity) be the user defined sparsity parameters which control the sparsity for either set of the canonical variates. They can be chosen automatically (``data driven'') so as to maximize the correlation (or likelihood) between the canonical variates, but such an approach would not naturally render itself  to scientific interpretability which is very important for neuroimaging studies. 
 
 The PCCA~\cite{timm} finds the correlation between $\X$ and $\Y$ after removing (``partialing out'') the linear effect of the confounding variables $\Z$. 
 We denote the $\X$ and $\Y$ matrices with effect of $\Z$ ``partialed'' out as $\X^{\backslash\Z}$ and $\Y^{\backslash\Z}$. Regressing $\X$ against $\Z$, using standard least squares ($\|\X -\Z\bs\beta\|^2$) gives $\bs\beta=  \bs\Sigma_{\Z\Z}^{-1}\Z^T\X$. So, the residual~\footnote{Note that $\X^{\backslash\Z}$ is actually what is called as the residual $\X-\Z\bs\beta$ in a least squares regression problem.} can be written as  $\X^{\backslash\Z}=\X - \Z\bs\Sigma_{\Z\Z}^{-1}\Z^T\X$. Applying the whitening transform to $\Z$  as $\Z_w =\Z \Sigma_{\Z\Z}^{-1/2}$, we get $\X^{\backslash\Z}=\X - \Z_w\Z_w^T\X$.
