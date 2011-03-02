@@ -92,15 +92,15 @@ analyses~\cite{parkhomenko,witten,lykou} (SCCovA) have been proposed
 as an approximation to CCA specifically for the high dimensional ($p
 >>n$) setting where $n$ is the number of observations (subjects in our
 neuroimaging study) and $p$ is the number of predictors (e.g. voxels
-in the brain).  SCCovA methods do not factor out the covariance
-structure within each view and thus analyze covariance structure, not
+in the brain).  SCCovA methods approximate within-view covariance
+matrices as the identity and thus analyze cross-covariance structure, not
 correlation structure \cite{cherry}.  The {\em sparseness} of
 penalized methods improves interpretability by including in the model
 only the most important variables from the large set of $p$
-predictors.  Thus, from a neuroimaging researcher's perspective, the
+predictors.  From a neuroimaging researcher's perspective, the
 benefit is that only parts of the brain that are most predictive will
-emerge in the results provided by a penalized statistical tool.  In
-this way, brain regions are highlighted in a way that is similar to
+emerge in the results provided by a penalized statistical tool.
+Hence, brain regions are highlighted in a way that is similar to
 SPM.  In contrast, however, regions selected by SCCovA (or similarly
 sparse canonical correlation analysis (SCCA)) are treated
 statistically as a collective (or 'network') as opposed to as
@@ -118,7 +118,7 @@ sparse multivariate test over the whole region of interest (e.g. all
 voxels in the cortex). The user-selected sparseness parameter in PSCCA will identify
 the subset of the brain most associated with the variable(s) of interest
 (for instance, a cognitive battery) while factoring out confounding
-effects (age, gender).  Thus, PSCCA may be applied to any statistical
+effects (age, gender).  Thus, PSCCA may be applied to almost any statistical
 scenario in neuroimaging studies traditionally handled by SPM.  
 
 The rest of the paper is organized as follows, in the next Section we
@@ -216,15 +216,15 @@ within-view covariance matrices are well-approximated by the
 identity.  Finally,~\cite{lykou} propose a LARS~\cite{lars} style algorithm for getting sparsity in
 loadings. 
 
-However, none of the previous works provide a way of ``partialing''
-out the confounding variables-- a highly desirable modeling property
-for many biomedical and neuroimaging applications.  In the next
-section, we describe the main contribution of this paper i.e. a way of
-``partialing'' out these confounding variables in the SCCA setting and
-also provide a power iteration based algorithm to efficiently compute
-the directions of maximum correlation. Our approach incorporates the
-normalization constraints required for correlation (versus covariance)
-analysis and is called Partial Sparse CCA (PSCCA).
+However, none of the previous work handle confounding variables-- a
+highly desirable modeling property for many biomedical and
+neuroimaging applications.  In the next section, we describe the main
+contribution of this paper i.e. a way of ``partialing'' out nuisance
+variables in the SCCA setting.  We also provide a power iteration
+based algorithm to efficiently compute the directions of maximum
+correlation. Our approach incorporates the normalization constraints
+required for correlation (versus covariance) analysis and is called
+Partial Sparse CCA (PSCCA).
 
 \section{PSCCA (Partial Sparse Canonical Correlation Analysis)}
 As earlier, let $\X$ be the matrix with columns containing voxels from one set of
