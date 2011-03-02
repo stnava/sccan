@@ -340,7 +340,7 @@ antsSCCANObject<TInputImage, TRealType>
 //      this->FactorOutCovariates();
  // std::cout << " internal-it  corr " << truecorr << std::endl;
 
-  }// inner_it
+  }// inner_it 
   if ( this->m_WeightsQ.size() < 100 ) {
       std::cout << " q-weight--------" << this->m_WeightsQ << std::endl;
 //      std::cout << " cov-wght--------" << this->m_CovariatesQ << std::endl;
