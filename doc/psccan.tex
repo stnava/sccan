@@ -16,27 +16,27 @@
 
 \begin{document}
 \vspace{-0.1in}
-\title{Partial Sparse Canonical Correlation Analysis (PSCCA) for population
-  studies in Neuroimaging}
+\title{Partial sparse canonical correlation analysis (PSCCA) for population
+  studies in neuroimaging}
 \author{Anonymous}
 \institute{Anonymous}
 \maketitle              
 %\vspace{-0.1in}
 \begin{abstract}
-We propose a new multivariate statistical method, partial sparse
-canonical correlation analysis (PSCCA), for performing population
-studies in the presence of confounding variables such as age or
-gender.  PSCCA is a multivariate generalization of linear regression
-that allows one to naturally statistically parameterize neuroimaging
-studies in terms of multiple views of the population (e.g. the full
-collection of measurements taken from an image set along with
-batteries of cognitive or genetic data) while controlling for nuisance
-variables.  This paper develops the theory of PSCCA, provides an
-algorithm and illustrates PSCCA performance on both simulated and real
-datasets.  We show that PSCCA improves detection power over standard
-univariate approaches while retaining the interpretability and
-biological plausibility of the estimated effects.  We also discuss the
-strengths, limitations and future potential of this methodology.
+We propose a new multivariate method, partial sparse canonical
+correlation analysis (PSCCA), for computing the statistical
+comparisons needed by population studies in neuroimaging.  PSCCA is a
+multivariate generalization of linear regression that allows one to
+naturally statistically parameterize neuroimaging studies in terms of
+multiple views of the population (e.g. the full collection of
+measurements taken from an image set along with batteries of cognitive
+or genetic data) while controlling for nuisance variables.  This paper
+develops the theory of PSCCA, provides an algorithm and illustrates
+PSCCA performance on both simulated and real datasets.  We show that
+PSCCA improves detection power over standard univariate approaches
+while retaining the interpretability and biological plausibility of
+the estimated effects.  We also discuss the strengths, limitations and
+future potential of this methodology.
 \end{abstract}
 %\vspace{-0.2in}
 \section{Introduction}
@@ -63,68 +63,63 @@ structural and functional modalities but also neurocognitive
 batteries, genetics and environmental measurements.  At the same time,
 the statistical methods used in neuroimaging have changed relatively
 little from twenty years ago with the exception of a small number of
-recent studies \cite{Tosun2010a}.  The increasing size of imaging
+recent studies, e.g. \cite{Tosun2010a}.  The increasing size of imaging
 datasets and concomitant desire for performing integrative studies
 across modalities points to the need for new multivariate statistical
 methods that elegantly handle large, multi-view datasets while
 retaining or even improving detection power over traditional
 mass-univariate models such as statistical parametric mapping (SPM).
 
-A standard neuroimaging population study might include subjects
-between 20 and 40 years of age each of which is measured via a series
-of MRI scans, is a member of one of two groups (patient or control)
-and is either male or female.  A standard regression analysis will
-treat the quantitative imaging measurement as the dependent variable
-($\y$) and age, gender and diagnosis group as covariates $({\X})$
-where each test is performed independently at each voxel.  Detection
-power is compromised by the multiple-comparisons problem incurred by
-the number of imaging measurements (millions) as well as the
-confounding variables (age, gender).  If we are using mass-univariate
-models then we can not do much about the first problem but for the
-second problem we can factor out the effects of these unwanted
-(confounding) variables by regressing on the residuals ($\y
--\X\beta$).
-
-An alternative methodology that one can use to approach the above
-neuroimaging problem is by using CCA (Canonical Correlation
-Analysis)~\cite{hotellingcca} which inherently handles the
-multiple-comparison problem arising from large number of imaging
-measurements as it symmetrically maximizes the correlation between the two views of
-the data ($\Y$ and $\X$ in our case)~\footnote{Note that here {$\X$}
-is same as earlier but $\Y$ is a matrix of all the imaging
-measurements and not a vector as was the case for linear regression
-study. As far as notation is concerned, we denote matrices by
+Canonical Correlation Analysis (CCA)~\cite{hotellingcca} is a
+traditional multivariate generalization of standard linear regression
+\cite{kshirsagar}.  CCA inherently avoids the multiple-comparisons
+penalty associated with mass-univariate methods by symmetrically
+maximizing the correlation between the full matrices representing two
+views of the data (here denoted $\Y$ and $\X$).  The matrix {$\X$}
+might represent a tabulation of all demographic data, including
+genetics, diagnosis, behavioral measures, age, etc. while $\Y$ is a
+matrix of all the imaging measurements.  In contrast, traditional
+univariate models only enable the predicted value to be a vector while
+the predictors may be a matrix.  In both regression and CCA, the
+number of columns in $\X$, $\Y$ must be fewer
+than the number of subjects (rows). 
+\footnote{As far as notation is concerned, we denote matrices by
 uppercase bold fonts and vectors by lowercase bold fonts, throughout
-this paper. }. Recently, sparse (or penalized) canonical covariance
-(not correlation) analyses~\cite{parkhomenko,witten,lykou} (SCCovA) have been proposed which are
-designed specifically for the high dimensional ($p >>n$) setting 
-where $n$ is the number of observations (subjects in our
+this paper.} 
+
+Recently, sparse (or penalized) canonical covariance (not correlation)
+analyses~\cite{parkhomenko,witten,lykou} (SCCovA) have been proposed
+as an approximation to CCA specifically for the high dimensional ($p
+>>n$) setting where $n$ is the number of observations (subjects in our
 neuroimaging study) and $p$ is the number of predictors (e.g. voxels
-in the brain).  SCCovA methods do not factor out the
-covariance structure within each view and thus analyze covariance structure, not
-correlation structure \cite{cherry}.  The {\em sparseness} of penalized methods improves
-interpretability by including in the model only the most important
-variables from the large set of $p$ predictors.  Thus, from a
-neuroimaging researcher's perspective, the benefit is that only parts
-of the brain that are most predictive will emerge in the results
-provided by a penalized statistical tool.  In this way, SCCA will
-highlight regions of the brain in a way that is similar to SPM.  In
-contrast, however, regions selected by SCCovA (or similarly sparse canonical correlation
-analysis (SCCA)) are treated statistically as a
-collective (or 'network') as opposed to as independent variables.  
+in the brain).  SCCovA methods do not factor out the covariance
+structure within each view and thus analyze covariance structure, not
+correlation structure \cite{cherry}.  The {\em sparseness} of
+penalized methods improves interpretability by including in the model
+only the most important variables from the large set of $p$
+predictors.  Thus, from a neuroimaging researcher's perspective, the
+benefit is that only parts of the brain that are most predictive will
+emerge in the results provided by a penalized statistical tool.  In
+this way, brain regions are highlighted in a way that is similar to
+SPM.  In contrast, however, regions selected by SCCovA (or similarly
+sparse canonical correlation analysis (SCCA)) are treated
+statistically as a collective (or 'network') as opposed to as
+independent variables.
 
 Despite prior neuroimaging studies using SCCA \cite{Avants2010b}, we
 are unaware of previous work which studies factoring (``partialing'')
 out nuisance covariates with a penalized approach to CCA.  While this
 problem has been addressed historically by partial canonical
-correlation analysis\cite{timm}, no sparse formulation has yet been
+correlation analysis (PCCA)\cite{timm}, no sparse formulation has yet been
 proposed.  In this paper, we provide the theory required for Partial Sparse CCA
 (PSCCA) and present a novel and efficient iterative algorithm for
 PSCCA. As mentioned earlier, PSCCA (like CCA) performs a single global
 sparse multivariate test over the whole region of interest (e.g. all
-voxels in the cortex). The sparseness parameter in PSCCA selects the
-subset of the brain most associated with the variable of interest
-(diagnosis) while factoring out confounding effects (age, gender).
+voxels in the cortex). The user-selected sparseness parameter in PSCCA will identify
+the subset of the brain most associated with the variable(s) of interest
+(for instance, a cognitive battery) while factoring out confounding
+effects (age, gender).  Thus, PSCCA may be applied to any statistical
+scenario in neuroimaging studies traditionally handled by SPM.  
 
 The rest of the paper is organized as follows, in the next Section we
 provide a brief review of CCA and Sparse CCA. In Section 3, we present
@@ -144,6 +139,21 @@ and we conclude with a brief summary in Section 5.
 %\vspace{-0.2in}
 
 \section{Brief Review: CCA and Sparse CCA (SCCA)}
+A standard neuroimaging population study might include subjects
+between 20 and 40 years of age each of which is measured via a series
+of MRI scans, is a member of one of two groups (patient or control)
+and is either male or female.  A standard regression analysis will
+treat the quantitative imaging measurement as the dependent variable
+($\y$) and age, gender and diagnosis group as covariates $({\X})$
+where each test is performed independently at each voxel.  Detection
+power is compromised by the multiple-comparisons problem incurred by
+the number of imaging measurements (millions) as well as the
+confounding variables (age, gender).  If we are using mass-univariate
+models then we can not do much about the first problem but for the
+second problem we can factor out the effects of these unwanted
+(confounding) variables by regressing on the residuals ($\y
+-\X\beta$).
+
 
 CCA~\cite{hotellingcca} is the analog to Principal
 Component Analysis (PCA) for pairs of matrices. PCA
