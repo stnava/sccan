@@ -1,8 +1,12 @@
-
- nsub<-50 ; nvoxy<-200 ; nvoxx<-300
+#################################
+# simulation studies for pscca  # 
+#################################
+sparseness<-0.1 # for X, Y matrices
+testspatiallocalization<-1 # tests non-overlapping signals 
+ nsub<-40 ; nvoxy<-100 ; nvoxx<-80 ; 
  nvoxz<-1
 # simulate true signal Z
-Z<-matrix(c(1:nsub)/nsub-0.5,nrow=nsub,ncol=1)
+Z<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z<-(Z-mean(Z))/sd(Z)
 # random signal
 ysig<-matrix(rnorm(nvoxy,0,1),nrow=1,ncol=nvoxy)
@@ -10,10 +14,28 @@ Y<-Z%*%ysig+matrix(rnorm(nsub*nvoxy,0,1),nrow=nsub,ncol=nvoxy)
 xsig<-matrix(rnorm(nvoxx,0,1),nrow=1,ncol=nvoxx) 
 X<-Z%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
 
+# repeat for different true signal Z2
+Z2<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
+Z2<-exp(Z2)# *Z2
+plot(Z2)
+Z2<-sample(Z2) # permute the signal 
+
+# random signal
+ysig<-matrix(rnorm(nvoxy,0,1),nrow=1,ncol=nvoxy)
+Y2<-Z2%*%ysig+matrix(rnorm(nsub*nvoxy,0,1),nrow=nsub,ncol=nvoxy)
+xsig<-matrix(rnorm(nvoxx,0,1),nrow=1,ncol=nvoxx) 
+X2<-Z2%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
+
+# concatenate the matrices made of 2 signals
+if ( testspatiallocalization == 1 ) {
+X<-matrix(c(X,X2),nrow=nsub,ncol=nvoxx*2)
+Y<-matrix(c(Y,Y2),nrow=nsub,ncol=nvoxy*2)
+nvoxx<-nvoxx*2
+nvoxy<-nvoxy*2
+}
 # produce corrupted 'true' signal 
 zsig<-matrix(rnorm(nsub,0,1),nrow=1,ncol=nsub) 
-Zs<-Z+t(zsig)*0.05
-plot(Z,Zs)
+Zs<-Z+t(zsig)*0.0
 Z<-Zs
 
 # write out the simulated data
@@ -84,10 +106,14 @@ writeBin(c(as.real(Y)),fn,size=4,endian = .Platform$endian)
 # define the CCA progam 
 CCA<-"~/code/sccan/bin/sccan "
 
-spar<-0.5
-exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,X.mhd,Y.mhd,",spar,",",spar,"]   -o TEST1.nii.gz -p 100   " )
-exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,X.mhd,Y.mhd,Z.mhd,",spar,",",spar,", -1]   -o TEST2.nii.gz -p 100  --partial-scca-option PminusRQminusR ")
+exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; done "
+bb<-try(system(exe, intern = TRUE, ignore.stderr = TRUE))
 
+exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,Xmask.nii.gz,Ymask.nii.gz,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100   " )
+exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,Xmask.nii.gz,Ymask.nii.gz,Zmask.nii.gz,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz -p 100  --partial-scca-option PminusRQminusR ")
+
+print(exe1)
+print(exe2)
 bb1<-try(system(exe1, intern = TRUE, ignore.stderr = TRUE))
 print(bb1[111])
 bb2<-try(system(exe2, intern = TRUE, ignore.stderr = TRUE))
