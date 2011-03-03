@@ -428,26 +428,26 @@ Alzheimer's disease (n=31), of both genders (39 F, 30 M) and with ages
 that range between 62 and 98 years.  Our evaluation criterion compares
 both methods' power to detect the known anatomical distribution of
 AD-related atrophy in gray matter (hippocampus, cuneus, temporal lobe)
-\cite{Avants2010b}.  We use the whole brain, in template space, as region of
-interest in order to challenge the power of the mass-univariate method
-relative to the single test performed by multivariate PSCCA.  We
-assume that the researcher has pre-selected the sparseness parameter
-for the study.  We choose $\lambda$ for the gray matter
-voxels such that 10\% of the ROI (contained in the $\X$ matrix) will
-be selected by PSCCA.  The $\Y$ matrix, in this case, is the diagnosis
-vector that defines whether a subject is control or patient.  The
-nuisance matrix $\Z$ contains age and gender variables. 
-We run both the mass-univariate statistics (via the {\bf R} program)
-and our own independently developed PSCCA implementation (C++ based,
-BSD license, open-source) on identical input data.  Using false
-discovery rate (FDR) correction on the regression-based p-values for
-diagnosis, we find that the minimum q-value is 0.183, thus
-insignificant after correction.  In contrast, PSCCA shows significant
-effects at the $p=0.041$ level, 10000 permutations.  We visualize the
-regions that emerge from PSCCA by overlaying the first canonical
-vector $\bs \psi_{\X}$ on the brain.  Figure~\ref{fig:comp} compares the PSCCA output with
-the regression results overlaid on the brain at the level of $p=0.01$
-uncorrected.
+\cite{Avants2010b} where gray matter was segmented and normalized by using standard
+open source software.  We use the whole brain, in template space, as region of interest in order to
+challenge the power of the mass-univariate method relative to the
+single test performed by multivariate PSCCA.  We assume that the
+researcher has pre-selected the sparseness parameter for the study.
+We choose $\lambda$ for the gray matter voxels such that 10\% of the
+ROI (contained in the $\X$ matrix) will be selected by PSCCA.  The
+$\Y$ matrix, in this case, is the diagnosis vector that defines
+whether a subject is control or patient.  The nuisance matrix $\Z$
+contains age and gender variables.  We run both the mass-univariate
+statistics (via the {\bf R} program) and our own independently
+developed PSCCA implementation (C++ based, BSD license, open-source)
+on identical input data.  Using false discovery rate (FDR) correction
+on the regression-based p-values for diagnosis, we find that the
+minimum q-value is 0.183, thus insignificant after correction.  In
+contrast, PSCCA shows significant effects at the $p=0.041$ level,
+10000 permutations.  We visualize the regions that emerge from PSCCA
+by overlaying the first canonical vector $\bs \psi_{\X}$ on the brain.
+Figure~\ref{fig:comp} compares the PSCCA output with the regression
+results overlaid on the brain at the level of $p=0.01$ uncorrected.
 \begin{figure}
 \label{fig:comp}
 \begin{center}
