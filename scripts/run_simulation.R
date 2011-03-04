@@ -1,11 +1,19 @@
+#!/usr/bin/Rscript
 #################################
 # simulation studies for pscca  # 
 #################################
-sparseness<-0.5 # for X, Y matrices
-testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-40 ; nvoxy<-300 ; nvoxx<-180 ; 
+# define the CCA progam 
+CCA<-"~/code/sccan/bin/sccan "
+# define the parameters for the simulation 
+ sparseness<-0.2 # for X, Y matrices
+ testspatiallocalization<-1 # tests non-overlapping signals 
+ nsub<-100 ; nvoxy<-500 ; nvoxx<-900 ; 
  nvoxz<-1
- noise<-0.05
+ noise<-0.0 # increase this to get extra noise
+totalSimultations<-1
+ptot1<-rep(1,totalSimultations)
+ptot2<-rep(1,totalSimultations)
+for ( sim in c(1:totalSimultations) ) {
 # simulate true signal Z
 Z<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z<-(Z-mean(Z))/sd(Z)
@@ -17,10 +25,10 @@ X<-Z%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
 
 # repeat for different true signal Z2
 Z2<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
-Z2<-exp(Z2)# *Z2
+Z2<-exp(Z2*Z2)# *Z2
 zsig<-matrix(rnorm(nsub,0,1),nrow=1,ncol=nsub) 
 Z2<-Z2+t(zsig)*noise
-plot(Z2)
+# plot(Z2)
 Z2<-sample(Z2) # permute the signal 
 
 # random signal
@@ -60,7 +68,7 @@ DimSize = ",nsub,1,"
 AnatomicalOrientation = ??
 ElementType = MET_FLOAT
 ElementDataFile = ",fn)
-print(oname)
+# print(oname)
 write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
 writeBin(c(as.real(Z)),fn,size=4,endian = .Platform$endian)
 
@@ -80,7 +88,7 @@ DimSize = ",nsub,nvoxx,"
 AnatomicalOrientation = ??
 ElementType = MET_FLOAT
 ElementDataFile = ",fn)
-print(oname)
+# print(oname)
 write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
 writeBin(c(as.real(X)),fn,size=4,endian = .Platform$endian)
 
@@ -101,23 +109,26 @@ DimSize = ",nsub,nvoxy,"
 AnatomicalOrientation = ??
 ElementType = MET_FLOAT
 ElementDataFile = ",fn)
-print(oname)
+# print(oname)
 write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
 writeBin(c(as.real(Y)),fn,size=4,endian = .Platform$endian)
 
 
-# define the CCA progam 
-CCA<-"~/code/sccan/bin/sccan "
-
-exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; SmoothImage 2 ${N}.mhd 0.5 ${N}.mhd ;  done "
+exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; SmoothImage 2 ${N}.mhd 0. ${N}.mhd ;  done "
 bb<-try(system(exe, intern = TRUE, ignore.stderr = TRUE))
 
 exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,Xmask.nii.gz,Ymask.nii.gz,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100   " )
 exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,Xmask.nii.gz,Ymask.nii.gz,Zmask.nii.gz,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz -p 100  --partial-scca-option PminusRQminusR ")
 
-print(exe1)
-print(exe2)
+# print(exe1)
+# print(exe2)
 bb1<-try(system(exe1, intern = TRUE, ignore.stderr = TRUE))
-print(bb1[111])
 bb2<-try(system(exe2, intern = TRUE, ignore.stderr = TRUE))
-print(bb2[133])
+pv1<-unlist(strsplit(bb1[110], " ", fixed = TRUE))
+pv2<-unlist(strsplit(bb2[132], " ", fixed = TRUE))
+# print(paste(" scca: p ",pv1[3]," corr ",pv1[7] ," pscca : ",pv2[3]," corr ",pv2[7]))
+ptot1[sim]<-as.real(pv1[3])
+ptot2[sim]<-as.real(pv2[3])
+# print(ptot2)
+print(paste("AVG results at sim",sim," with sparseness ",sparseness," - scca: p ",mean(ptot1[1:sim])," pscca : p ",mean(ptot2[1:sim])))
+}

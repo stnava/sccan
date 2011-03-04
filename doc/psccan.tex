@@ -459,14 +459,20 @@ results overlaid on the brain at the level of $p=0.01$ uncorrected.
 \begin{figure}
 \label{fig:comp}
 \begin{center}
-\includegraphics[width=70mm]{MUvPSCCAN.pdf} 
+\includegraphics[width=120mm]{MUvPSCCAN.pdf} 
+% \includegraphics[width=50mm]{Pvalue_f_of_sparsenss_and_corr.pdf} 
 \end{center}
 \caption{PSCCAN (right) versus mass-univariate uncorrected statistics
 (left).  Both methods reveal similar areas of the brain.  However, the
 mass-univariate results cannot be considered significant (after FDR
 correction) due to the multiple comparisons problem.  It is possible
 another correction method would retain some of the mass-univariate
-effects but we choose FDR because it is standard.}
+effects but we choose FDR because it is standard and only moderately
+conservative.  We show, at right, the relationship of estimated
+significance to variations in the sparseness parameter (for the image
+voxel matrix $\X$) and PSCCA correlation.  The significant region is
+outlined in a dashed box.  In a real study, one would only use the
+pre-selected sparseness parameter.}
 \end{figure}
 
 
