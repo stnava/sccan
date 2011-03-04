@@ -26,8 +26,7 @@
 We propose a new multivariate method, partial sparse canonical
 correlation analysis (PSCCA), for computing the statistical
 comparisons needed by population studies in neuroimaging.  PSCCA is a
-multivariate generalization of linear regression that allows one to
-naturally statistically parameterize neuroimaging studies in terms of
+multivariate generalization of linear regression that allows one to statistically parameterize neuroimaging studies in terms of
 multiple views of the population (e.g. the full collection of
 measurements taken from an image set along with batteries of cognitive
 or genetic data) while controlling for nuisance variables.  This paper
@@ -53,7 +52,9 @@ future potential of this methodology.
 % 2003-2004 --- 12655
 % 2005-2006 --- 
 % 2008-2009 --- 
-% 2009-2010 --- 19676
+% 2009-2010 --- 19676 ------  
+% MRI brain statistical parametric mapping 783 results ,
+% MRI brain gives 
 The number of neuroimaging studies published annually doubled from
 9938 in 2000-2001 to 19676 in 2009-2010
 (\url{http://www.ncbi.nlm.nih.gov/pubmed/}).  This growth has been
@@ -62,7 +63,7 @@ collected such that neuroimaging studies include not only various
 structural and functional modalities but also neurocognitive
 batteries, genetics and environmental measurements.  At the same time,
 the statistical methods used in neuroimaging have changed relatively
-little from twenty years ago with the exception of a small number of
+little from twenty years ago with the exception of a growing number of
 recent studies, e.g. \cite{Tosun2010a}.  The increasing size of imaging
 datasets and concomitant desire for performing integrative studies
 across modalities points to the need for new multivariate statistical
@@ -93,7 +94,7 @@ as an approximation to CCA specifically for the high dimensional ($p
 neuroimaging study) and $p$ is the number of predictors (e.g. voxels
 in the brain).\footnote{SCCovA substitutes the identity matrix for
 within-view covariance matrices and thus analyze cross-covariance
-structure, not correlation structure \cite{cherry}}.  The {\em
+structure, not correlation structure \cite{cherry}}  The {\em
 sparseness} of penalized methods improves interpretability by including in the model
 only the most important variables from the large set of $p$
 predictors.  From a neuroimaging researcher's perspective, the
@@ -113,7 +114,7 @@ correlation analysis (PCCA)\cite{timm}, no sparse formulation has yet been
 proposed.  In this paper, we provide the theory required for Partial Sparse CCA
 (PSCCA) and present a novel and efficient iterative algorithm for
 PSCCA. As mentioned earlier, PSCCA (like CCA) performs a single global
-sparse multivariate test over the whole region of interest (e.g. all
+multivariate test over the whole region of interest (e.g. all
 voxels in the cortex). The user-selected sparseness parameter in PSCCA will identify
 the subset of the brain most associated with the variable(s) of interest
 (for instance, a cognitive battery) while factoring out confounding
@@ -195,7 +196,13 @@ Now, substituting~(\ref{basisChange}) in~(\ref{cca1}) we get
 \rho= \max_{{\bs\psi_{\Y}}, {\bs\psi_{\X}}} \frac{\bs\psi_{\X}^T \bs\Sigma_{\X\X}^{-1/2}\bs\Sigma_{\X\Y}\bs\Sigma_{\Y\Y}^{-1/2}\bs\psi_Y}{\|\bs\psi_{\X}\| \|\bs\psi_{\Y}\|}
 \end{equation}
 
-Applying the whitening transform~\footnote{Whitening transform is used to convert covariances to correlations and also to de-correlate the auto-correlation matrices so that CCA can ``truly'' maximize the cross-correlation. The standard whitening transform is defined as $\X_w= \X\bs\Sigma_{\X\X}^{-1/2}$ and $\Y_w= \Y\bs\Sigma_{\Y\Y}^{-1/2}$} to~(\ref{subs})
+The whitening transform is used to convert covariances to correlations
+and also to de-correlate auto-correlation matrices.  In CCA, this
+normalizes the data such that the optimization can maximize the
+cross-correlation.  The standard whitening transform is defined as
+$\X_w= \X\bs\Sigma_{\X\X}^{-1/2}$ and $\Y_w=
+\Y\bs\Sigma_{\Y\Y}^{-1/2}$.  Applying the whitening transform
+to~(\ref{subs})
 
 \begin{equation}
 \label{simplifiedcca}
@@ -390,8 +397,7 @@ modification to Algorithm \ref{partial-mic}.
 %For multiple eigenvectors, use the Lanczos algorithm.
 \subsection{Assessing significance}
 A well-known difficulty with neuroimaging studies, particularly when
-sample sizes are small, is the potential for the methods to find
-'false' or biologically implausible structure in the data.  While the
+sample sizes are small, is the potential for the methods to find biologically implausible structure in the data.  While the
 potential for this problem can never be eliminated, we seek to
 minimize the confound by using an empirical approach to significance
 testing based on permutations:
@@ -420,9 +426,15 @@ age is used as the confounding variable.  Similarly, PSCCA should
 detect a significant association between age and imaging when
 cognition is a confounding variable.   
 
+<<<<<<< HEAD
 \subsection{Comparison of regression and PSCCA on OASIS data}
+=======
+\subsection{Comparison of regression and PSCCA in OASIS data}  
+Our first evaluation on real data employs PSCCA as a form of
+multivariate regression between imaging, diagnosis and nuisance variables.  
+>>>>>>> 09d07689ce6585061aa035497bc0a08dd122a69d
 We employ a subset of the freely available OASIS dataset to compare
-mass-univariate linear regression to PSCCA.  This subset of the OASIS
+PSCCA to mass-univariate linear regression.  This subset of the OASIS
 data contains elderly subjects (n=38), in addition to subjects with
 Alzheimer's disease (n=31), of both genders (39 F, 30 M) and with ages
 that range between 62 and 98 years.  Our evaluation criterion compares
