@@ -1,10 +1,11 @@
 #################################
 # simulation studies for pscca  # 
 #################################
-sparseness<-0.1 # for X, Y matrices
+sparseness<-0.5 # for X, Y matrices
 testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-40 ; nvoxy<-100 ; nvoxx<-80 ; 
+ nsub<-40 ; nvoxy<-300 ; nvoxx<-180 ; 
  nvoxz<-1
+ noise<-0.05
 # simulate true signal Z
 Z<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z<-(Z-mean(Z))/sd(Z)
@@ -17,6 +18,8 @@ X<-Z%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
 # repeat for different true signal Z2
 Z2<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z2<-exp(Z2)# *Z2
+zsig<-matrix(rnorm(nsub,0,1),nrow=1,ncol=nsub) 
+Z2<-Z2+t(zsig)*noise
 plot(Z2)
 Z2<-sample(Z2) # permute the signal 
 
@@ -35,7 +38,7 @@ nvoxy<-nvoxy*2
 }
 # produce corrupted 'true' signal 
 zsig<-matrix(rnorm(nsub,0,1),nrow=1,ncol=nsub) 
-Zs<-Z+t(zsig)*0.0
+Zs<-Z+t(zsig)*noise
 Z<-Zs
 
 # write out the simulated data
@@ -106,7 +109,7 @@ writeBin(c(as.real(Y)),fn,size=4,endian = .Platform$endian)
 # define the CCA progam 
 CCA<-"~/code/sccan/bin/sccan "
 
-exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; done "
+exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; SmoothImage 2 ${N}.mhd 0.5 ${N}.mhd ;  done "
 bb<-try(system(exe, intern = TRUE, ignore.stderr = TRUE))
 
 exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,Xmask.nii.gz,Ymask.nii.gz,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100   " )
