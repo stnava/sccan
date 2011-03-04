@@ -410,17 +410,17 @@ sampling of the permutation space.
 
 \section{Results}
 \subsection{Synthetic data}
-we simulate three view data with and without a significant association
+We simulate three view data with and without a significant association
 between the primary and secondary variables.  this analysis can be
 achieved by simulating imaging data and two other views (age,
 cognition) in such a way that the age is the true hidden variable that
-generates both cognition and imaging measurements.  pscca should then
+generates both cognition and imaging measurements.  PSCCA should then
 detect an insignificant association between cognition and imaging when
-age is used as the confounding variable.  similarly, pscca should
+age is used as the confounding variable.  Similarly, PSCCA should
 detect a significant association between age and imaging when
 cognition is a confounding variable.   
 
-\subsection{Comparison of regression and PSCCA in OASIS data}
+\subsection{Comparison of regression and PSCCA on OASIS data}
 We employ a subset of the freely available OASIS dataset to compare
 mass-univariate linear regression to PSCCA.  This subset of the OASIS
 data contains elderly subjects (n=38), in addition to subjects with
@@ -462,10 +462,12 @@ effects but we choose FDR because it is standard.}
 \end{figure}
 
 
-\section{Discussion}
+\section{Discussion and Conclusion}
 %\vspace{-0.1in}
-we use only the primary eigenvector from pscca.  future work will
-analyze the effect of including additional eigenvectors. 
+In this paper we proposed a multivariate method PSCCA to factor out the effects of confounding variables.
+We presented the theory behind PSCCA and also provided a highly efficient algorithm for solving the optimization problem. Our formulation also has two user defined sparsity parameters $\lambda_{\X}$ and $\lambda_{\Y}$ which the researcher can chose based on domain knowledge or select automatically by optimizing on a held out development set. Results on synthetic and real world data (OASIS) further corroborate our hypothesis as PSCCA is able to factor out the effects of confounding covariates however linear regression is not able to do so.
+
+However, there is much room for future work. In our experiments we use only the primary eigenvector from PSCCA (found using power iteration method); future work will analyze the effect of including additional eigenvectors which can be found using e.g. Lanczos Algorithm~\cite{golub}.
 
 despite the fact that we show similar biologically plausible patterns to univariate
 regression, though with greater power, 
@@ -474,12 +476,10 @@ difficulty of interpretation remains ....
 like standard correlation and regression, one should take care to view the resulting
 projections due to the potential impact of outliers .... 
 
-It is up to the researcher to use his or her domain knowledge to select the
-desired sparseness for a given problem or to experiment with a
-training dataset to optimize the sparseness parameter.
 
-\noindent{\bf Acknowledgment}
- This work is supported by Grant XXX 
+
+%\noindent{\bf Acknowledgment}
+% This work is supported by Grant XXX 
 % 1R01EB006266-01 
 % from the ...
 %National Institute Of Biomedical Imaging and Bioengineering and administered through the UCLA Center for Computational Biology.
