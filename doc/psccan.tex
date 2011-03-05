@@ -83,14 +83,17 @@ matrix of all the imaging measurements.  In contrast, traditional
 univariate models only enable the predicted value to be a vector while
 the predictors may be a matrix.  In both traditional regression and CCA, the
 number of predictors must be fewer than the number of observations. 
-\footnote{We denote matrices by
-uppercase bold fonts and vectors by lowercase bold fonts throughout
-this paper.} 
+
+%\footnote{We denote matrices by
+%uppercase bold fonts and vectors by lowercase bold fonts throughout
+%this paper.} 
+% Paramveer: We dont need this now.
 
 Recently, sparse (or penalized) canonical covariance
 analyses~\cite{parkhomenko,witten,lykou} (SCCovA) have been proposed
-as an approximation to CCA specifically for the high dimensional ($p
->>n$) setting where $n$ is the number of observations (subjects in our
+as an approximation to SCCA specifically for the high dimensional ($p\gg n$)
+%%Paramveer: above it should be "approximation to SCCA" and not CCA.  I corrected it
+ setting where $n$ is the number of observations (subjects in our
 neuroimaging study) and $p$ is the number of predictors (e.g. voxels
 in the brain).\footnote{SCCovA substitutes the identity matrix for
 within-view covariance matrices and thus analyze cross-covariance
@@ -103,7 +106,7 @@ emerge in the results provided by a penalized statistical tool.
 Hence, brain regions are highlighted in a way that is similar to
 SPM.  In contrast, however, regions selected by SCCovA (or similarly
 sparse canonical correlation analysis (SCCA)) are treated
-statistically as a collective (or 'network') as opposed to as
+statistically as a collective (or `network') as opposed to as
 independent variables.
 
 Despite prior neuroimaging studies using SCCA \cite{Avants2010b}, we
@@ -167,8 +170,7 @@ representative applications.  %Unlike PCA, CCA does not depend on how
 
 More specifically, given a set of $n$ paired observation vectors
 $\{(y_1,x_1),...,(y_n,x_n)\}$--in our case the two matrices are the
-quantitative imaging measurement ({\Y}) and age, gender, diagnosis ({\X}) matrices\footnote{For
-  notational convenience we assume that samples have zero mean.} --we would like to simultaneously find the directions
+quantitative imaging measurement ({\Y}) and age, gender, diagnosis ({\X}) matrices --we would like to simultaneously find the directions
 ${\bs{\bs\phi_{\Y}}}$ and
 ${\bs{\bs\phi_{\X}}}$ that maximize the correlation of
 the projections of ${\Y}$ onto ${\bs{\bs\phi_{\Y}}}$
