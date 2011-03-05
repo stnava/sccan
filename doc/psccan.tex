@@ -348,9 +348,9 @@ Following \cite{golub}, we propose a power iteration based algorithm
 for PSCCA for the general problem of finding principal eigenvectors of
 the matrices.  This numerical approach does not require one to ever
 explicitly form the full $\X_{w}^T \Y_{w}$ matrix and is therefore
-appropriate for large datasets where the number of colums in both views may
+appropriate for large datasets where the number of columns in both views may
 count in the millions or more.  In all steps below, we employ the
-pseudoinverse when needed.  In addition, the function $(x)_+$ is equal to $x$ is $x \geq 0$ and $0$ is $x <0$ and 
+pseudoinverse when needed.  In addition, the function $(x)_+$ is equal to $x$ if $x \geq 0$ and $0$ if $x <0$ and 
  \begin{equation}
 Sign(x)= \begin{cases} -1, & \mbox{if } x<0 \\0, & \mbox{if } x=0 \\1, & \mbox{if } x>0 \end{cases}
 \end{equation}
@@ -419,7 +419,7 @@ sampling of the permutation space.
 \section{Results}
 \subsection{Synthetic data}
 We simulate three view data with and without a significant association
-between the primary and secondary variables.  this analysis can be
+between the primary and secondary variables.  This analysis can be
 achieved by simulating imaging data and two other views (age,
 cognition) in such a way that the age is the true hidden variable that
 generates both cognition and imaging measurements.  PSCCA should then
@@ -446,7 +446,7 @@ open source software.  We use the whole brain, in template space, as region of i
 challenge the power of the mass-univariate method relative to the
 single test performed by multivariate PSCCA.  We assume that the
 researcher has pre-selected the sparseness parameter for the study.
-We choose $\lambda$ for the gray matter voxels such that 10\% of the
+We choose $\lambda$ (sparsity parameter) for the gray matter voxels such that 10\% of the
 ROI (contained in the $\X$ matrix) will be selected by PSCCA.  The
 $\Y$ matrix, in this case, is the diagnosis vector that defines
 whether a subject is control or patient.  The nuisance matrix $\Z$
