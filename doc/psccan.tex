@@ -82,14 +82,11 @@ genetics, diagnosis, behavioral measures, age, etc. while $\Y$ is a
 matrix of all the imaging measurements.  In contrast, traditional
 univariate models only enable the predicted value to be a vector while
 the predictors may be a matrix.  In both traditional regression and CCA, the
-number of predictors must be fewer than the number of observations.\footnote{We denote matrices by
-uppercase bold fonts and vectors by lowercase bold fonts throughout
-this paper.} 
+number of predictors must be fewer than the number of observations.
 
 Recently, sparse (or penalized) canonical covariance
 analyses (SCCovA) ~\cite{parkhomenko,witten,lykou} have been proposed
-as an approximation to CCA specifically for the high dimensional ($p
->>n$) setting where $n$ is the number of observations (subjects in our
+as an approximation to CCA specifically for the high dimensional ($p\gg n$) setting where $n$ is the number of observations (subjects in our
 neuroimaging study) and $p$ is the number of predictors (e.g. voxels
 in the brain).\footnote{SCCovA substitutes the identity matrix for
 within-view covariance matrices and thus analyze cross-covariance
@@ -102,7 +99,7 @@ emerge in the results provided by a penalized statistical tool.
 Hence, brain regions are highlighted in a way that is similar to
 SPM.  In contrast, however, regions selected by SCCovA (or similarly
 sparse canonical correlation analysis (SCCA)) are treated
-statistically as a collective (or 'network') as opposed to as
+statistically as a collective (or `network') as opposed to as
 independent variables.
 
 Despite prior neuroimaging studies using SCCA \cite{Avants2010b}, we
@@ -167,8 +164,7 @@ representative applications.  %Unlike PCA, CCA does not depend on how
 
 More specifically, given a set of $n$ paired observation vectors
 $\{(y_1,x_1),...,(y_n,x_n)\}$--in our case the two matrices are the
-quantitative imaging measurement ({\Y}) and age, gender, diagnosis ({\X}) matrices\footnote{For
-  notational convenience we assume that samples have zero mean.} --we would like to simultaneously find the directions
+quantitative imaging measurement ({\Y}) and age, gender, diagnosis ({\X}) matrices --we would like to simultaneously find the directions
 ${\bs{\bs\phi_{\Y}}}$ and
 ${\bs{\bs\phi_{\X}}}$ that maximize the correlation of
 the projections of ${\Y}$ onto ${\bs{\bs\phi_{\Y}}}$
@@ -321,7 +317,7 @@ where $\X_w=\X(\bs\Sigma_{\X\X}^{\backslash \Z})^{-1/2}$ and
 $\Y_w=\Y(\bs\Sigma_{\Y\Y}^{\backslash \Z})^{-1/2}$. Note the
 difference in the whitening transform from the one used in simple CCA;
 here we are using the covariance matrix with $\Z$ partialled out
-to whiten$\X$ and $\Y$.
+to whiten $\X$ and $\Y$.
 
 
 Finally, the above objective after incorporating the user specified $\ell_1$ sparsity penalties ($\lambda_{\X}$ and $\lambda_{\Y}$) and under the constraints $\bs\psi_{\X}^T\bs\psi_{\X}=\bs\psi_{\Y}^T\bs\psi_{\Y}=1$ can be written as:
@@ -445,7 +441,7 @@ open source software.  We use the whole brain, in template space, as region of i
 challenge the power of the mass-univariate method relative to the
 single test performed by multivariate PSCCA.  We assume that the
 researcher has pre-selected the sparseness parameter for the study.
-We choose $\lambda$ for the gray matter voxels such that 10\% of the
+We choose $\lambda$ (sparsity parameter) for the gray matter voxels such that 10\% of the
 ROI (contained in the $\X$ matrix) will be selected by PSCCA.  The
 $\Y$ matrix, in this case, is the diagnosis vector that defines
 whether a subject is control or patient.  The nuisance matrix $\Z$
