@@ -8,6 +8,7 @@
 #include "itkDiscreteGaussianImageFilter.h"
 #include "itkResampleImageFilter.h"
 #include "itkBSplineInterpolateImageFunction.h"
+#include <iostream>
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -347,6 +348,28 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
     {
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
+      std::ofstream myfile;
+      std::string::size_type pos = filename.rfind( "." );
+      std::string filepre = std::string( filename, 0, pos );
+      std::string extension = std::string( filename, pos, filename.length()-1);
+      if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+      }
+      std::string fnmp=filepre+std::string("proj1.csv");
+      myfile.open(fnmp.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_p.size(); i++ )
+        myfile << i << "," << w_p[i] << std::endl;
+      myfile << std::endl;
+      myfile.close();
+      std::string fnmq=filepre+std::string("proj2.csv");
+      myfile.open(fnmq.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_q.size(); i++ )
+        myfile << i << "," << w_q[i] << std::endl;
+	//        myfile << w_q[i] <<",";
+      myfile << std::endl;
+      myfile.close();
       std::string post=std::string("View1vec");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
       post=std::string("View2vec");
@@ -403,6 +426,28 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
     { 
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
+      std::ofstream myfile;
+      std::string::size_type pos = filename.rfind( "." );
+      std::string filepre = std::string( filename, 0, pos );
+      std::string extension = std::string( filename, pos, filename.length()-1);
+      if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+      }
+      std::string fnmp=filepre+std::string("proj1.csv");
+      myfile.open(fnmp.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_p.size(); i++ )
+        myfile << i << "," << w_p[i] << std::endl;
+      myfile << std::endl;
+      myfile.close();
+      std::string fnmq=filepre+std::string("proj2.csv");
+      myfile.open(fnmq.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_q.size(); i++ )
+        myfile << i << "," << w_q[i] << std::endl;
+	//        myfile << w_q[i] <<",";
+      myfile << std::endl;
+      myfile.close();
       std::string post=std::string("View1pval");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
       post=std::string("View2pval");
@@ -554,6 +599,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 
   vVector w_p=sccanobjCovar->GetPWeights();
   vVector w_q=sccanobjCovar->GetQWeights();
+
   std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
   std::cout << " true-corr " << truecorr << std::endl; 
   std::cout << " Projection-P " << p*w_p << std::endl;
@@ -564,7 +610,28 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   if( outputOption )
     {
       std::string filename =  outputOption->GetValue( 0 );
-      std::cout << " write " << filename << std::endl;
+      std::ofstream myfile;
+      std::string::size_type pos = filename.rfind( "." );
+      std::string filepre = std::string( filename, 0, pos );
+      std::string extension = std::string( filename, pos, filename.length()-1);
+      if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+      }
+      std::string fnmp=filepre+std::string("proj1.csv");
+      myfile.open(fnmp.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_p.size(); i++ )
+        myfile << i << "," << w_p[i] << std::endl;
+      myfile << std::endl;
+      myfile.close();
+      std::string fnmq=filepre+std::string("proj2.csv");
+      myfile.open(fnmq.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_q.size(); i++ )
+        myfile << i << "," << w_q[i] << std::endl;
+	//        myfile << w_q[i] <<",";
+      myfile << std::endl;
+      myfile.close();
       std::string post=std::string("View1vec");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
       post=std::string("View2vec");
@@ -626,6 +693,28 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     { 
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
+      std::ofstream myfile;
+      std::string::size_type pos = filename.rfind( "." );
+      std::string filepre = std::string( filename, 0, pos );
+      std::string extension = std::string( filename, pos, filename.length()-1);
+      if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+      }
+      std::string fnmp=filepre+std::string("proj1.csv");
+      myfile.open(fnmp.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_p.size(); i++ )
+        myfile << i << "," << w_p[i] << std::endl;
+      myfile << std::endl;
+      myfile.close();
+      std::string fnmq=filepre+std::string("proj2.csv");
+      myfile.open(fnmq.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_q.size(); i++ )
+        myfile << i << "," << w_q[i] << std::endl;
+	//        myfile << w_q[i] <<",";
+      myfile << std::endl;
+      myfile.close();
       std::string post=std::string("View1pval");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
       post=std::string("View2pval");
@@ -662,6 +751,28 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
+      std::ofstream myfile;
+      std::string::size_type pos = filename.rfind( "." );
+      std::string filepre = std::string( filename, 0, pos );
+      std::string extension = std::string( filename, pos, filename.length()-1);
+      if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+      }
+      std::string fnmp=filepre+std::string("proj1.csv");
+      myfile.open(fnmp.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_p.size(); i++ )
+        myfile << i << "," << w_p[i] << std::endl;
+      myfile << std::endl;
+      myfile.close();
+      std::string fnmq=filepre+std::string("proj2.csv");
+      myfile.open(fnmq.c_str(), std::ios::out );
+      for (unsigned int i=0; i<w_q.size(); i++ )
+        myfile << i << "," << w_q[i] << std::endl;
+	//        myfile << w_q[i] <<",";
+      myfile << std::endl;
+      myfile.close();
       std::string post=std::string("View1vec");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
       post=std::string("View2vec");
