@@ -355,6 +355,7 @@ Sign(x)= \begin{cases} -1, & \mbox{if } x<0 \\0, & \mbox{if } x=0 \\1, & \mbox{i
 Note that positivity or negativity constraints on the
 $\bs\psi_{\X}, \bs\psi_{\Y}$ may be trivially included with a minor
 modification to Algorithm \ref{partial-mic}.
+\vspace{-0.1in}
 \begin{algorithm}[htdp]
 \small \caption{\bf Computing principal eigenvectors for PSCCA}
 \label{partial-mic}
@@ -376,6 +377,7 @@ modification to Algorithm \ref{partial-mic}.
 \ENDWHILE
 \end{algorithmic}
 \end{algorithm}
+\vspace{-0.1in}
 We use permutation testing on $\X$, $\Y$ to assess significance where
 the test statistic is the partial correlation between the two main views.
 
@@ -432,21 +434,24 @@ exists.  Both results are as expected and provide a sanity check on
 our theory and implementation.  The second experimental validation of
 our implementation and theory generates $\X$ and $\Y$ where the first
 $p/2, q/2$ columns are derived from ${\bs v}$.  The second $p/2, q/2$
-columns in $\X, \Y$ are derived from a different ``true'' signal with
+columns in $\X, \Y$ are derived from a different ``true'' signal (${\bs v}_2$) with
 a less strong linear relationship than in the first half of the
 matrices.  Thus, when we use SCCA with sparseness
 $\lambda_{\X}=\lambda_{\Y}=0.25$, the first half of the matrix is
 selected.  PSCCA selects the second half of the matrix when $\Z$ is
 used as covariate.  Both are significant across permutations.  Due to
 noise, in some simulations, a few entries from the first half of the
-matrix may enter the model with low weight.  Figure~\ref{fig:sim}
+matrix may enter the model with low weight.  If we add signal derived from ${\bs
+  v}_2$ to $\Z$ then, as predicted, PSCCA results become insignificant. Figure~\ref{fig:sim}
 shows the vectors $\bs\phi_{\X}$ selected by SCCA and PSCCA on the
-same input data where PSCCA uses $\Z$ as covariate.
+same input data where PSCCA uses $\Z$ as covariate. 
+\vspace{-0.1in}
 \begin{figure}
 \label{fig:sim}
 \begin{center}
 \includegraphics[width=120mm]{simulation_result_mix.pdf} 
 \end{center}
+\vspace{-0.2in}
 \caption{The black hollow circles show the non-zero entries in
   $\bs\phi_{\X}$ that are selected by SCCA.  The red full circles show the non-zero entries in
   $\bs\phi_{\X}$ that are selected by PSCCA.  The $\Z$ signal factors
@@ -462,8 +467,6 @@ the significant association.}
 % age is used as the confounding variable.  Similarly, PSCCA should
 % detect a significant association between age and imaging when
 % cognition is a confounding variable.   
-
-
 \subsection{Comparison of regression and PSCCA on OASIS data}
 Our first evaluation on real data employs PSCCA as a form of
 multivariate regression between imaging, diagnosis and nuisance variables.  
@@ -494,12 +497,14 @@ contrast, PSCCA shows significant effects at the $p=0.041$ level,
 by overlaying the first canonical vector $\bs \psi_{\X}$ on the brain.
 Figure~\ref{fig:comp} compares the PSCCA output with the regression
 results overlaid on the brain at the level of $p=0.01$ uncorrected.
+\vspace{-0.1in}
 \begin{figure}
 \label{fig:comp}
 \begin{center}
 \includegraphics[width=120mm]{MUvPSCCAN.pdf} 
 % \includegraphics[width=50mm]{Pvalue_f_of_sparsenss_and_corr.pdf} 
 \end{center}
+\vspace{-0.1in}
 \caption{PSCCAN (right) versus mass-univariate uncorrected statistics
 (left).  Both methods reveal similar areas of the brain.  However, the
 mass-univariate results cannot be considered significant (after FDR
@@ -513,8 +518,6 @@ outlined in a dashed box.  In a real study, one would only use the
 pre-selected sparseness parameter.}
 \end{figure}
 \vspace{-0.1in}
-
-
 \section{Discussion and Conclusion}
 %\vspace{-0.1in}
 In this paper we proposed a new statistical tool that is
@@ -533,15 +536,12 @@ data.  Specifically, PSCCA reveals significant patterns of difference
 between elderly and AD subjects that are within brain regions known to
 be affected by Alzheimer's tauopathy.  Although the mass-univariate model fails to reveal
 significant effects, there is notable similarity between regions selected by PSCCA and
-those voxels in the brain that had uncorrected $p$-value $< 0.01$.   
-
-% This study has limitations.   
+those voxels in the brain that had uncorrected $p$-value $< 0.01$.  %This study has limitations.   
 In our experiments we only use the
-primary eigenvector from PSCCA (found using power iteration method);
+primary eigenvector from PSCCA;
 Future work will analyze the effect of including additional
 eigenvectors and will seek to further investigate alternatives for
-assessing PSCCA significance in interpretable ways. 
-% Finally, as in standard correlation, one should take care to visualize PSCCA results to investigate the potential impact of outliers. 
+assessing PSCCA significance in interpretable ways. Finally, as in standard correlation, one should take care to visualize PSCCA results to investigate the potential impact of outliers. 
 
 % {\bf FINISH}
 % despite the fact that we show similar biologically plausible patterns to univariate
