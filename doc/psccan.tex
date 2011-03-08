@@ -31,8 +31,9 @@ multiple views of the population (e.g., the full collection of
 measurements taken from an image set along with batteries of cognitive
 or genetic data) while controlling for nuisance variables.  This paper
 develops the theory of PSCCA, provides an algorithm and illustrates
-PSCCA performance on both simulated and real datasets.  We show that
-PSCCA can improve detection power over standard univariate approaches
+PSCCA performance on both simulated and real datasets.  We show, as a
+first application and evaluation of this new methodology, that
+PSCCA can improve detection power over mass univariate approaches
 while retaining the interpretability and biological plausibility of
 the estimated effects.  We also discuss the strengths, limitations and
 future potential of this methodology.
@@ -59,72 +60,91 @@ The number of neuroimaging studies published annually has doubled from
 9,938 in 2000-2001 to 19,676 in 2009-2010
 (\url{http://www.ncbi.nlm.nih.gov/pubmed/}).  This growth has been
 accompanied by increasing diversity in the types of data being
-collected;  Imaging studies now often include not only various
+collected; Imaging studies now often include not only various
 structural and functional modalities but also neurocognitive
-batteries, genetics, and environmental measurements.  However,
-the statistical methods have changed relatively
-little over the past twenty years -- until very recently
-(e.g., \cite{Tosun2010a}).  The increasing size of imaging
-datasets and the concomitant desire for performing integrative studies
-across modalities points to the need for new multivariate statistical
-methods that elegantly handle large, multi-view datasets while
-retaining or even improving detection power over traditional
-mass-univariate models such as statistical parametric mapping (SPM).
+batteries, genetics, and environmental measurements.  However, the
+statistical methods have changed relatively little over the past
+twenty years -- until very recently (e.g., \cite{Tosun2010a}).  The
+increasing size of imaging datasets and the concomitant desire for
+performing integrative studies across modalities points to the need
+for new multivariate statistical methods that elegantly handle large,
+multi-view datasets.  These methods should retain or even improve
+detection power over traditional mass-univariate (MU) models such as
+statistical parametric mapping (SPM) which uses the univariate form of
+the general linear model (GLM).  Repeatedly applying the univariate GLM (or
+linear regression) at each voxel leads to loss of detection power due
+to the well-known multiple comparisons problem.
 
 Canonical Correlation Analysis (CCA)~\cite{hotellingcca} is a
 traditional multivariate generalization of standard linear regression
-\cite{kshirsagar}.  CCA inherently avoids the multiple-comparisons
-penalty associated with mass-univariate methods by symmetrically
-maximizing the correlation between the full matrices representing two
-views of the data (here denoted $\Y$ and $\X$).  The matrix {$\X$}
-might represent a tabulation of all demographic data, including
-genetics, diagnosis, behavioral measures, age, etc. while $\Y$ is a
-matrix of all the imaging measurements.  In contrast, traditional
-univariate models only enable the predicted value to be a vector while
-the predictors may be a matrix.  In both traditional regression and CCA, the
-number of predictors must be fewer than the number of observations.
+\cite{kshirsagar}.  CCA inherently avoids the multiple-comparisons penalty
+associated with MU methods by symmetrically maximizing the correlation
+between the full matrices representing two views of the data (here
+denoted $\Y$ and $\X$).  The matrix {$\X$} might represent a
+tabulation of all demographic data, including genetics, diagnosis,
+behavioral measures, age, etc. while $\Y$ may be a matrix of all the
+imaging measurements.  In contrast, traditional univariate models only
+enable the predicted value to be a vector while the predictors may be
+a matrix.  Thus, linear regression is a special case of CCA.  In both
+traditional regression and CCA, the number of predictors, $p$, must be
+fewer than the number of observations, $n$ (subjects in our
+neuroimaging study).  For CCA (or multivariate regression), this
+restriction holds for both sets of predictors $p$, $q$, contained in
+$\X, \Y$.
 
-Recently, sparse (or penalized) canonical covariance
-analyses (SCCovA) ~\cite{parkhomenko,witten,lykou} have been proposed
-as an approximation to CCA specifically for the high dimensional
-($p\gg n$) setting where $n$ is the number of observations (subjects
-in our neuroimaging study) and $p$ is the number of predictors (e.g. voxels
-in the brain).\footnote{SCCovA substitutes the identity matrix for
+Recently, sparse (or penalized) canonical covariance analyses (SCCovA)
+~\cite{parkhomenko,witten,lykou} have been proposed as an
+approximation to CCA specifically for the high dimensional ($p\gg n$)
+setting.\footnote{SCCovA substitutes the identity matrix for
 within-view covariance matrices and thus analyze cross-covariance
-structure, not correlation structure \cite{cherry}}  The {\em
-sparseness} of penalized methods improves interpretability by including in the model
-only the most important variables from the large set of $p$
-predictors.  From a medical imaging researcher's perspective, the
-benefit is that only parts of the brain that are most predictive will
-emerge in the results provided by a penalized statistical tool.
-Hence, brain regions are highlighted in a way that is similar to
-SPM.  In contrast, however, regions selected by SCCovA (or similarly
-sparse canonical correlation analysis (SCCA)) are treated
-statistically as a collective (or `network') as opposed to as
-independent variables.
+structure, not correlation structure \cite{cherry}.  Thus, SCCA
+(versus SCCovA) does not depend on how the observations are scaled.}
+The {\em sparseness} in penalized methods improves interpretability by
+including in the model only the most important variables from the
+large set of $p$ (and/or $q$) predictors.  From a medical imaging
+researcher's perspective, the benefit is that only the most predictive
+variables (e.g. parts of the brain) will emerge in the results
+provided by a penalized statistical tool.  Hence, brain regions are
+highlighted in a way that is similar to SPM.  Furthermore, regions
+selected by SCCovA (or similarly sparse canonical correlation analysis
+(SCCA)) are treated statistically as a collective (or `network') as
+opposed to MU methods which treat each predictor as an independent
+variable.
 
-Despite prior neuroimaging studies using SCCA \cite{Avants2010b}, we
-are unaware of previous work which studies factoring (``partialling'')
-out nuisance covariates with a penalized approach to CCA.  While this
-problem has been addressed historically by partial canonical
-correlation analysis (PCCA)\cite{timm}, no sparse formulation has yet been
-proposed.  In this paper, we provide the theory required for Partial Sparse CCA
-(PSCCA) and present a novel and efficient iterative algorithm for
-PSCCA. As mentioned earlier, PSCCA (like CCA) performs a single global
-multivariate test over the whole region of interest (e.g. all
-voxels in the cortex). PSCCA identifies
-the subset of the brain most associated with the variable(s) of interest
+Despite prior studies using SCCovA~\cite{parkhomenko,witten,lykou,Avants2010b}, we are unaware of
+previous work that studies factoring (``partialling'') out nuisance
+variables within the penalized CCA framework.  While this problem is
+addressed in the $p < n$ setting by partial canonical correlation
+analysis (PCCA)\cite{timm}, no penalized formulation has yet been
+proposed.
+
+This paper contributes the theory of Partial Sparse CCA (PSCCA) along
+with a novel and efficient iterative algorithm for PSCCA.  PSCCA (like
+CCA) performs a global multivariate test of the association between
+two modalities that quantify a study's subjects while accounting for a
+third set of nuisance variables.  It generalizes linear regression and
+is inherently, sparsely multivariate in multiple views of the data
+unlike MU and standard support vector machines (SVM).
+
+The general PSCCA formulation has many applications.  PSCCA may be
+applied to almost any statistical scenario in medical imaging studies
+traditionally handled by SPM.  PSCCA is able to identify the subset of
+the brain most correlated with non-imaging variable(s) of interest
 (for instance, a cognitive battery) while factoring out confounding
-effects (age, gender).  Thus, PSCCA may be applied to almost any statistical
-scenario in medical imaging studies traditionally handled by SPM.  
-% It is not the ``parameter'' that find the subset
+effects (age, gender).  Alternatively, we may apply PSCCA to the case
+where both views of the data are high-dimensional, for instance, to
+identify correlations between different imaging modalities
+independently from covariates such as scanner, gender, etc.  PSCCA
+thus enables complex studies of multiple view data that contains many
+more variables than observations.
 
 The rest of the paper is organized as follows: in the next section we
 provide a brief review of CCA and Sparse CCA. In Section 3, we present
-the theory behind Partial Sparse CCA (PSCCA) and describe our novel
-iterative algorithm for performing PSCCA. In Section 4, we provide
-experimental results on synthetic and real world neuroimaging datasets
-and we conclude with a brief summary in Section 5.
+the theory behind our novel Partial Sparse CCA (PSCCA) framework and
+describe the iterative algorithm for performing PSCCA. In Section 4,
+we provide experimental results on synthetic and real world
+neuroimaging datasets and we conclude with a brief summary in Section
+5.
 
 %What we are doing here ( a few sentences )
 
@@ -147,7 +167,9 @@ age, gender and diagnosis group as covariates $({\X})$ where each test
 is performed independently at each voxel.  Detection power is
 compromised by the multiple-comparisons problem incurred by the number
 of imaging measurements (millions) as well as the confounding
-variables (age, gender).  If we are using mass-univariate models and
+variables (age, gender).   It is compromised because one must perform
+additional statistical corrections to the $p$-values output by MU
+statistics. If we are using MU models and
 want to test the whole brain for effects, then
 we can not do much about the first problem.  For the second problem,
 we can factor out the effects of these unwanted (confounding)
@@ -155,13 +177,12 @@ variables by regressing on the residuals ($\y -\X\beta$).
 }
 \end{comment}
 
-CCA~\cite{hotellingcca} is the analog to Principal Component Analysis
-(PCA) for pairs of matrices. PCA computes the directions of maximum
-covariance between elements in a single matrix, whereas CCA computes
-the directions of maximal correlation between a pair of matrices.
-See~\cite{taylor:cca} for a general review of CCA along with some
-representative applications.  %Unlike PCA, CCA does not depend on how
-%the observations are scaled.
+% CCA~\cite{hotellingcca} is the analog to Principal Component Analysis
+% (PCA) for pairs of matrices. PCA computes the directions of maximum
+% covariance between elements in a single matrix, whereas CCA computes
+% the directions of maximal correlation between a pair of matrices.
+% See~\cite{taylor:cca} for a general review of CCA along with some
+% representative applications. Unlike PCA, CCA does not depend on how the observations are scaled.
 
 More specifically, given a set of $n$ paired observation vectors
 $\{(y_1,x_1),...,(y_n,x_n)\}$--in our case the two matrices are the
@@ -212,24 +233,34 @@ $\bs\psi_{\Y}$ that are not sparse, and these vectors are not unique
 if $p > n$. In most biomedical imaging applications, $p$ is
 large and, one needs to find a linear combination of the
 variables in $\X_w$ and $\Y_w$ that has large correlation but is also
-sparse in the variables used. To this end, several SCCovA
-approximations to SCCA have been proposed: Witten et al.~\cite{witten} use
-penalized matrix decomposition to enforce sparsity; Parkhomenko et al.~\cite{parkhomenko}
-use soft-max thresholding in an iterative algorithm.  Both papers assume that
-within-view covariance matrices are well-approximated by the
-identity.  Finally, Lykou and Whittaker~\cite{lykou} propose a LARS~\cite{lars} style algorithm for 
-obtaining sparsity in the loadings. 
+sparse in the variables that enter the model.  
 
-However, none of the these methods handle confounding variables---a
-highly desirable modeling property for many biomedical and
-neuroimaging applications.  In the next section, we describe the main
-contribution of this paper;  We formulate a sparse canonical
-correlation analysis optimization with an embedded step that factors
-out the effect of nuisance variables.  We also provide an efficient
-power iteration based algorithm to compute the directions of maximum
-partial correlation. Our approach incorporates the normalization
-constraints required for correlation (versus covariance) analysis; 
-We call it Partial Sparse CCA (PSCCA).
+\begin{comment}
+Several researchers propose sparse formulations of canonical
+covariance analysis: Witten et al.~\cite{witten} use penalized matrix
+decomposition to enforce sparsity; Parkhomenko et
+al.~\cite{parkhomenko} use soft-max thresholding in an iterative
+algorithm.  Both papers assume that within-view covariance matrices
+are well-approximated by the identity.  Finally, Lykou and
+Whittaker~\cite{lykou} propose a LARS~\cite{lars} style algorithm for
+obtaining sparsity in the loadings.
+\end{comment}
+
+While several researchers propose sparse formulations of canonical
+covariance analysis \cite{parkhomenko,witten,lykou}, none of the these
+methods handle confounding variables---a highly desirable modeling
+property for many biomedical and neuroimaging applications.  In the
+next section, we detail the PSCCA solution to this problem.
+
+\begin{comment}
+We formulate a sparse canonical correlation analysis optimization
+with an embedded step that factors out the effect of nuisance
+variables.  We also provide an efficient power iteration based
+algorithm to compute the directions of maximum partial
+correlation. Our approach incorporates the normalization constraints
+required for correlation (versus covariance) analysis; We call it
+Partial Sparse CCA (PSCCA).
+\end{comment}
 
 \section{PSCCA (Partial Sparse Canonical Correlation Analysis)}
 As described earlier, let $\X$ be the matrix with columns containing voxels from one set of
@@ -286,7 +317,7 @@ Now, we can write the complete variance-covariance matrix of the residuals as:
 % Equation~(\ref{matrices}) can easily be extended to handle more than two matrices and also to ``partial'' out the effect of more than one confounding covariate matrices.
 
 
-The PCCA problem can therefor be written as:
+The PCCA problem can therefore be written as:
 
 \begin{equation}
 \label{pscca}
@@ -421,14 +452,16 @@ sampling of the permutation space.
 \end{comment}
 
 \section{Results}
+The code for the PSCCAN implementation, the simulation study and the
+neuroimaging study will be made available at publication time. 
 \subsection{Simulations} Define a ``true'' linear signal vector with
 $n$ entries, ${\bs v}$, such that the value of each entry is ${\bs
-v}_i=i/n$.  A second signal is a vector drawn from a zero mean unit
+v}_i=i/n$ where $i$ indexes the vector.  A second signal is a vector drawn from a zero mean unit
 variance Gaussian distribution, ${\bs g_x}$ with $p$ entries.  The
 first view is then $\X ={\bs v}^T {\bs g_x}$ and we similarly generate
 $\Y $ with $n \times q$ entries.  We optionally add noise to both
 views.  In 100 low-noise simulations, SCCA produces a significant
-association.  However, when we use $\Z = {\bs V} + $ {\em noise} as a
+association.  However, when we use $\Z = {\bs v} + $ {\em noise} as a
 covariate in PSCCA on $\X$ and $\Y$, then no significant association
 exists.  Both results are as expected and provide a sanity check on
 our theory and implementation.  The second experimental validation of
@@ -439,25 +472,27 @@ a less strong linear relationship than in the first half of the
 matrices.  Thus, when we use SCCA with sparseness
 $\lambda_{\X}=\lambda_{\Y}=0.25$, the first half of the matrix is
 selected.  PSCCA selects the second half of the matrix when $\Z$ is
-used as covariate.  Both are significant across permutations.  Due to
+used as confounding covariate.  Both are significant across permutations.  Due to
 noise, in some simulations, a few entries from the first half of the
-matrix may enter the model with low weight.  If we add signal derived from ${\bs
+matrix may enter the model with low weight.  If we add a column containing signal derived from ${\bs
   v}_2$ to $\Z$ then, as predicted, PSCCA results become insignificant. Figure~\ref{fig:sim}
 shows the vectors $\bs\phi_{\X}$ selected by SCCA and PSCCA on the
-same input data where PSCCA uses $\Z$ as covariate. 
+same input data where PSCCA uses $\Z$ (derived from ${\bs v}$ alone)
+as confounding covariate. 
 \vspace{-0.1in}
 \begin{figure}
-\label{fig:sim}
 \begin{center}
 \includegraphics[width=120mm]{simulation_result_mix.pdf} 
 \end{center}
 \vspace{-0.2in}
 \caption{The black hollow circles show the non-zero entries in
-  $\bs\phi_{\X}$ that are selected by SCCA.  The red full circles show the non-zero entries in
-  $\bs\phi_{\X}$ that are selected by PSCCA.  The $\Z$ signal factors
+  $\bs\phi_{\X}$ that are selected by SCCA, that is, the value of the vector
+  $\bs\phi_{\X}$.  The red full circles show the non-zero entries in
+  the vector $\bs\phi_{\X}$ that are selected by PSCCA.  The $\Z$ signal factors
   out the confounding signal in the first half of the matrix leaving
   the second signal of interest in the second half to be the source of
 the significant association.}
+\label{fig:sim}
 \end{figure}
 \vspace{-0.1in}
 % This analysis can be achieved by simulating imaging data and two other
@@ -479,14 +514,14 @@ both methods' power to detect the known anatomical distribution of
 AD-related atrophy in gray matter (hippocampus, cuneus, temporal lobe)
 \cite{Avants2010b} where gray matter was segmented and normalized by using standard
 open source software.  We use the whole brain, in template space, as region of interest in order to
-challenge the power of the mass-univariate method relative to the
+challenge the power of the MU method relative to the
 single test performed by multivariate PSCCA.  We assume that the
 researcher has pre-selected the sparseness parameter for the study.
 We choose $\lambda$ (sparsity parameter) for the gray matter voxels such that 10\% of the
 ROI (contained in the $\X$ matrix) will be selected by PSCCA.  The
 $\Y$ matrix, in this case, is the diagnosis vector that defines
 whether a subject is control or patient.  The nuisance matrix $\Z$
-contains age and gender variables.  We run both the mass-univariate
+contains age and gender variables.  We run both the MU
 statistics (via the {\bf R} program) and our own independently
 developed PSCCA implementation (C++ based, BSD license, open-source)
 on identical input data.  Using false discovery rate (FDR) correction
@@ -499,7 +534,6 @@ Figure~\ref{fig:comp} compares the PSCCA output with the regression
 results overlaid on the brain at the level of $p=0.01$ uncorrected.
 \vspace{-0.1in}
 \begin{figure}
-\label{fig:comp}
 \begin{center}
 \includegraphics[width=120mm]{MUvPSCCAN.pdf} 
 % \includegraphics[width=50mm]{Pvalue_f_of_sparsenss_and_corr.pdf} 
@@ -516,6 +550,7 @@ significance to variations in the sparseness parameter (for the image
 voxel matrix $\X$) and PSCCA correlation.  The significant region is
 outlined in a dashed box.  In a real study, one would only use the
 pre-selected sparseness parameter.}
+\label{fig:comp}
 \end{figure}
 \vspace{-0.1in}
 \section{Discussion and Conclusion}
@@ -534,7 +569,7 @@ is able to increase detection power in the presence of covariates and
 extract biologically plausible, multivariate patterns from neuroimaging
 data.  Specifically, PSCCA reveals significant patterns of difference
 between elderly and AD subjects that are within brain regions known to
-be affected by Alzheimer's tauopathy.  Although the mass-univariate model fails to reveal
+be affected by Alzheimer's tauopathy.  Although the MU model fails to reveal
 significant effects, there is notable similarity between regions selected by PSCCA and
 those voxels in the brain that had uncorrected $p$-value $< 0.01$.  %This study has limitations.   
 In our experiments we only use the
