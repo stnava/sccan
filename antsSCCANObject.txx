@@ -312,7 +312,9 @@ antsSCCANObject<TInputImage, TRealType>
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
 
   if ( !this->m_AlreadyWhitened ) {
+  std::cout <<" norm P " << std::endl;
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
+  std::cout <<" norm Q " << std::endl;
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
     if ( this->m_MatrixR.size() > 0 ) {
       this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  

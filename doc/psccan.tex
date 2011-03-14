@@ -1,6 +1,4 @@
 \documentclass{llncs}
-\newcommand{\Section}[1]{\vspace{-8pt}\section{\hskip-1em.~~#1}\vspace{-3pt}}
-\newcommand{\SubSection}[1]{\vspace{-3pt}\subsection{\hskip -1em.~~#1}\vspace{-3pt}}
 \newcommand{\X}{{\bf X}}
 \newcommand{\x}{{\bf x}}
 \newcommand{\Y}{{\bf Y}}
@@ -15,13 +13,11 @@
 \usepackage{epsfig,url}
 
 \begin{document}
-\vspace{-0.1in}
 \title{Partial sparse canonical correlation analysis (PSCCA) for population
   studies in medical imaging}
 \author{Anonymous}
 \institute{Anonymous}
 \maketitle              
-%\vspace{-0.1in}
 \begin{abstract}
 We propose a new multivariate method, partial sparse canonical
 correlation analysis (PSCCA), for computing the statistical
@@ -38,7 +34,6 @@ while retaining the interpretability and biological plausibility of
 the estimated effects.  We also discuss the strengths, limitations and
 future potential of this methodology.
 \end{abstract}
-%\vspace{-0.2in}
 \section{Introduction}
 % pubmed references to MRI :  
 % 2000-2001 --- 25561
@@ -154,7 +149,6 @@ neuroimaging datasets and we conclude with a brief summary in Section
 %simulated and real data the advantages and disadvantages of this
 %method.
 
-%\vspace{-0.2in}
 
 \section{Brief review: CCA and sparse CCA (SCCA)}
 \begin{comment}{
@@ -408,12 +402,10 @@ modification to Algorithm \ref{partial-mic}.
 \ENDWHILE
 \end{algorithmic}
 \end{algorithm}
-\vspace{-0.1in}
 We use permutation testing on $\X$, $\Y$ to assess significance where
 the test statistic is the partial correlation between the two main views.
 
 %\noindent{}
-%\vspace{-0.1in}
 %\begin{description}
 %\item [Whiten:]Apply the whitening transformation to {\X}, {\Y}, {\Z}.
 %    VectorType temp=q*w_q;
@@ -479,7 +471,6 @@ matrix may enter the model with low weight.  If we add a column containing signa
 shows the vectors $\bs\phi_{\X}$ selected by SCCA and PSCCA on the
 same input data where PSCCA uses $\Z$ (derived from ${\bs v}$ alone)
 as confounding covariate. 
-\vspace{-0.1in}
 \begin{figure}
 \begin{center}
 \includegraphics[width=120mm]{simulation_result_mix.pdf} 
@@ -494,7 +485,6 @@ as confounding covariate.
 the significant association.}
 \label{fig:sim}
 \end{figure}
-\vspace{-0.1in}
 % This analysis can be achieved by simulating imaging data and two other
 % views (age, cognition) in such a way that the age is the true hidden variable that
 % generates both cognition and imaging measurements.  PSCCA should then
@@ -532,7 +522,6 @@ contrast, PSCCA shows significant effects at the $p=0.041$ level,
 by overlaying the first canonical vector $\bs \psi_{\X}$ on the brain.
 Figure~\ref{fig:comp} compares the PSCCA output with the regression
 results overlaid on the brain at the level of $p=0.01$ uncorrected.
-\vspace{-0.1in}
 \begin{figure}
 \begin{center}
 \includegraphics[width=120mm]{MUvPSCCAN.pdf} 
@@ -552,9 +541,7 @@ outlined in a dashed box.  In a real study, one would only use the
 pre-selected sparseness parameter.}
 \label{fig:comp}
 \end{figure}
-\vspace{-0.1in}
 \section{Discussion and Conclusion}
-%\vspace{-0.1in}
 In this paper we proposed a new statistical tool that is
 ideal for multivariate imaging studies. 
 % We presented the theory behind
@@ -591,7 +578,6 @@ assessing PSCCA significance in interpretable ways. Finally, as in standard corr
 % 1R01EB006266-01 
 % from the ...
 %National Institute Of Biomedical Imaging and Bioengineering and administered through the UCLA Center for Computational Biology.
-% %\vspace{-0.1in}
 \bibliographystyle{IEEEbib}
 \bibliography{./cca}
 
