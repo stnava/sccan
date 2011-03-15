@@ -334,15 +334,10 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  double truecorr=sccanobj->RunSCCAN2();
+  double truecorr=sccanobj->RunSCCAN2multiple(4);
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
-  std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
   std::cout << " true-corr " << truecorr << std::endl; 
-  std::cout << " Projection-P " << p*w_p << std::endl;
-  std::cout << " Projection-Q " << q*w_q << std::endl;
- //  double corr=vnl_pearson_corr<Scalar>( p*w_p , q*w_q );
-  //  std::cout << " w_q " << w_q<< std::endl;
  
   if( outputOption )
     {
@@ -388,7 +383,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
       sccanobj->SetMatrixQ( q_perm );
-      double permcorr=sccanobj->RunSCCAN2();
+      double permcorr=sccanobj->RunSCCAN2multiple(2);
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobj->GetPWeights();
       vVector w_q_perm=sccanobj->GetQWeights();
@@ -599,11 +594,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 
   vVector w_p=sccanobjCovar->GetPWeights();
   vVector w_q=sccanobjCovar->GetQWeights();
-
-  std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
+  
+  // std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
   std::cout << " true-corr " << truecorr << std::endl; 
-  std::cout << " Projection-P " << p*w_p << std::endl;
-  std::cout << " Projection-Q " << q*w_q << std::endl;
+  //  std::cout << " Projection-P " << p*w_p << std::endl;
+  // std::cout << " Projection-Q " << q*w_q << std::endl;
  //  double corr=vnl_pearson_corr<Scalar>( p*w_p , q*w_q );
   //  std::cout << " w_q " << w_q<< std::endl;
  
@@ -736,8 +731,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vVector w_q=sccanobj->GetQWeights();
   vVector w_r=sccanobj->GetRWeights();
   std::cout << " final correlation  " << truecorr  << std::endl;
-  std::cout << " Projection-P " << p*w_p << std::endl;
-  std::cout << " Projection-Q " << q*w_q << std::endl;
+  //  std::cout << " Projection-P " << p*w_p << std::endl;
+  // std::cout << " Projection-Q " << q*w_q << std::endl;
   if ( leave_out < pin.rows() ) {
     std::cout << " Projection-leave-P " << dot_product(p_leave_out,w_p) << std::endl;
     std::cout << " Projection-leave-Q " << dot_product(q_leave_out,w_q) << std::endl;

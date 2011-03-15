@@ -19,6 +19,7 @@
 #ifndef __antsSCCANObject_h
 #define __antsSCCANObject_h
 
+#include <vnl/algo/vnl_matrix_inverse.h>
 #include "itkImageToImageFilter.h"
 /** Custom SCCA implemented with vnl and ITK: Flexible positivity constraints, image ops, permutation testing, etc. */
 namespace itk {
@@ -61,6 +62,7 @@ public:
   /** note, eigen for pseudo-eigenvals  */
   typedef vnl_matrix<RealType>        MatrixType;
   typedef vnl_vector<RealType>        VectorType;
+  typedef MatrixType                  VariateType;
   typedef vnl_diag_matrix<RealType>   DiagonalMatrixType;
 
   enum SCCANFormulationType{ PQ , PminusRQ ,  PQminusR ,  PminusRQminusR , PQR  };
@@ -80,21 +82,30 @@ public:
   itkSetMacro( FractionNonZeroP, RealType );
   itkSetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
-  void SetMatrixP(  MatrixType matrix ) { this->m_MatrixP=matrix; }
+  void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
   MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
+
+  VectorType OrthogonalizeVector(MatrixType P, MatrixType varP , unsigned int col1, unsigned int col2  ){
+    MatrixType tt=(P*varP).transpose();
+    double ratio=inner_product(tt.get_row(col2),tt.get_row(col1))/inner_product(tt.get_row(col1),tt.get_row(col1));
+    VectorType  ortho=tt.get_row(col2)-tt.get_row(col1)*ratio;
+    VectorType x = vnl_svd<double>(P).solve(ortho);
+    return x;
+  }
 
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }
-  void SetMatrixQ(  MatrixType  matrix ) { this->m_MatrixQ=matrix; }
+  void SetMatrixQ(  MatrixType  matrix ) {  this->m_OriginalMatrixQ.set_size(matrix.rows(),matrix.cols());  this->m_MatrixQ.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixQ.update(matrix); this->m_MatrixQ.update(matrix);}
   MatrixType GetMatrixQ(  ) { return this->m_MatrixQ; }
 
   itkSetMacro( FractionNonZeroR, RealType );
   itkSetMacro( KeepPositiveR, bool );
   void SetMaskImageR( ImagePointer mask ) { this->m_MaskImageR=mask; }
-  void SetMatrixR(  MatrixType matrix ) { this->m_MatrixR=matrix; }
+  void SetMatrixR(  MatrixType matrix ) {  this->m_OriginalMatrixR.set_size(matrix.rows(),matrix.cols());  this->m_MatrixR.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixR.update(matrix); this->m_MatrixR.update(matrix); }
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 
+  RealType RunSCCAN2multiple( unsigned int n_vecs );
   RealType RunSCCAN2( );
   RealType RunSCCAN3();
  
@@ -264,6 +275,9 @@ protected:
   }
 
 private:
+  MatrixType m_OriginalMatrixP;
+  MatrixType m_OriginalMatrixQ;
+  MatrixType m_OriginalMatrixR;
 
   antsSCCANObject(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
@@ -290,6 +304,9 @@ private:
   RealType   m_FractionNonZeroQ;
   bool       m_KeepPositiveQ;
   VectorType m_CovariatesQ;
+
+  VariateType m_VariatesP;
+  VariateType m_VariatesQ;
 
   VectorType m_WeightsR;
   MatrixType m_MatrixR;
