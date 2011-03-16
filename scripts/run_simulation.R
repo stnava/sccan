@@ -5,15 +5,15 @@
 # define the CCA progam 
 CCA<-"~/code/sccan/bin/sccan "
 # define the parameters for the simulation 
- sparseness<-0.25 # for X, Y matrices
+ sparseness<-0.24 # for X, Y matrices
  testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-100 ; nvoxy<-500 ; nvoxx<-900 ; 
- nvoxz<-1
- noise<-0.0 # increase this to get extra noise
-totalSimultations<-10
-ptot1<-rep(1,totalSimultations)
-ptot2<-rep(1,totalSimultations)
-for ( sim in c(1:totalSimultations) ) {
+ nsub<-10 ; nvoxy<-6 ; nvoxx<-8 ; # size of simulated images 
+ noise<-0.1 # increase this to get extra noise
+ totalSimulations<-1 # number of random repeats 
+ nvoxz<-1 # ignore this 
+ptot1<-rep(1,totalSimulations)
+ptot2<-rep(1,totalSimulations)
+for ( sim in c(1:totalSimulations) ) {
 # simulate true signal Z
 Z<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z<-(Z-mean(Z))/sd(Z)
