@@ -94,12 +94,12 @@ typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
 ::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix ) 
 {
-
+  double regularization=1.e-0;
   if (  rin.columns() > rin.rows() ) 
     {
       MatrixType dd=rin*rin.transpose();
       dd.set_identity(); 
-      dd=dd*0.1+rin*rin.transpose();
+      dd=dd*regularization+rin*rin.transpose();
       vnl_svd_economy<RealType> eig(dd);
 //      vnl_svd_economy<RealType> eig(rin*rin.transpose());
       VectorType eigvals=eig.lambdas();
@@ -118,7 +118,10 @@ antsSCCANObject<TInputImage, TRealType>
 	{
 	  RealType eval=eigvals(j);
 	  if ( eval > this->m_PinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	   if ( whiten_else_invcovmatrix )
 	    r_diag_inv(j)=1/sqrt(eval);// need sqrt for whitening 
+	   else 
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
 	    r_eigvecs.set_column(j,eig.V().get_column(j));
 	  }
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
@@ -133,7 +136,7 @@ antsSCCANObject<TInputImage, TRealType>
     {     
       MatrixType dd=rin.transpose()*rin;
       dd.set_identity(); 
-      dd=dd*0.1+rin.transpose()*rin;
+      dd=dd*regularization+rin.transpose()*rin;
       vnl_svd_economy<RealType> eig(dd);
       VectorType eigvals=eig.lambdas();
       RealType eigsum=eigvals.sum();
@@ -151,7 +154,10 @@ antsSCCANObject<TInputImage, TRealType>
 	{
 	  RealType eval=eigvals(j);
 	  if ( eval > this->m_PinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	   if ( whiten_else_invcovmatrix )
 	    r_diag_inv(j)=1/sqrt(eval);// need sqrt for whitening 
+	   else 
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov
 	    r_eigvecs.set_column(j,eig.V().get_column(j));
 	  }
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
@@ -374,58 +380,76 @@ antsSCCANObject<TInputImage, TRealType>
       ++its;
     }// inner_it
     std::cout << "  canonical variate number " << j+1 << " corr " << truecorr << std::endl;
-    VectorType rj=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ );
-    AlphaJs(j)=rj.two_norm();
-    VectorType pj=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP ) 
-                      - AlphaJs(j)*this->m_WeightsQ;
-    BetaJs(j)=pj.two_norm();
+    VectorType rj=this->m_WeightsP;// this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ );
+    AlphaJs(j)=1;
+    VectorType pj=this->m_WeightsQ; //this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP ) 
+//                      - AlphaJs(j)*this->m_WeightsQ;
+    BetaJs(j)=1;
     this->m_VariatesP.set_column(j,this->m_WeightsP);
-    this->m_VariatesQ.set_column(j,this->m_WeightsQ);
+    this->m_VariatesQ.set_column(j,this->m_WeightsQ);            
+
+
     }
     else {
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  )
     {
+    if (its==990){
+    this->m_MatrixR.set_size(this->m_MatrixP.rows(),j);
+    for (unsigned int k=0; k<j; k++)
+      this->m_MatrixR.set_column(k,(this->m_VariatesP ).get_column(k));
+    this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
+    this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+    this->m_MatrixP=(this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP);
+    this->m_MatrixR.set_size(this->m_MatrixQ.rows(),j);
+    for (unsigned int k=0; k<j; k++)
+      this->m_MatrixR.set_column(k,(this->m_VariatesQ ).get_column(k));
+    this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
+    this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+    this->m_MatrixQ=(this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ);
+    }
       RealType norm=0;
+      VectorType bb=this->m_VariatesP.get_column(0);
+      double ip=1; unsigned long ct=0;
       VectorType rj=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ );
-//                     - BetaJs(j-1)*this->m_VariatesP.get_column(j-1);
-      rj=this->SoftThreshold( rj , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
-      norm=rj.two_norm();
-      AlphaJs(j)=norm;
-      if ( norm > 0 ) this->m_WeightsP=rj/(norm);
-      else this->m_WeightsP.fill(0);
+      while ( fabs(ip) > 1.e-2 && ct < 1000 ) {
+        rj=rj - inner_product(this->m_MatrixP*rj,this->m_MatrixP*bb)/inner_product(this->m_MatrixP*bb,this->m_MatrixP*bb)*bb;
+        rj=this->SoftThreshold( rj , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+        norm=rj.two_norm();
+        if ( norm > 0 ) this->m_WeightsP=rj/(norm);
+        else this->m_WeightsP.fill(0);
+       	ip=inner_product(this->m_MatrixP*rj,this->m_MatrixP*bb);
+	ct++;
+//	std::cout << " pip " << ip << std::endl;
+      }
       this->m_VariatesP.set_column(j,this->m_WeightsP);
-      for (unsigned int k=0; k<j; k++) {
-        VectorType ortho=this->OrthogonalizeVector( this->m_MatrixP,this->m_VariatesP,k,j);
-        this->m_VariatesP.set_column(j,ortho);
-        this->m_WeightsP=ortho;
-//	for (unsigned int kk=0; kk<j; kk++)
-//        std::cout << " p-ip at " << kk << " is "  << inner_product( this->m_MatrixP*ortho , (this->m_MatrixP*this->m_VariatesP ).get_column(kk) ) << std::endl;
+
+
+      rj=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP );
+      bb=this->m_VariatesQ.get_column(0);
+      ip=1; ct=0;
+      while ( fabs(ip) > 1.e-2 && ct < 1000 ) {
+        rj=rj - inner_product(this->m_MatrixQ*rj,this->m_MatrixQ*bb)/inner_product(this->m_MatrixQ*bb,this->m_MatrixQ*bb)*bb;
+        rj=this->SoftThreshold( rj , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+        norm=rj.two_norm();
+        if ( norm > 0 ) this->m_WeightsQ=rj/(norm);
+        else this->m_WeightsQ.fill(0);
+       	ip=inner_product(this->m_MatrixQ*rj,this->m_MatrixQ*bb);
+	ct++;
+//	std::cout << " qip " << ip << std::endl;
       }
- 
-      VectorType pj=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP );
-//                      - AlphaJs(j)*this->m_VariatesQ.get_column(j-1);
-      pj=this->SoftThreshold( pj , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
-      norm=pj.two_norm();
-      BetaJs(j)=norm;
-      if ( norm > 0 ) this->m_WeightsQ=pj/(norm);
-      else this->m_WeightsQ.fill(0);
       this->m_VariatesQ.set_column(j,this->m_WeightsQ);
-      for (unsigned int k=0; k<j; k++) {
-        VectorType ortho=this->OrthogonalizeVector( this->m_MatrixQ,this->m_VariatesQ,k,j);
-        this->m_VariatesQ.set_column(j,ortho);
-        this->m_WeightsQ=ortho;
- //       std::cout << " q-ip " << inner_product( this->m_MatrixQ*ortho , (this->m_MatrixQ*this->m_VariatesQ ).get_column(k) ) << std::endl;
-      }
 
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
-      deltacorr=fabs(truecorr-lastcorr);
+      deltacorr=(truecorr-lastcorr);
       lastcorr=truecorr;
       ++its;
+       std::cout << " p-ip " << inner_product( this->m_MatrixP*this->m_VariatesP.get_column(1) , this->m_MatrixP*this->m_VariatesP.get_column(0) )  << " q-ip " << inner_product( this->m_MatrixQ*this->m_VariatesQ.get_column(1) , this->m_MatrixQ*this->m_VariatesQ.get_column(0) ) << " corr " << truecorr << std::endl;
     }// inner_it
     std::cout << "  canonical variate number " << j+1 << " corr " << truecorr << std::endl;
     this->m_VariatesP.set_column(j,this->m_WeightsP);
     this->m_VariatesQ.set_column(j,this->m_WeightsQ);
-
     } 
     if ( fabs(truecorr) < 1.e-2 || (j+1) == n_vecs ) notdone=false;
     else {
@@ -433,13 +457,18 @@ antsSCCANObject<TInputImage, TRealType>
        corr+=fabs(truecorr);
      j++;
     }
-  }   
+  }    
+//  std::cout <<"  this->m_VariatesP " << this->m_VariatesP  << std::endl;
   MatrixType projp=this->m_MatrixP*this->m_VariatesP;
   MatrixType projq=this->m_MatrixQ*this->m_VariatesQ;
   MatrixType cr=projp.transpose()*projq;
   MatrixType denom=this->InverseCovarianceMatrix(projp)*this->InverseCovarianceMatrix(projq);
   cr=cr*denom;
   std::cout << " cr " << cr << std::endl;
+
+  this->m_WeightsP=this->m_VariatesP.get_column(0);
+  this->m_WeightsQ=this->m_VariatesQ.get_column(0);
+
   return corr;
 }
 

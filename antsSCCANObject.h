@@ -20,6 +20,7 @@
 #define __antsSCCANObject_h
 
 #include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_cholesky.h>
 #include "itkImageToImageFilter.h"
 /** Custom SCCA implemented with vnl and ITK: Flexible positivity constraints, image ops, permutation testing, etc. */
 namespace itk {
@@ -85,14 +86,120 @@ public:
   void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
   MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
 
-  VectorType OrthogonalizeVector(MatrixType P, MatrixType varP , unsigned int col1, unsigned int col2  ){
+  MatrixType PseudoInverse( MatrixType rin ) {
+    double pinvTolerance=1.e-5;
+    double delta=1.e-0; 
+    //    vnl_svd<double> mysvd(rin,pinvTolerance); 
+    //  return mysvd.pinverse();
+
+    //  see Limit Relations in http://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_pseudoinverse
+      // we use this equation 
+      // $   A^+ = limit as \delta approaches 0  ( A^T A + delta Id )^{-1} A^T $
+      // or if cols < rows 
+      // $   A^+ = limit as \delta approaches 0  A^T ( A A^T + delta Id )^{-1}  $
+    if (  rin.columns() > rin.rows() ) 
+    {
+      // first add the identity to 
+      MatrixType dd=rin*rin.transpose();
+      dd.set_identity(); 
+      dd=dd*delta+rin*rin.transpose();
+      vnl_svd_economy<RealType> eig(dd);
+      VectorType eigvals=eig.lambdas();
+      RealType eigsum=eigvals.sum();
+      RealType total=0; 
+      unsigned int eigct=0;
+      while ( total/eigsum < 1 ) 
+	{
+	  total+=eigvals(eigct);
+	  eigct++;
+	}
+      DiagonalMatrixType r_diag_inv(eigct);
+      MatrixType r_eigvecs(eig.V().get_column(0).size(),eigct);
+      r_eigvecs.fill(0);
+      for (unsigned int j=0; j<eigct; j++) 
+	{
+	  RealType eval=eigvals(j);
+	  if ( eval > pinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
+	    r_eigvecs.set_column(j,eig.V().get_column(j));
+	  }
+	  else r_diag_inv(j)=0; 
+	}
+      // $   A^+ = limit as \delta approaches 0  A^T ( A A^T + delta Id )^{-1}  $
+      // $   A^+ \approx A^T ( A A^T + delta Id )^{-1}  $
+      // svd approx to inverse is  = V \Sigma^{-1} U^T
+      // $   A^+ \approx A^T ( V r_diag_inv V^T )   $
+      MatrixType wmatrix= rin.transpose()* ( r_eigvecs*r_diag_inv*(r_eigvecs.transpose() ));
+      // std::cout << "row rank-deficient wm rows " << wmatrix.rows() << " cols " << wmatrix.cols() <<std::endl;
+      // std::cout << wmatrix * rin  << std::endl;
+      return wmatrix;
+
+    }
+  else 
+    {     
+      MatrixType dd=rin.transpose()*rin;
+      dd.set_identity(); 
+      dd=dd*delta+rin.transpose()*rin;
+      vnl_svd_economy<RealType> eig(dd);
+      VectorType eigvals=eig.lambdas();
+      RealType eigsum=eigvals.sum();
+      RealType total=0; 
+      unsigned int eigct=0;
+      while ( total/eigsum < 1 ) 
+	{
+	  total+=eigvals(eigct);
+	  eigct++;
+	}
+      DiagonalMatrixType r_diag_inv(eigct);
+      MatrixType r_eigvecs(eig.V().get_column(0).size(),eigct);
+      r_eigvecs.fill(0);
+      for (unsigned int j=0; j<eigct; j++) 
+	{
+	  RealType eval=eigvals(j);
+	  if ( eval > pinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
+	    r_eigvecs.set_column(j,eig.V().get_column(j));
+	  }
+	  else r_diag_inv(j)=0; 
+	}
+      // $   A^+ = limit as \delta approaches 0  ( A^T A + delta Id )^{-1} A^T $
+      MatrixType wmatrix=(  r_eigvecs*r_diag_inv*(r_eigvecs.transpose() ) ) * rin.transpose();
+      //      std::cout << "full rank wm rows " << wmatrix.rows() << " cols " << wmatrix.cols() <<std::endl;
+      //  std::cout << wmatrix * rin  << std::endl;
+      return wmatrix;
+    }
+
+
+  }
+
+  VectorType OrthogonalizeVector(MatrixType P, MatrixType varP , unsigned int col1, unsigned int col2 ,  RealType fnz, bool keeppos )
+  {
     MatrixType tt=(P*varP).transpose();
     double ratio=inner_product(tt.get_row(col2),tt.get_row(col1))/inner_product(tt.get_row(col1),tt.get_row(col1));
     VectorType  ortho=tt.get_row(col2)-tt.get_row(col1)*ratio;
-    VectorType x = vnl_svd<double>(P).solve(ortho);
+    VectorType x = this->PseudoInverse(P)*ortho; 
+    //    x=this->SoftThreshold( x , fnz , !keeppos);
     return x;
   }
 
+  VectorType Orthogonalize(VectorType Mvec, VectorType V )
+  {
+      double ratio=inner_product(Mvec,V)/inner_product(V,V);
+      VectorType  ortho=Mvec-V*ratio;
+    return ortho;
+  }
+
+  MatrixType OrthogonalizeMatrix(MatrixType M, VectorType V )
+  {
+    for ( unsigned int j = 0 ; j < M.cols() ; j++ ) {
+      VectorType Mvec=M.get_column(j);
+      double ratio=inner_product(Mvec,V)/inner_product(V,V);
+      VectorType  ortho=Mvec-V*ratio;
+      M.set_column(j,ortho);
+    }
+    return M;
+  }
+  
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }

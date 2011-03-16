@@ -334,7 +334,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  double truecorr=sccanobj->RunSCCAN2multiple(4);
+  double truecorr=sccanobj->RunSCCAN2multiple(2);
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
   std::cout << " true-corr " << truecorr << std::endl; 
