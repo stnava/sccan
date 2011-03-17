@@ -306,7 +306,7 @@ TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2multiple( unsigned int n_vecs ) 
 {
-  unsigned long projection_iteration_limit=500;
+//  unsigned long projection_iteration_limit=500;
   RealType truecorr=0;
   unsigned int nr1=this->m_MatrixP.rows();
   unsigned int nr2=this->m_MatrixQ.rows();
@@ -318,20 +318,6 @@ antsSCCANObject<TInputImage, TRealType>
     std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nr1 << " vs " << nr2 << std::endl;
     exit(1);
   }
-  if (  this->m_CovariatesP.size() == 0 ){
-    this->m_CovariatesP.set_size( nr1 );
-    this->m_CovariatesQ.set_size( nr2 );
-    this->m_CovariatesP.fill(0);
-    this->m_CovariatesQ.fill(0);
-  }
-  this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
-  this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
-  this->m_VariatesP.fill(0);
-  this->m_VariatesQ.fill(0);
-  TRealType corr=0;
-  unsigned int j=0; 
-  bool notdone=true;
-  while ( notdone ) {
     this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
     this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);  
     this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
@@ -342,22 +328,31 @@ antsSCCANObject<TInputImage, TRealType>
       this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
       this->UpdatePandQbyR( );
     }
+  this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
+  this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
+  for (unsigned int kk=0;kk<n_vecs; kk++) {
+    this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
+    this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
+  }
+  TRealType corr=0;
+  unsigned int j=0; 
+  bool notdone=true;
+  while ( notdone ) {
     std::cout << " get canonical variate number " << j+1 << std::endl;
     double initcorr=1.e-5;
     truecorr=initcorr;
     double deltacorr=1,lastcorr=initcorr*0.5;
-    this->m_WeightsP=this->InitializeV(this->m_MatrixP);
-    this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
-    unsigned long its=0;
-    while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  )
+    this->m_WeightsP= this->m_VariatesP.get_column(j);
+    this->m_WeightsQ= this->m_VariatesQ.get_column(j);
+    unsigned long its=0, min_its=5;
+    while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
-      unsigned long proj_lim=projection_iteration_limit;
-      if ( its == 0 && j > 0) { 
-        proj_lim=1;
+      if ( j > 0) {
+// here, factor out previous evecs globally 
 	MatrixType temp;
 	MatrixType pp;
 	pp.set_size(this->m_MatrixP.rows(),j);
-	for (unsigned int kk=0; kk<j; kk++) pp.set_column(kk,this->m_MatrixP*this->m_VariatesP.get_column(kk));
+	for (unsigned int kk=j-1; kk<j; kk++) pp.set_column(kk,this->m_MatrixP*this->m_VariatesP.get_column(kk));
         temp=this->NormalizeMatrix(pp);  
         temp=this->WhitenMatrix(temp);  
         temp=temp*temp.transpose(); 
@@ -370,59 +365,21 @@ antsSCCANObject<TInputImage, TRealType>
         temp=temp*temp.transpose(); 
         this->m_MatrixQ=(this->m_MatrixQ-temp*this->m_MatrixQ);
       }
+
       {
-      RealType norm=0;
-      double ip=1; unsigned long ct=0;
       VectorType pj=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ );
-      pj=pj/pj.two_norm();
-      while ( fabs(ip) > 1.e-2 && ct < proj_lim ) {
-        ip=0;
-        VectorType bb;
-        for (unsigned int kk=0; kk<j; kk++) {
-          bb=this->m_VariatesP.get_column(kk);
-          pj=pj - inner_product(this->m_MatrixP*pj,this->m_MatrixP*bb)/inner_product(this->m_MatrixP*bb,this->m_MatrixP*bb)*bb;
-        }
-        pj=this->SoftThreshold( pj , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
-        norm=pj.two_norm();
-        if ( norm > 0 ) this->m_WeightsP=pj/(norm);
-        else this->m_WeightsP.fill(0);
-        for (unsigned int kk=0; kk<j; kk++) {
-          bb=this->m_VariatesP.get_column(kk);
-          ip+=inner_product(this->m_MatrixP*pj,this->m_MatrixP*bb);
-        }
-	ip/=(RealType)j;
-	ct++;
- 	std::cout << " pip " << ip << " ct " << ct <<  std::endl;
-      }
+      pj=this->SoftThreshold( pj , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+      if ( pj.two_norm() > 0 ) this->m_WeightsP=pj/(pj.two_norm());
       this->m_VariatesP.set_column(j,this->m_WeightsP);
       }
 
       {
-      RealType norm=0;
-      double ip=1; unsigned long ct=0;
       VectorType qj=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP);
-      qj=qj/qj.two_norm();
-      while ( fabs(ip) > 1.e-2 && ct < proj_lim ) {
-        ip=0;
-        VectorType bb;
-        for (unsigned int kk=0; kk<j; kk++) {
-          bb=this->m_VariatesQ.get_column(kk);
-          qj=qj - inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*bb)/inner_product(this->m_MatrixQ*bb,this->m_MatrixQ*bb)*bb;
-        }
-        qj=this->SoftThreshold( qj , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
-        norm=qj.two_norm();
-        if ( norm > 0 ) this->m_WeightsQ=qj/(norm);
-        else this->m_WeightsQ.fill(0);
-        for (unsigned int kk=0; kk<j; kk++) {
-          bb=this->m_VariatesQ.get_column(kk);
-          ip+=inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*bb);
-        }
-	ip/=(RealType)j;
-	ct++;
- 	std::cout << " qip " << ip << " ct " << ct << std::endl;
-      }
+      qj=this->SoftThreshold( qj , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      if ( qj.two_norm() > 0 ) this->m_WeightsQ=qj/(qj.two_norm());
       this->m_VariatesQ.set_column(j,this->m_WeightsQ);
       }
+
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
       deltacorr=(truecorr-lastcorr);
       lastcorr=truecorr;
@@ -439,8 +396,8 @@ antsSCCANObject<TInputImage, TRealType>
      j++;
     }
   }   
-/*
   std::cout <<"  this->m_VariatesP " << this->m_VariatesP  << std::endl;
+/*
   MatrixType projp=this->m_MatrixP*this->m_VariatesP;
   MatrixType projq=this->m_MatrixQ*this->m_VariatesQ;
   MatrixType cr=projp.transpose()*projq;
