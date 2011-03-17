@@ -178,6 +178,8 @@ public:
     double ratio=inner_product(tt.get_row(col2),tt.get_row(col1))/inner_product(tt.get_row(col1),tt.get_row(col1));
     VectorType  ortho=tt.get_row(col2)-tt.get_row(col1)*ratio;
     VectorType x = this->PseudoInverse(P)*ortho; 
+    // V = P*OldVec
+    //   P_inv*(U -  <U,V>/<V,V> V)
     //    x=this->SoftThreshold( x , fnz , !keeppos);
     return x;
   }
@@ -240,6 +242,21 @@ protected:
 
 // for pscca 
   void UpdatePandQbyR( );
+
+  MatrixType  DeleteCol( MatrixType p_in , unsigned int col)
+  {
+  unsigned int ncols=p_in.cols()-1;
+  if ( col >= ncols ) ncols=p_in.cols();
+  MatrixType p(p_in.rows(),ncols);      
+  unsigned int colct=0;
+  for ( long i=0; i<p.cols(); ++i) { // loop over cols
+    if ( i != col ) {
+      p.set_column(colct,p_in.get_column(i));
+      colct++;
+    }
+  }
+  return p;
+  } 
 
   RealType CountNonZero( VectorType v ) 
   {
