@@ -147,8 +147,8 @@ public:
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   /** needed for partial scca */
-  MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true ); 
-  MatrixType InverseCovarianceMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false); }
+  MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true, MatrixType* m=NULL); 
+  MatrixType InverseCovarianceMatrix(MatrixType p, MatrixType* m) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false, m); }
   MatrixType WhitenMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p); }
   VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, bool factorOutR);
   MatrixType PartialOutZ( MatrixType X, MatrixType Y, MatrixType Z ) {

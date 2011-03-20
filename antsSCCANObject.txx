@@ -31,7 +31,7 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_CorrelationForSignificanceTest=0;
   this->m_SpecializationForHBM2011=false;
   this->m_AlreadyWhitened=false;
-  this->m_PinvTolerance=1.e-5;
+  this->m_PinvTolerance=1.e-2;
   this->m_PercentVarianceForPseudoInverse=0.9;
   this->m_MaximumNumberOfIterations=100;
   this->m_MaskImageP=NULL;
@@ -187,17 +187,19 @@ antsSCCANObject<TInputImage, TRealType>
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
-::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix ) 
+::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix , MatrixType* invcovmat ) 
 {
-  double regularization=1.e-2;
+  double regularization=1;
   if (  rin.columns() > rin.rows() ) 
     {
       MatrixType dd=rin*rin.transpose();
       dd.set_identity(); 
       dd=dd*regularization+rin*rin.transpose();
+      if (this->m_Debug) std::cout << " enter whiten 1 " << std::endl;
       vnl_svd_economy<RealType> eig(dd);
       VectorType eigvals=eig.lambdas();
       RealType eigsum=eigvals.sum();
+      if (this->m_Debug) std::cout << " eig sum " << std::endl;
       RealType total=0; 
       unsigned int eigct=0;
       while ( total/eigsum < this->m_PercentVarianceForPseudoInverse ) 
@@ -205,12 +207,14 @@ antsSCCANObject<TInputImage, TRealType>
 	  total+=eigvals(eigct);
 	  eigct++;
 	}
+      if (this->m_Debug) std::cout << " total " << total << " eigct " << eigct << std::endl;
       DiagonalMatrixType r_diag_inv(eigct);
       MatrixType r_eigvecs(eig.V().get_column(0).size(),eigct);
       r_eigvecs.fill(0);
       for (unsigned int j=0; j<eigct; j++) 
 	{
 	  RealType eval=eigvals(j);
+	  if (this->m_Debug)std::cout <<  " eigval " << eval << std::endl;
 	  if ( eval > this->m_PinvTolerance )  {// FIXME -- check tolerances against matlab pinv
 	   if ( whiten_else_invcovmatrix )
 	    r_diag_inv(j)=1/sqrt(eval);// need sqrt for whitening 
@@ -219,18 +223,24 @@ antsSCCANObject<TInputImage, TRealType>
 	    r_eigvecs.set_column(j,eig.V().get_column(j));
 	  }
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
+	 if (this->m_Debug) std::cout <<  " inv eigval " <<  r_diag_inv(j) << std::endl;
 	}
       MatrixType evecs=rin.transpose()*r_eigvecs;
-     if ( whiten_else_invcovmatrix ) 
+      if (this->m_Debug) std::cout << " computed evecs r^t r  row x col " << evecs.rows() << " x " << evecs.cols()<< std::endl;   
+      if ( whiten_else_invcovmatrix ) 
        return (rin*evecs)*(r_diag_inv*evecs.transpose());
-     else // return inv cov matrix 
-       return (evecs)*(r_diag_inv*evecs.transpose());
+      else { // return inv cov matrix 
+       if (this->m_Debug) std::cout << " inv cov computation r-diag-inv row x col " << r_diag_inv.rows() << " x " << r_diag_inv.cols() << std::endl;   
+       return ((*invcovmat)*evecs)*(r_diag_inv*evecs.transpose());
+     }
+     if (this->m_Debug) std::cout << " reached end of control " << std::endl;
     }
   else 
     {     
       MatrixType dd=rin.transpose()*rin;
       dd.set_identity(); 
       dd=dd*regularization+rin.transpose()*rin;
+      if (this->m_Debug) std::cout << " enter 2 " << std::endl;
       vnl_svd_economy<RealType> eig(dd);
       VectorType eigvals=eig.lambdas();
       RealType eigsum=eigvals.sum();
@@ -261,8 +271,10 @@ antsSCCANObject<TInputImage, TRealType>
      if ( whiten_else_invcovmatrix ) 
        return (rin*wmatrix);
       else // return inv cov matrix 
-       return wmatrix;
+       return (*invcovmat)*wmatrix;
     }
+
+    if (this->m_Debug) std::cout <<" exit whiten " << std::endl;
 
 }
 
@@ -443,18 +455,25 @@ void antsSCCANObject<TInputImage, TRealType>
     this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
     this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
     this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    if ( this->m_Debug ) std::cout << " now whiten and apply R " << std::endl;
     if ( this->m_OriginalMatrixR.size() > 0 ) {
       this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
       this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
       this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
 
+      std::cout << " inv cov R " << this->m_MatrixRRt.rows() << " c " <<  this->m_MatrixRRt.cols()<< " norm "  << this->m_MatrixRRt.frobenius_norm() << std::endl;
       MatrixType temp=this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP;
-      temp=this->InverseCovarianceMatrix(temp);  
-      this->m_MatrixP=this->m_MatrixP*temp;
+      std::cout << " temp" << temp.rows() << " r " << temp.cols()<< std::endl;
+      temp=this->InverseCovarianceMatrix(temp,&this->m_MatrixP);  
+      std::cout << " inv cov R done " << std::endl;
+      this->m_MatrixP=temp;
+      if ( this->m_Debug ) std::cout << " apply R to P done " << std::endl;
       temp=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
-      temp=this->InverseCovarianceMatrix(temp); 
-      this->m_MatrixQ=this->m_MatrixQ*temp;
+      temp=this->InverseCovarianceMatrix(temp,&this->m_MatrixQ); 
+      this->m_MatrixQ=temp;
+      if ( this->m_Debug ) std::cout << " apply R to Q done " << std::endl;
     }
+    if ( this->m_Debug ) std::cout << "  whiten and apply R done " << std::endl;
 }
 
 
@@ -476,9 +495,13 @@ antsSCCANObject<TInputImage, TRealType>
     std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nr1 << " vs " << nr2 << std::endl;
     exit(1);
   }
+   
+//  this->m_Debug=true;
   if  (  !this->m_AlreadyWhitened  ) {
+    if ( this->m_Debug ) std::cout << " whiten " << std::endl;
     this->WhitenDataSetForRunSCCANMultiple();    
     this->m_AlreadyWhitened=true; 
+    if ( this->m_Debug ) std::cout << " whiten done " << std::endl;
   } 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
@@ -500,6 +523,7 @@ antsSCCANObject<TInputImage, TRealType>
     unsigned long its=0, min_its=3;
     VectorType lastPw;
     VectorType lastQw;
+    if ( this->m_Debug ) std::cout << " Begin " << std::endl;
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
       {
@@ -513,8 +537,8 @@ antsSCCANObject<TInputImage, TRealType>
         p_evecs_factor=this->WhitenMatrix(p_evecs_factor);  
         p_evecs_factor=p_evecs_factor*p_evecs_factor.transpose(); 
         MatrixType temp=this->m_MatrixP-p_evecs_factor*this->m_MatrixP;
-        temp=this->InverseCovarianceMatrix(temp);  
-        this->m_MatrixP=this->m_MatrixP*temp;
+        temp=this->InverseCovarianceMatrix(temp,&this->m_MatrixP);  
+        this->m_MatrixP=temp;
         }
         proj=proj-p_evecs_factor*proj; 
       }
@@ -535,8 +559,8 @@ antsSCCANObject<TInputImage, TRealType>
         q_evecs_factor=this->WhitenMatrix(q_evecs_factor);  
         q_evecs_factor=q_evecs_factor*q_evecs_factor.transpose();
         MatrixType temp=this->m_MatrixQ-q_evecs_factor*this->m_MatrixQ;
-        temp=this->InverseCovarianceMatrix(temp);  
-        this->m_MatrixQ=this->m_MatrixQ*temp;
+        temp=this->InverseCovarianceMatrix(temp,&this->m_MatrixQ);  
+        this->m_MatrixQ=temp;
         }
         proj=proj-q_evecs_factor*proj; 
       }

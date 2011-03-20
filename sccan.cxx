@@ -478,7 +478,7 @@ template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	       unsigned int permct , bool run_partial_scca = false )
 {
-  unsigned int n_e_vecs=1;
+  unsigned int n_e_vecs=2;
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
