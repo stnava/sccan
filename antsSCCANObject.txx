@@ -27,6 +27,7 @@ namespace ants {
 template <class TInputImage, class TRealType>
 antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( ) 
 {
+  this->m_Debug=false;
   this->m_CorrelationForSignificanceTest=0;
   this->m_SpecializationForHBM2011=false;
   this->m_AlreadyWhitened=false;
@@ -80,6 +81,7 @@ antsSCCANObject<TInputImage, TRealType>
     double sd=wpcol2.squared_magnitude();
     sd=sqrt( sd/(p.rows()-1) );
     if ( sd <= 0 ) {
+      if ( this->m_Debug ) 
       std::cout << " bad-row " << i <<  wpcol << std::endl;
       for (unsigned long j=0; j < wpcol.size(); j++)
 	wpcol2(j)=randgen.drand32();
@@ -472,7 +474,7 @@ antsSCCANObject<TInputImage, TRealType>
   unsigned int which_e_vec=0; 
   bool notdone=true;
   while ( notdone ) {
-    std::cout << " get canonical variate number " << which_e_vec+1 << std::endl;
+     if ( this->m_Debug ) std::cout << " get canonical variate number " << which_e_vec+1 << std::endl;
     double initcorr=1.e-5;
     truecorr=initcorr;
     double deltacorr=1,lastcorr=initcorr*0.5;
@@ -481,7 +483,6 @@ antsSCCANObject<TInputImage, TRealType>
     unsigned long its=0, min_its=3;
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
-      for (unsigned int kk=0; kk < 5; kk++)
       {
       VectorType temp=this->m_MatrixQ*this->m_WeightsQ;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
@@ -497,7 +498,6 @@ antsSCCANObject<TInputImage, TRealType>
       this->m_VariatesP.set_column(which_e_vec,this->m_WeightsP);
       }
 
-      for (unsigned int kk=0; kk < 5; kk++)
       {
       VectorType temp=this->m_MatrixP*this->m_WeightsP;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
@@ -514,7 +514,7 @@ antsSCCANObject<TInputImage, TRealType>
       }
 
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
-      std::cout << " corr " << truecorr << std::endl;
+       if ( this->m_Debug ) std::cout << " corr " << truecorr << std::endl;
       deltacorr=fabs(truecorr-lastcorr);
       lastcorr=truecorr;
       ++its;
@@ -556,9 +556,9 @@ antsSCCANObject<TInputImage, TRealType>
 
 //  if ( !this->m_AlreadyWhitened ) 
   {
-  std::cout <<" norm P " << std::endl;
+   if ( this->m_Debug ) std::cout <<" norm P " << std::endl;
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
-  std::cout <<" norm Q " << std::endl;
+   if ( this->m_Debug ) std::cout <<" norm Q " << std::endl;
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
     if ( this->m_OriginalMatrixR.size() > 0 ) {
       this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
@@ -727,7 +727,7 @@ antsSCCANObject<TInputImage, TRealType>
 	deltaip=fabs(lastip)-fabs(ip);
 	lastip=ip;
 	ct++;
-        std::cout << " pip-b " << ip << " delt " << deltaip << std::endl;
+         if ( this->m_Debug ) std::cout << " pip-b " << ip << " delt " << deltaip << std::endl;
         }
 
       double ip=1; unsigned long ct=0;
@@ -748,7 +748,7 @@ antsSCCANObject<TInputImage, TRealType>
 	deltaip=fabs(lastip)-fabs(ip);
 	lastip=ip;
 	ct++;
-        std::cout << " qip-b " << ip << " delt " << deltaip << std::endl;
+         if ( this->m_Debug ) std::cout << " qip-b " << ip << " delt " << deltaip << std::endl;
         }
 
 

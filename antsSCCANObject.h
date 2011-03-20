@@ -226,6 +226,7 @@ protected:
   void RunDiagnostics(unsigned int);
 
 private:
+  bool m_Debug;
   MatrixType m_OriginalMatrixP;
   MatrixType m_OriginalMatrixQ;
   MatrixType m_OriginalMatrixR;

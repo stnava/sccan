@@ -7,8 +7,8 @@ CCA<-"~/code/sccan/bin/sccan "
 # define the parameters for the simulation 
  sparseness<-(-0.33) # for X, Y matrices
  testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-40 ; nvoxy<-216*(2-testspatiallocalization) ; nvoxx<-110*(2-testspatiallocalization) ; # size of simulated images 
- noise<-0.0 # increase this to get extra noise
+ nsub<-40 ; nvoxy<-117*(2-testspatiallocalization) ; nvoxx<-225*(2-testspatiallocalization) ; # size of simulated images 
+ noise<-0.02 # increase this to get extra noise
  totalSimulations<-1 # number of random repeats 
  nvoxz<-1 # ignore this 
 ptot1<-rep(1,totalSimulations)
