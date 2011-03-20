@@ -189,7 +189,7 @@ typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
 ::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix , MatrixType* invcovmat ) 
 {
-  double regularization=1;
+  double regularization=1.e-2;
   if (  rin.columns() > rin.rows() ) 
     {
       MatrixType dd=rin*rin.transpose();
