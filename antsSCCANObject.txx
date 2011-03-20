@@ -213,7 +213,7 @@ antsSCCANObject<TInputImage, TRealType>
 	   if ( whiten_else_invcovmatrix )
 	    r_diag_inv(j)=1/sqrt(eval);// need sqrt for whitening 
 	   else 
-	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
+	    r_diag_inv(j)=1/sqrt(eval);// need eval for inv cov 
 	    r_eigvecs.set_column(j,eig.V().get_column(j));
 	  }
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
@@ -249,7 +249,7 @@ antsSCCANObject<TInputImage, TRealType>
 	   if ( whiten_else_invcovmatrix )
 	    r_diag_inv(j)=1/sqrt(eval);// need sqrt for whitening 
 	   else 
-	    r_diag_inv(j)=1/(eval);// need eval for inv cov
+	    r_diag_inv(j)=1/sqrt(eval);// need eval for inv cov
 	    r_eigvecs.set_column(j,eig.V().get_column(j));
 	  }
 	  else r_diag_inv(j)=0;// need sqrt for whitening 
@@ -405,6 +405,7 @@ void antsSCCANObject<TInputImage, TRealType>
       std::cout << "Pvec " << wv << " confound " << col << " : " << a <<std::endl; 
       std::cout << "Qvec " << wv << " confound " << col << " : " << b <<std::endl; 
       if ( fabs(a) > corrthresh && fabs(b) > corrthresh ) {
+       std::cout << " correlation with confound too high " << wv << std::endl;
         this->m_CanonicalCorrelations[wv]=0; 
       }
       }
@@ -446,14 +447,22 @@ antsSCCANObject<TInputImage, TRealType>
     exit(1);
   }
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
-  this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ); 
-  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ); 
+  this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
   if ( this->m_OriginalMatrixR.size() > 0 ) {
     this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
     this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
     this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
-  }
+/*
+    MatrixType temp=this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP;
+    temp=this->InverseCovarianceMatrix(temp); 
+    this->m_MatrixP=this->m_MatrixP*temp;
+    temp=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
+    temp=this->InverseCovarianceMatrix(temp); 
+    this->m_MatrixQ=this->m_MatrixQ*temp;
+*/
+  } 
+  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ); 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
@@ -509,14 +518,14 @@ antsSCCANObject<TInputImage, TRealType>
       deltacorr=fabs(truecorr-lastcorr);
       lastcorr=truecorr;
       ++its;
-  
+ 
     }// inner_it
-    this->m_CanonicalCorrelations[which_e_vec]=truecorr;
-    this->RunDiagnostics(which_e_vec+1);
+    this->m_CanonicalCorrelations[which_e_vec]=truecorr; 
     std::cout << "  canonical variate number " << which_e_vec+1 << " corr " << this->m_CanonicalCorrelations[which_e_vec]  << std::endl;
     if ( fabs(truecorr) < 1.e-2 || (which_e_vec+1) == n_vecs ) notdone=false;
     else which_e_vec++;
-  }  
+  }     
+  this->RunDiagnostics(n_vecs);
   RealType corrsum=0;
   for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) 
     corrsum+=fabs(this->m_CanonicalCorrelations[i]);
@@ -601,11 +610,11 @@ antsSCCANObject<TInputImage, TRealType>
   this->m_WeightsR=this->InitializeV(this->m_MatrixR);
   if ( !this->m_AlreadyWhitened ) {
   this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
-  this->m_MatrixP=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixP);  
+  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
   this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-  this->m_MatrixQ=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixQ);  
+  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);  
   this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
-  this->m_MatrixR=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixR);  
+  this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
   this->m_AlreadyWhitened=true;
   }
   RealType truecorr=0;
