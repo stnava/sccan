@@ -31,7 +31,7 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_SpecializationForHBM2011=false;
   this->m_AlreadyWhitened=false;
   this->m_PinvTolerance=1.e-5;
-  this->m_PercentVarianceForPseudoInverse=0.95;
+  this->m_PercentVarianceForPseudoInverse=0.9;
   this->m_MaximumNumberOfIterations=100;
   this->m_MaskImageP=NULL;
   this->m_MaskImageQ=NULL;
@@ -51,12 +51,17 @@ antsSCCANObject<TInputImage, TRealType>
 ::InitializeV( typename antsSCCANObject<TInputImage, TRealType>::MatrixType p ) 
 {
   VectorType w_p( p.columns() );
+  w_p.fill(0);
+  for (unsigned int its=0; its<1; its++) {
   vnl_random randgen(time(0));
   for (unsigned long i=0; i < p.columns(); i++)
     { 
+//      w_p(i)+=randgen.normal();
 //      w_p(i)=randgen.drand32();//1.0/p.rows();//
-      w_p(i)=1.0+fabs(randgen.drand32())*1.e-3; 
+      w_p(i)=1.0/p.rows(); //+randgen.normal()*1.e-3;
+//1.0+fabs(randgen.drand32())*1.e-3; 
     }
+  }
   w_p=w_p/w_p.two_norm();
   return w_p;
 }
@@ -87,6 +92,94 @@ antsSCCANObject<TInputImage, TRealType>
   }
   return np;
 }
+template <class TInputImage, class TRealType>
+typename antsSCCANObject<TInputImage, TRealType>::MatrixType
+antsSCCANObject<TInputImage, TRealType>
+::PseudoInverse( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin ) {
+    double pinvTolerance=this->m_PinvTolerance;
+    double regularization=1.e-2; 
+//    vnl_svd<double> mysvd(rin,pinvTolerance); 
+//    return mysvd.inverse();
+
+    //  see Limit Relations in http://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_pseudoinverse
+      // we use this equation 
+      // $   A^+ = limit as \delta approaches 0  ( A^T A + delta Id )^{-1} A^T $
+      // or if cols < rows 
+      // $   A^+ = limit as \delta approaches 0  A^T ( A A^T + delta Id )^{-1}  $
+    if (  rin.columns() > rin.rows() ) 
+    {
+      // first add the identity to 
+      MatrixType dd=rin*rin.transpose();
+      dd.set_identity(); 
+      dd=dd*regularization+rin*rin.transpose();
+      vnl_svd_economy<RealType> eig(dd);
+      VectorType eigvals=eig.lambdas();
+      RealType eigsum=eigvals.sum();
+      RealType total=0; 
+      unsigned int eigct=0;
+      while ( total/eigsum < 1 ) 
+	{
+	  total+=eigvals(eigct);
+	  eigct++;
+	}
+      DiagonalMatrixType r_diag_inv(eigct);
+      MatrixType r_eigvecs(eig.V().get_column(0).size(),eigct);
+      r_eigvecs.fill(0);
+      for (unsigned int j=0; j<eigct; j++) 
+	{
+	  RealType eval=eigvals(j);
+	  if ( eval > pinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
+	    r_eigvecs.set_column(j,eig.V().get_column(j));
+	  }
+	  else r_diag_inv(j)=0; 
+	}
+      // $   A^+ = limit as \delta approaches 0  A^T ( A A^T + delta Id )^{-1}  $
+      // $   A^+ \approx A^T ( A A^T + delta Id )^{-1}  $
+      // svd approx to inverse is  = V \Sigma^{-1} U^T
+      // $   A^+ \approx A^T ( V r_diag_inv V^T )   $
+      MatrixType wmatrix= rin.transpose()* ( r_eigvecs*r_diag_inv*(r_eigvecs.transpose() ));
+      // std::cout << "row rank-deficient wm rows " << wmatrix.rows() << " cols " << wmatrix.cols() <<std::endl;
+      // std::cout << wmatrix * rin  << std::endl;
+      return wmatrix;
+
+    }
+  else 
+    {     
+      MatrixType dd=rin.transpose()*rin;
+      dd.set_identity(); 
+      dd=dd*regularization+rin.transpose()*rin;
+      vnl_svd_economy<RealType> eig(dd);
+      VectorType eigvals=eig.lambdas();
+      RealType eigsum=eigvals.sum();
+      RealType total=0; 
+      unsigned int eigct=0;
+      while ( total/eigsum < 1 ) 
+	{
+	  total+=eigvals(eigct);
+	  eigct++;
+	}
+      DiagonalMatrixType r_diag_inv(eigct);
+      MatrixType r_eigvecs(eig.V().get_column(0).size(),eigct);
+      r_eigvecs.fill(0);
+      for (unsigned int j=0; j<eigct; j++) 
+	{
+	  RealType eval=eigvals(j);
+	  if ( eval > pinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	    r_diag_inv(j)=1/(eval);// need eval for inv cov 
+	    r_eigvecs.set_column(j,eig.V().get_column(j));
+	  }
+	  else r_diag_inv(j)=0; 
+	}
+      // $   A^+ = limit as \delta approaches 0  ( A^T A + delta Id )^{-1} A^T $
+      MatrixType wmatrix=(  r_eigvecs*r_diag_inv*(r_eigvecs.transpose() ) ) * rin.transpose();
+      //      std::cout << "full rank wm rows " << wmatrix.rows() << " cols " << wmatrix.cols() <<std::endl;
+      //  std::cout << wmatrix * rin  << std::endl;
+      return wmatrix;
+    }
+
+
+  }
 
 
 template <class TInputImage, class TRealType>
@@ -94,14 +187,13 @@ typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
 ::WhitenMatrixOrGetInverseCovarianceMatrix( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool whiten_else_invcovmatrix ) 
 {
-  double regularization=1.e-0;
+  double regularization=1.e-2;
   if (  rin.columns() > rin.rows() ) 
     {
       MatrixType dd=rin*rin.transpose();
       dd.set_identity(); 
       dd=dd*regularization+rin*rin.transpose();
       vnl_svd_economy<RealType> eig(dd);
-//      vnl_svd_economy<RealType> eig(rin*rin.transpose());
       VectorType eigvals=eig.lambdas();
       RealType eigsum=eigvals.sum();
       RealType total=0; 
@@ -228,6 +320,7 @@ antsSCCANObject<TInputImage, TRealType>
   }
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
   // std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
+  if ( v_out.two_norm() > 0 ) return v_out/v_out.two_norm();
   return v_out;
 }
 
@@ -235,7 +328,7 @@ antsSCCANObject<TInputImage, TRealType>
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::VectorType
 antsSCCANObject<TInputImage, TRealType>
-::TrueCCAPowerUpdate( TRealType penalty1,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType p , typename antsSCCANObject<TInputImage, TRealType>::VectorType  w_q ,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType q, bool keep_pos ,   typename antsSCCANObject<TInputImage, TRealType>::VectorType covariate, bool factorOutR )
+::TrueCCAPowerUpdate( TRealType penalty1,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType p , typename antsSCCANObject<TInputImage, TRealType>::VectorType  w_q ,  typename antsSCCANObject<TInputImage, TRealType>::MatrixType q, bool keep_pos , bool factorOutR )
 {
   RealType norm=0;
   // recall that the matrices below have already be whitened ....
@@ -248,13 +341,6 @@ antsSCCANObject<TInputImage, TRealType>
   }
   else {
     VectorType temp=q*w_q;
-// we now orthogonalize temp wrt the covariate 
-    if ( covariate.two_norm() > 0 ) { //gram-schmidt 
-      double a=inner_product(temp,covariate);
-      double b=inner_product(covariate,covariate);
-      double ratio=a/b;
-      temp=temp-ratio*covariate;
-    }
     wpnew=p.transpose()*temp;
   }
   wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );
@@ -301,12 +387,53 @@ antsSCCANObject<TInputImage, TRealType>
 
 }
 
+
+template <class TInputImage, class TRealType>
+void antsSCCANObject<TInputImage, TRealType>
+::RunDiagnostics( unsigned int n_vecs ) 
+{ 
+  std::cout << "Quantitative diagnostics: "<<std::endl;
+  std::cout << "Type 1: correlation from canonical variate to confounding vector "<<std::endl;
+  std::cout << "Type 2: correlation from canonical variate to canonical variate "<<std::endl;
+  RealType corrthresh=0.2;
+  if (this->m_OriginalMatrixR.size()>0){
+    for (unsigned int col=0; col<this->m_MatrixR.columns(); col++) 
+    for (unsigned int wv=0; wv<n_vecs; wv++)
+      {
+      RealType a=this->PearsonCorr(this->m_MatrixP*this->m_VariatesP.get_column(wv) , this->m_MatrixR.get_column(col) ); 
+      RealType b=this->PearsonCorr(this->m_MatrixQ*this->m_VariatesQ.get_column(wv) , this->m_MatrixR.get_column(col) );
+      std::cout << "Pvec " << wv << " confound " << col << " : " << a <<std::endl; 
+      std::cout << "Qvec " << wv << " confound " << col << " : " << b <<std::endl; 
+      if ( fabs(a) > corrthresh && fabs(b) > corrthresh ) {
+        this->m_CanonicalCorrelations[wv]=0; 
+      }
+      }
+  }
+  for (unsigned int wv=0; wv<n_vecs; wv++)
+    for (unsigned int yv=wv+1; yv<n_vecs; yv++)
+      {
+      RealType a=this->PearsonCorr(this->m_MatrixP*this->m_VariatesP.get_column(wv) , this->m_MatrixP*this->m_VariatesP.get_column(yv)); 
+      if ( fabs(a) > 0.1 ) {
+        this->m_CanonicalCorrelations[yv]=0; 
+      }
+      RealType b=this->PearsonCorr(this->m_MatrixQ*this->m_VariatesQ.get_column(wv) , this->m_MatrixQ*this->m_VariatesQ.get_column(yv));
+      if ( fabs(b) > 0.1 ) { 
+        this->m_CanonicalCorrelations[yv]=0; 
+      }
+      std::cout << "Pvec " << wv << " Pvec " << yv << " : " << a <<std::endl; 
+      std::cout << "Qvec " << wv << " Qvec " << yv << " : " << b <<std::endl; 
+      }
+ 
+}
+
+
 template <class TInputImage, class TRealType>
 TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2multiple( unsigned int n_vecs ) 
 {
-//  unsigned long projection_iteration_limit=500;
+  this->m_CanonicalCorrelations.set_size(n_vecs);
+  this->m_CanonicalCorrelations.fill(0); 
   RealType truecorr=0;
   unsigned int nr1=this->m_MatrixP.rows();
   unsigned int nr2=this->m_MatrixQ.rows();
@@ -318,97 +445,82 @@ antsSCCANObject<TInputImage, TRealType>
     std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nr1 << " vs " << nr2 << std::endl;
     exit(1);
   }
-    this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
-    this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);  
-    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
-    if ( this->m_MatrixR.size() > 0 ) {
-      this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
-      this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
-      this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
-      this->UpdatePandQbyR( );
-    }
+  this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
+  this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ); 
+  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ); 
+  if ( this->m_OriginalMatrixR.size() > 0 ) {
+    this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
+    this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+  }
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
-  TRealType corr=0;
-  unsigned int j=0; 
+  unsigned int which_e_vec=0; 
   bool notdone=true;
   while ( notdone ) {
-    std::cout << " get canonical variate number " << j+1 << std::endl;
+    std::cout << " get canonical variate number " << which_e_vec+1 << std::endl;
     double initcorr=1.e-5;
     truecorr=initcorr;
     double deltacorr=1,lastcorr=initcorr*0.5;
-    this->m_WeightsP= this->m_VariatesP.get_column(j);
-    this->m_WeightsQ= this->m_VariatesQ.get_column(j);
-    unsigned long its=0, min_its=5;
+    this->m_WeightsP= this->m_VariatesP.get_column(which_e_vec);
+    this->m_WeightsQ= this->m_VariatesQ.get_column(which_e_vec);
+    unsigned long its=0, min_its=3;
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
-      if ( j > 0) {
-// here, factor out previous evecs globally 
-	MatrixType temp;
-	MatrixType pp;
-	pp.set_size(this->m_MatrixP.rows(),j);
-	for (unsigned int kk=j-1; kk<j; kk++) pp.set_column(kk,this->m_MatrixP*this->m_VariatesP.get_column(kk));
-        temp=this->NormalizeMatrix(pp);  
-        temp=this->WhitenMatrix(temp);  
-        temp=temp*temp.transpose(); 
-        this->m_MatrixP=(this->m_MatrixP-temp*this->m_MatrixP);
-	MatrixType qq;
-	qq.set_size(this->m_MatrixQ.rows(),j);
-	for (unsigned int kk=0; kk<j; kk++) qq.set_column(kk,this->m_MatrixQ*this->m_VariatesQ.get_column(kk));
-        temp=this->NormalizeMatrix(qq);  
-        temp=this->WhitenMatrix(temp);  
-        temp=temp*temp.transpose(); 
-        this->m_MatrixQ=(this->m_MatrixQ-temp*this->m_MatrixQ);
+
+      {
+      VectorType temp=this->m_MatrixQ*this->m_WeightsQ;
+      if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
+      if ( which_e_vec > 0 ) { 
+        MatrixType mm=this->m_MatrixQ*this->m_VariatesQ.get_n_columns(0,which_e_vec);
+        mm=this->NormalizeMatrix( mm );  
+        mm=this->WhitenMatrix(mm);  
+        mm=mm*mm.transpose();
+        temp=temp-mm*temp; 
+      }
+      this->m_WeightsP=this->m_MatrixP.transpose()*(temp);
+      this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+      this->m_VariatesP.set_column(which_e_vec,this->m_WeightsP);
       }
 
       {
-      VectorType pj=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ );
-      pj=this->SoftThreshold( pj , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
-      if ( pj.two_norm() > 0 ) this->m_WeightsP=pj/(pj.two_norm());
-      this->m_VariatesP.set_column(j,this->m_WeightsP);
+      VectorType temp=this->m_MatrixP*this->m_WeightsP;
+      if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
+      if ( which_e_vec > 0  ) { 
+        MatrixType mm=this->m_MatrixP*this->m_VariatesP.get_n_columns(0,which_e_vec);
+        mm=this->NormalizeMatrix( mm );  
+        mm=this->WhitenMatrix(mm);  
+        mm=mm*mm.transpose();
+        temp=temp-mm*temp; 
+      }
+      this->m_WeightsQ=this->m_MatrixQ.transpose()*(temp);
+      this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      this->m_VariatesQ.set_column(which_e_vec,this->m_WeightsQ);
       }
 
-      {
-      VectorType qj=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP);
-      qj=this->SoftThreshold( qj , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
-      if ( qj.two_norm() > 0 ) this->m_WeightsQ=qj/(qj.two_norm());
-      this->m_VariatesQ.set_column(j,this->m_WeightsQ);
-      }
 
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
-      deltacorr=(truecorr-lastcorr);
+      std::cout << " corr " << truecorr << std::endl;
+      deltacorr=fabs(truecorr-lastcorr);
       lastcorr=truecorr;
       ++its;
-      std::cout << " p-ip-a " << inner_product( this->m_MatrixP*this->m_VariatesP.get_column(1) , this->m_MatrixP*this->m_VariatesP.get_column(0) )  << " q-ip " << inner_product( this->m_MatrixQ*this->m_VariatesQ.get_column(1) , this->m_MatrixQ*this->m_VariatesQ.get_column(0) ) << " corr " << truecorr << std::endl;
-      std::cout << " p-ip-b " << inner_product( this->m_MatrixP*this->m_VariatesP.get_column(2) , this->m_MatrixP*this->m_VariatesP.get_column(0) )  << " q-ip " << inner_product( this->m_MatrixQ*this->m_VariatesQ.get_column(2) , this->m_MatrixQ*this->m_VariatesQ.get_column(0) ) << " corr " << truecorr << std::endl;
-      std::cout << " p-ip-c " << inner_product( this->m_MatrixP*this->m_VariatesP.get_column(2) , this->m_MatrixP*this->m_VariatesP.get_column(1) )  << " q-ip " << inner_product( this->m_MatrixQ*this->m_VariatesQ.get_column(2) , this->m_MatrixQ*this->m_VariatesQ.get_column(1) ) << " corr " << truecorr << std::endl;
+  
     }// inner_it
-    std::cout << "  canonical variate number " << j+1 << " corr " << truecorr << std::endl;
-    if ( fabs(truecorr) < 1.e-2 || (j+1) == n_vecs ) notdone=false;
-    else {
-     if ( j == 0 )
-       corr+=fabs(truecorr);
-     j++;
-    }
-  }   
-  std::cout <<"  this->m_VariatesP " << this->m_VariatesP  << std::endl;
-/*
-  MatrixType projp=this->m_MatrixP*this->m_VariatesP;
-  MatrixType projq=this->m_MatrixQ*this->m_VariatesQ;
-  MatrixType cr=projp.transpose()*projq;
-  MatrixType denom=this->InverseCovarianceMatrix(projp)*this->InverseCovarianceMatrix(projq);
-  cr=cr*denom;
-  std::cout << " cr " << cr << std::endl;
-*/
-  this->m_WeightsP=this->m_VariatesP.get_column(0);
-  this->m_WeightsQ=this->m_VariatesQ.get_column(0);
-
-  return corr;
+    this->m_CanonicalCorrelations[which_e_vec]=truecorr;
+    this->RunDiagnostics(which_e_vec+1);
+    std::cout << "  canonical variate number " << which_e_vec+1 << " corr " << this->m_CanonicalCorrelations[which_e_vec]  << std::endl;
+    if ( fabs(truecorr) < 1.e-2 || (which_e_vec+1) == n_vecs ) notdone=false;
+    else which_e_vec++;
+  }  
+  RealType corrsum=0;
+  for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) 
+    corrsum+=fabs(this->m_CanonicalCorrelations[i]);
+  return corrsum;
 }
 
 template <class TInputImage, class TRealType>
@@ -430,26 +542,17 @@ antsSCCANObject<TInputImage, TRealType>
   else {
 //  std::cout << " P-positivity constraints? " <<  this->m_KeepPositiveP << " frac " << this->m_FractionNonZeroP << " Q-positivity constraints?  " << m_KeepPositiveQ << " frac " << this->m_FractionNonZeroQ << std::endl;
   }
-  if (  this->m_CovariatesP.size() == 0 ){
-    this->m_CovariatesP.set_size( nr1 );
-    this->m_CovariatesQ.set_size( nr2 );
-    this->m_CovariatesP.fill(0);
-    this->m_CovariatesQ.fill(0);
-  }
-  else {
-//    std::cout <" P Covar " << this->m_CovariatesP << std::endl;
-//    std::cout <" Q Covar " << this->m_CovariatesQ << std::endl;
-  }
   this->m_WeightsP=this->InitializeV(this->m_MatrixP);
   this->m_WeightsQ=this->InitializeV(this->m_MatrixQ);
 
-  if ( !this->m_AlreadyWhitened ) {
+//  if ( !this->m_AlreadyWhitened ) 
+  {
   std::cout <<" norm P " << std::endl;
     this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);  
   std::cout <<" norm Q " << std::endl;
     this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);  
-    if ( this->m_MatrixR.size() > 0 ) {
-      this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
+    if ( this->m_OriginalMatrixR.size() > 0 ) {
+      this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
       this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
       this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
       this->UpdatePandQbyR( );
@@ -464,18 +567,14 @@ antsSCCANObject<TInputImage, TRealType>
   unsigned long its=0;
   while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  )
   {
-    this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,this->m_CovariatesQ,false);
-    this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,this->m_CovariatesP,false);    
+    this->m_WeightsP=this->TrueCCAPowerUpdate(this->m_FractionNonZeroP,this->m_MatrixP,this->m_WeightsQ,this->m_MatrixQ,this->m_KeepPositiveP,false);
+    this->m_WeightsQ=this->TrueCCAPowerUpdate(this->m_FractionNonZeroQ,this->m_MatrixQ,this->m_WeightsP,this->m_MatrixP,this->m_KeepPositiveQ,false);    
     truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
     deltacorr=fabs(truecorr-lastcorr);
     lastcorr=truecorr;
     ++its;
   }// inner_it 
   }//outer_it 
-  this->m_CorrelationForSignificanceTest=truecorr;
-  if ( this->m_SpecializationForHBM2011 ){
-    truecorr=this->SpecializedCorrelation();
-  }
   this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
 }
@@ -507,7 +606,6 @@ antsSCCANObject<TInputImage, TRealType>
   this->m_MatrixQ=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixQ);  
   this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);  
   this->m_MatrixR=this->WhitenMatrixOrGetInverseCovarianceMatrix(this->m_MatrixR);  
-  if ( this->m_SpecializationForHBM2011 ) this->SoftThresholdByRMask();
   this->m_AlreadyWhitened=true;
   }
   RealType truecorr=0;
@@ -551,7 +649,6 @@ antsSCCANObject<TInputImage, TRealType>
   //  std::cout << " QNZ-Frac " << this->CountNonZero(this->m_WeightsQ) << std::endl;
   //  std::cout << " RNZ-Frac " << this->CountNonZero(this->m_WeightsR) << std::endl;
 
-  if ( this->m_SpecializationForHBM2011 ) truecorr=this->SpecializedCorrelation();
   this->m_CorrelationForSignificanceTest=truecorr;
   return truecorr;
 
@@ -559,3 +656,91 @@ antsSCCANObject<TInputImage, TRealType>
 
 } // namespace ants
 } // namespace itk
+
+
+
+
+/*
+
+      if (its == 0 )
+      if ( which_e_vec > 0   && false ) 
+       {
+// here, factor out previous evecs globally 
+	MatrixType temp;
+	MatrixType pp;
+	unsigned int basect=this->m_MatrixR.columns(); 
+	basect=0;
+	pp.set_size(this->m_MatrixP.rows(),which_e_vec+basect);
+//	for (unsigned int kk=0; kk<this->m_MatrixR.columns(); kk++) 
+//          pp.set_column(kk,this->m_MatrixR.get_column(kk));
+	unsigned int colcount=0; //this->m_MatrixR.columns();
+	for (unsigned int kk=which_e_vec-1; kk<which_e_vec; kk++) { 
+          pp.set_column(colcount,this->m_MatrixP*this->m_VariatesP.get_column(kk));
+	  colcount++;
+        }
+        temp=this->NormalizeMatrix(pp);  
+        temp=this->WhitenMatrix(temp);  
+        temp=temp*temp.transpose(); 
+        this->m_MatrixP=(this->m_MatrixP-temp*this->m_MatrixP);
+
+	MatrixType qq;
+	qq.set_size(this->m_MatrixQ.rows(),which_e_vec+this->m_MatrixR.columns());
+	for (unsigned int kk=0; kk<this->m_MatrixR.columns(); kk++) 
+          qq.set_column(kk,this->m_MatrixR.get_column(kk));
+	colcount=this->m_MatrixR.columns();
+	for (unsigned int kk=which_e_vec-1; kk<which_e_vec; kk++) { 
+          qq.set_column(colcount,this->m_MatrixQ*this->m_VariatesQ.get_column(kk));
+	  colcount++;
+        }
+        temp=this->NormalizeMatrix(qq);  
+        temp=this->WhitenMatrix(temp);  
+        temp=temp*temp.transpose(); 
+        this->m_MatrixQ=(this->m_MatrixQ-temp*this->m_MatrixQ);
+      }
+
+
+
+      double ip=1; unsigned long ct=0;
+      double deltaip=1,lastip=0;
+      while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0 || ct < 4 ) {
+        ip=0;
+        this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+        VectorType ptem=this->m_WeightsP;
+	if ( which_e_vec >= 1 ) 
+          ptem=this->Orthogonalize(ptem,this->m_VariatesP.get_column(0),&this->m_MatrixP);
+  	if ( which_e_vec >= 2 ) 
+          ptem=this->Orthogonalize(ptem,this->m_VariatesP.get_column(1),&this->m_MatrixP);
+	this->m_WeightsP=ptem;
+        this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+        ip+=this->PearsonCorr(this->m_MatrixP*ptem,this->m_MatrixP*this->m_VariatesP.get_column(0));
+	if ( which_e_vec >= 2) 
+          ip+=this->PearsonCorr(this->m_MatrixP*ptem,this->m_MatrixP*this->m_VariatesP.get_column(1));
+	deltaip=fabs(lastip)-fabs(ip);
+	lastip=ip;
+	ct++;
+        std::cout << " pip-b " << ip << " delt " << deltaip << std::endl;
+        }
+
+      double ip=1; unsigned long ct=0;
+      double deltaip=1,lastip=0;
+      while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0  || ct < 4 ) {
+        ip=0;
+        this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+        VectorType ptem=this->m_WeightsQ;
+	if ( which_e_vec >= 1 ) 
+          ptem=this->Orthogonalize(ptem,this->m_VariatesQ.get_column(0),&this->m_MatrixQ);
+  	if ( which_e_vec >= 2 ) 
+          ptem=this->Orthogonalize(ptem,this->m_VariatesQ.get_column(1),&this->m_MatrixQ);
+	this->m_WeightsQ=ptem;
+        this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+        ip+=this->PearsonCorr(this->m_MatrixQ*ptem,this->m_MatrixQ*this->m_VariatesQ.get_column(0));
+	if ( which_e_vec >= 2) 
+          ip+=this->PearsonCorr(this->m_MatrixQ*ptem,this->m_MatrixQ*this->m_VariatesQ.get_column(1));
+	deltaip=fabs(lastip)-fabs(ip);
+	lastip=ip;
+	ct++;
+        std::cout << " qip-b " << ip << " delt " << deltaip << std::endl;
+        }
+
+
+*/

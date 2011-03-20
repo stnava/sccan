@@ -8,6 +8,7 @@
 #include "itkDiscreteGaussianImageFilter.h"
 #include "itkResampleImageFilter.h"
 #include "itkBSplineInterpolateImageFunction.h"
+#include <sstream>
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -82,6 +83,24 @@ void WriteVectorToSpatialImage( std::string filename , std::string post , vnl_ve
       writer->SetInput( weights );
       writer->Update();     
 
+}
+
+template <class T>
+inline std::string sccan_to_string (const T& t)
+{
+  std::stringstream ss;
+  ss << t;
+  return ss.str();
+}
+
+template <class TImage,class TComp>
+void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask )
+{
+  std::string post2;
+  for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
+    post2=post+sccan_to_string<unsigned int>(vars); 
+    WriteVectorToSpatialImage<TImage,TComp>( filename, post2, varmat.get_column(vars) , mask);
+  }
 }
 
 template <class TImage,class TComp>
@@ -334,10 +353,10 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  double truecorr=sccanobj->RunSCCAN2multiple(3);
+  double truecorr=sccanobj->RunSCCAN2multiple( 3 );
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
-  std::cout << " true-corr " << truecorr << std::endl; 
+  std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl; 
  
   if( outputOption )
     {
@@ -352,23 +371,25 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
+      vVector temp=p*w_p;
       std::string fnmp=filepre+std::string("proj1.csv");
       myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_p.size(); i++ )
-        myfile << i << "," << w_p[i] << std::endl;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string fnmq=filepre+std::string("proj2.csv");
       myfile.open(fnmq.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_q.size(); i++ )
-        myfile << i << "," << w_q[i] << std::endl;
+      temp=q*w_q;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
 	//        myfile << w_q[i] <<",";
       myfile << std::endl;
       myfile.close();
       std::string post=std::string("View1vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1);
       post=std::string("View2vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q , mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2);
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -383,7 +404,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
       sccanobj->SetMatrixQ( q_perm );
-      double permcorr=sccanobj->RunSCCAN2multiple(2);
+      double permcorr=sccanobj->RunSCCAN2multiple(3);
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobj->GetPWeights();
       vVector w_q_perm=sccanobj->GetQWeights();
@@ -431,16 +452,17 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
           filepre = std::string( filepre, 0, pos );
       }
       std::string fnmp=filepre+std::string("proj1.csv");
+      vVector temp=p*w_p;
       myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_p.size(); i++ )
-        myfile << i << "," << w_p[i] << std::endl;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string fnmq=filepre+std::string("proj2.csv");
       myfile.open(fnmq.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_q.size(); i++ )
-        myfile << i << "," << w_q[i] << std::endl;
-	//        myfile << w_q[i] <<",";
+      temp=q*w_q;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string post=std::string("View1pval");
@@ -589,11 +611,12 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-    truecorr=sccanobjCovar->RunSCCAN2();
-    std::cout << " partialed out corr " << truecorr << std::endl;
-
-  vVector w_p=sccanobjCovar->GetPWeights();
-  vVector w_q=sccanobjCovar->GetQWeights();
+    //    truecorr=sccanobjCovar->RunSCCAN2();
+    truecorr=sccanobjCovar->RunSCCAN2multiple(3);
+    std::cout << " partialed out corr " ; 
+    for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
+      std::cout << " " << sccanobjCovar->GetCanonicalCorrelations()[ff];
+    std::cout << std::endl; 
   
   // std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
   std::cout << " true-corr " << truecorr << std::endl; 
@@ -616,21 +639,22 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       }
       std::string fnmp=filepre+std::string("proj1.csv");
       myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_p.size(); i++ )
-        myfile << i << "," << w_p[i] << std::endl;
+      vVector temp=p*sccanobjCovar->GetVariateP(0);
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string fnmq=filepre+std::string("proj2.csv");
       myfile.open(fnmq.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_q.size(); i++ )
-        myfile << i << "," << w_q[i] << std::endl;
-	//        myfile << w_q[i] <<",";
+      temp=q*sccanobjCovar->GetVariateQ(0);
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string post=std::string("View1vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesP() , mask1);
       post=std::string("View2vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q , mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesQ() , mask2);
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -638,28 +662,39 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   sermuted ;  2. scca ;  3. test corrs and weights significance */
   if ( permct > 0 ) {
   unsigned long perm_exceed_ct=0;
-  vVector w_p_signif_ct(w_p.size(),0);
-  vVector w_q_signif_ct(w_q.size(),0);
+  vVector w_p_signif_ct(p.cols(),0);
+  vVector w_q_signif_ct(q.cols(),0);
   for (unsigned long pct=0; pct<=permct; pct++)
     {
+      typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
+      sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
+      sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
+      sccanobjPerm->SetMaskImageP( mask1 );
+      sccanobjPerm->SetMaskImageQ( mask2 );
       // 0. compute permutation for q ( switch around rows ) 
-      vMatrix p_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixP() );
-      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ() );
-      vMatrix r_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixR() );
-      sccanobjCovar->SetMatrixP( p_perm );
-      sccanobjCovar->SetMatrixQ( q_perm );
-      sccanobjCovar->SetMatrixR( r_perm );
-      double permcorr=sccanobjCovar->RunSCCAN2();
+      vMatrix p_perm=PermuteMatrix<Scalar>( p );
+      vMatrix q_perm=PermuteMatrix<Scalar>( q );
+      vMatrix r_perm=PermuteMatrix<Scalar>( r );
+      sccanobjPerm->SetMatrixP( p_perm );
+      sccanobjPerm->SetMatrixQ( q_perm );
+      sccanobjPerm->SetMatrixR( r_perm );
+      //      double permcorr=sccanobjPerm->RunSCCAN2();
+      double permcorr=sccanobjPerm->RunSCCAN2multiple(3);
+      std::cout << " partialed out corr " ; 
+      for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
+        std::cout << " " << sccanobjPerm->GetCanonicalCorrelations()[ff];
+      std::cout << std::endl; 
       if ( permcorr > truecorr ) perm_exceed_ct++;
-      vVector w_p_perm=sccanobjCovar->GetPWeights();
-      vVector w_q_perm=sccanobjCovar->GetQWeights();
-      for (unsigned long j=0; j<w_p.size(); j++)
-	if ( w_p_perm(j) > w_p(j)) 
+      vVector w_p_perm=sccanobjPerm->GetPWeights();
+      vVector w_q_perm=sccanobjPerm->GetQWeights();
+      for (unsigned long j=0; j<p.cols(); j++)
+	if ( w_p_perm(j) > sccanobjCovar->GetVariateP(0)(j)) 
 	  {
 	    w_p_signif_ct(j)=w_p_signif_ct(j)++;
 	  }
-      for (unsigned long j=0; j<w_q.size(); j++)
-	if ( w_q_perm(j) > w_q(j) ) 
+      for (unsigned long j=0; j<q.cols(); j++)
+	if ( w_q_perm(j) >  sccanobjCovar->GetVariateQ(0)(j) ) 
 	  {
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
@@ -668,21 +703,21 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     }
   unsigned long psigct=0,qsigct=0;
   Scalar pinvtoler=1.e-6;
-  for (unsigned long j=0; j<w_p.size(); j++){
-    if ( w_p(j) > pinvtoler ) {
+  for (unsigned long j=0; j< sccanobjCovar->GetVariateP(0).size(); j++){
+    if (  sccanobjCovar->GetVariateP(0)(j) > pinvtoler ) {
       w_p_signif_ct(j)=1.0-(double)w_p_signif_ct(j)/(double)(permct);
       if ( w_p_signif_ct(j) > 0.949 ) psigct++;
     } else w_p_signif_ct(j)=0;
   }
-  for (unsigned long j=0; j<w_q.size(); j++) {
-    if ( w_q(j) > pinvtoler ) {
+  for (unsigned long j=0; j< sccanobjCovar->GetVariateQ(0).size(); j++) {
+    if (  sccanobjCovar->GetVariateQ(0)(j) > pinvtoler ) {
       w_q_signif_ct(j)=1.0-(double)w_q_signif_ct(j)/(double)(permct);
       if ( w_q_signif_ct(j) > 0.949 ) qsigct++;
     } else w_q_signif_ct(j)=0;
     }
   std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
-  std::cout << " p-vox " <<  (double)psigct/w_p.size() << " ct " << permct << std::endl;
-  std::cout << " q-vox " <<  (double)qsigct/w_q.size() << " ct " << permct << std::endl;
+  std::cout << " p-vox " <<  (double)psigct/sccanobjCovar->GetVariateP(0).size() << " ct " << permct << std::endl;
+  std::cout << " q-vox " <<  (double)qsigct/sccanobjCovar->GetVariateP(0).size() << " ct " << permct << std::endl;
 
     if( outputOption )
     { 
@@ -697,19 +732,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string fnmp=filepre+std::string("proj1.csv");
-      myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_p.size(); i++ )
-        myfile << i << "," << w_p[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
-      std::string fnmq=filepre+std::string("proj2.csv");
-      myfile.open(fnmq.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_q.size(); i++ )
-        myfile << i << "," << w_q[i] << std::endl;
-	//        myfile << w_q[i] <<",";
-      myfile << std::endl;
-      myfile.close();
       std::string post=std::string("View1pval");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
       post=std::string("View2pval");
@@ -757,21 +779,23 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       }
       std::string fnmp=filepre+std::string("proj1.csv");
       myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_p.size(); i++ )
-        myfile << i << "," << w_p[i] << std::endl;
+      vVector temp=p*w_p;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
       myfile << std::endl;
       myfile.close();
       std::string fnmq=filepre+std::string("proj2.csv");
       myfile.open(fnmq.c_str(), std::ios::out );
-      for (unsigned int i=0; i<w_q.size(); i++ )
-        myfile << i << "," << w_q[i] << std::endl;
+      temp=q*w_q;
+      for (unsigned int i=0; i<temp.size(); i++ )
+        myfile << i << "," << temp[i] << std::endl;
 	//        myfile << w_q[i] <<",";
       myfile << std::endl;
       myfile.close();
       std::string post=std::string("View1vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1);
       post=std::string("View2vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q , mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2);
       post=std::string("View3vec");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_r , mask3);
     }

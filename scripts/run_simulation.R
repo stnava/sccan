@@ -5,10 +5,10 @@
 # define the CCA progam 
 CCA<-"~/code/sccan/bin/sccan "
 # define the parameters for the simulation 
- sparseness<-0.24 # for X, Y matrices
+ sparseness<-(-0.33) # for X, Y matrices
  testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-10 ; nvoxy<-6 ; nvoxx<-8 ; # size of simulated images 
- noise<-0.1 # increase this to get extra noise
+ nsub<-40 ; nvoxy<-216*(2-testspatiallocalization) ; nvoxx<-110*(2-testspatiallocalization) ; # size of simulated images 
+ noise<-0.0 # increase this to get extra noise
  totalSimulations<-1 # number of random repeats 
  nvoxz<-1 # ignore this 
 ptot1<-rep(1,totalSimulations)
@@ -46,10 +46,13 @@ X2<-Z2%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
 if ( testspatiallocalization == 1 ) {
 X<-matrix(c(X,X2),nrow=nsub,ncol=nvoxx*2) 
 Y<-matrix(c(Y,Y2),nrow=nsub,ncol=nvoxy*2)
-Z<-matrix(c(Z,Z2),nrow=nsub,ncol=2)
+# Z<-matrix(c(Z,Z2),nrow=nsub,ncol=2)
 nvoxx<-nvoxx*2
 nvoxy<-nvoxy*2
 }
+
+# Y<-Y[sample(c(1:nsub)),]
+# X<-X[sample(c(1:nsub)),]
 
 # write out the simulated data
 #
@@ -120,12 +123,15 @@ exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; Threshold
 bb<-try(system(exe, intern = TRUE, ignore.stderr = TRUE))
 
 exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,Xmask.nii.gz,Ymask.nii.gz,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100   " )
-exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,Xmask.nii.gz,Ymask.nii.gz,Zmask.nii.gz,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz -p 100  --partial-scca-option PminusRQminusR ")
+exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,Xmask.nii.gz,Ymask.nii.gz,Zmask.nii.gz,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz -p 0  --partial-scca-option PminusRQminusR ")
 
 # print(exe1)
- print(exe2)
-bb1<-try(system(exe1, intern = TRUE, ignore.stderr = TRUE))
+ print(exe2,quote=F)
+# bb1<-try(system(exe1, intern = TRUE, ignore.stderr = TRUE))
 bb2<-try(system(exe2, intern = TRUE, ignore.stderr = TRUE))
+print(bb2)
+q()
+
 pv1<-unlist(strsplit(bb1[110], " ", fixed = TRUE))
 pv2<-unlist(strsplit(bb2[132], " ", fixed = TRUE))
 # print(paste(" scca: p ",pv1[3]," corr ",pv1[7] ," pscca : ",pv2[3]," corr ",pv2[7]))
