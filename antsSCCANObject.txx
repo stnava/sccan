@@ -448,12 +448,15 @@ antsSCCANObject<TInputImage, TRealType>
     std::cout<<" N-rows for MatrixP does not equal N-rows for MatrixQ " << nr1 << " vs " << nr2 << std::endl;
     exit(1);
   }
-  this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
-  this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
-  if ( this->m_OriginalMatrixR.size() > 0 ) {
-    this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
-    this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
-    this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+  if  (  !this->m_AlreadyWhitened  ) {
+    this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
+    this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
+    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    if ( this->m_OriginalMatrixR.size() > 0 ) {
+      this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
+      this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+      this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
 /*
     MatrixType temp=this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP;
     temp=this->InverseCovarianceMatrix(temp); 
@@ -461,16 +464,17 @@ antsSCCANObject<TInputImage, TRealType>
     temp=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
     temp=this->InverseCovarianceMatrix(temp); 
     this->m_MatrixQ=this->m_MatrixQ*temp;
-*/
+*/  }
+    this->m_AlreadyWhitened=true; 
   } 
-  this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-  this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ); 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
+  MatrixType p_evecs_factor;
+  MatrixType q_evecs_factor;
   unsigned int which_e_vec=0; 
   bool notdone=true;
   while ( notdone ) {
@@ -481,19 +485,24 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_WeightsP= this->m_VariatesP.get_column(which_e_vec);
     this->m_WeightsQ= this->m_VariatesQ.get_column(which_e_vec);
     unsigned long its=0, min_its=3;
+    VectorType lastPw;
+    VectorType lastQw;
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
       {
       VectorType temp=this->m_MatrixQ*this->m_WeightsQ;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
       if ( which_e_vec > 0 ) { 
-        MatrixType mm=this->m_MatrixQ*this->m_VariatesQ.get_n_columns(0,which_e_vec);
-        mm=this->NormalizeMatrix( mm );  
-        mm=this->WhitenMatrix(mm);  
-        mm=mm*mm.transpose();
-        temp=temp-mm*temp; 
+        if ( its == 0 ) {
+        p_evecs_factor=this->m_MatrixQ*this->m_VariatesQ.get_n_columns(0,which_e_vec);
+        p_evecs_factor=this->NormalizeMatrix( p_evecs_factor );  
+        p_evecs_factor=this->WhitenMatrix(p_evecs_factor);  
+        p_evecs_factor=p_evecs_factor*p_evecs_factor.transpose(); 
+        }
+        temp=temp-p_evecs_factor*temp; 
       }
       this->m_WeightsP=this->m_MatrixP.transpose()*(temp);
+//      this->Orthogonalize(this->m_WeightsP,this->m_MatrixR.get_column(0),&this->m_MatrixP);
       this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
       this->m_VariatesP.set_column(which_e_vec,this->m_WeightsP);
       }
@@ -501,20 +510,28 @@ antsSCCANObject<TInputImage, TRealType>
       {
       VectorType temp=this->m_MatrixP*this->m_WeightsP;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
-      if ( which_e_vec > 0  ) { 
-        MatrixType mm=this->m_MatrixP*this->m_VariatesP.get_n_columns(0,which_e_vec);
-        mm=this->NormalizeMatrix( mm );  
-        mm=this->WhitenMatrix(mm);  
-        mm=mm*mm.transpose();
-        temp=temp-mm*temp; 
+      if ( which_e_vec > 0 ) { 
+        if ( its == 0 ) {
+        q_evecs_factor=this->m_MatrixP*this->m_VariatesP.get_n_columns(0,which_e_vec);
+        q_evecs_factor=this->NormalizeMatrix( q_evecs_factor );  
+        q_evecs_factor=this->WhitenMatrix(q_evecs_factor);  
+        q_evecs_factor=q_evecs_factor*q_evecs_factor.transpose();
+        }
+        temp=temp-q_evecs_factor*temp; 
       }
       this->m_WeightsQ=this->m_MatrixQ.transpose()*(temp);
+//      this->Orthogonalize(this->m_WeightsQ,this->m_MatrixR.get_column(0),&this->m_MatrixQ);
       this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       this->m_VariatesQ.set_column(which_e_vec,this->m_WeightsQ);
       }
-
+      if ( its > 0 ) {
+        this->m_WeightsP=this->m_WeightsP*0.5+lastPw*0.5;
+        this->m_WeightsQ=this->m_WeightsQ*0.5+lastQw*0.5;
+      }
+      lastPw=this->m_WeightsP;
+      lastQw=this->m_WeightsQ;
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
-       if ( this->m_Debug ) std::cout << " corr " << truecorr << std::endl;
+      if ( this->m_Debug ) std::cout << " corr " << truecorr << std::endl;
       deltacorr=fabs(truecorr-lastcorr);
       lastcorr=truecorr;
       ++its;
@@ -709,7 +726,9 @@ antsSCCANObject<TInputImage, TRealType>
 
 
 
-      double ip=1; unsigned long ct=0;
+
+//m_Debug=true; 
+      double ip=1; unsigned long ct=0,max_ip_its=50;
       double deltaip=1,lastip=0;
       while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0 || ct < 4 ) {
         ip=0;
@@ -721,17 +740,17 @@ antsSCCANObject<TInputImage, TRealType>
           ptem=this->Orthogonalize(ptem,this->m_VariatesP.get_column(1),&this->m_MatrixP);
 	this->m_WeightsP=ptem;
         this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
-        ip+=this->PearsonCorr(this->m_MatrixP*ptem,this->m_MatrixP*this->m_VariatesP.get_column(0));
+        ip+=this->PearsonCorr(this->m_MatrixP*this->m_WeightsP,this->m_MatrixP*this->m_VariatesP.get_column(0));
 	if ( which_e_vec >= 2) 
-          ip+=this->PearsonCorr(this->m_MatrixP*ptem,this->m_MatrixP*this->m_VariatesP.get_column(1));
+          ip+=this->PearsonCorr(this->m_MatrixP*this->m_WeightsP,this->m_MatrixP*this->m_VariatesP.get_column(1));
 	deltaip=fabs(lastip)-fabs(ip);
 	lastip=ip;
 	ct++;
          if ( this->m_Debug ) std::cout << " pip-b " << ip << " delt " << deltaip << std::endl;
         }
 
-      double ip=1; unsigned long ct=0;
-      double deltaip=1,lastip=0;
+       ip=1; ct=0;
+       deltaip=1;lastip=0;
       while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0  || ct < 4 ) {
         ip=0;
         this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
@@ -742,9 +761,9 @@ antsSCCANObject<TInputImage, TRealType>
           ptem=this->Orthogonalize(ptem,this->m_VariatesQ.get_column(1),&this->m_MatrixQ);
 	this->m_WeightsQ=ptem;
         this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
-        ip+=this->PearsonCorr(this->m_MatrixQ*ptem,this->m_MatrixQ*this->m_VariatesQ.get_column(0));
+        ip+=this->PearsonCorr(this->m_MatrixQ*this->m_WeightsQ,this->m_MatrixQ*this->m_VariatesQ.get_column(0));
 	if ( which_e_vec >= 2) 
-          ip+=this->PearsonCorr(this->m_MatrixQ*ptem,this->m_MatrixQ*this->m_VariatesQ.get_column(1));
+          ip+=this->PearsonCorr(this->m_MatrixQ*this->m_WeightsQ,this->m_MatrixQ*this->m_VariatesQ.get_column(1));
 	deltaip=fabs(lastip)-fabs(ip);
 	lastip=ip;
 	ct++;

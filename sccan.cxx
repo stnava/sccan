@@ -666,20 +666,23 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vVector w_q_signif_ct(q.cols(),0);
   for (unsigned long pct=0; pct<=permct; pct++)
     {
-      typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
-      sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
+      /** both the new object and the copy object should produce the same results - verified in 1 example!*/
+      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar;
+      //            typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
       sccanobjPerm->SetMaskImageQ( mask2 );
       // 0. compute permutation for q ( switch around rows ) 
-      vMatrix p_perm=PermuteMatrix<Scalar>( p );
-      vMatrix q_perm=PermuteMatrix<Scalar>( q );
+      vMatrix p_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixP() );
+      vMatrix q_perm=PermuteMatrix<Scalar>( sccanobjCovar->GetMatrixQ()  );
       vMatrix r_perm=PermuteMatrix<Scalar>( r );
       sccanobjPerm->SetMatrixP( p_perm );
       sccanobjPerm->SetMatrixQ( q_perm );
       sccanobjPerm->SetMatrixR( r_perm );
       //      double permcorr=sccanobjPerm->RunSCCAN2();
+      sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
+      sccanobjPerm->SetAlreadyWhitened( sccanobjCovar->GetAlreadyWhitened() );
       double permcorr=sccanobjPerm->RunSCCAN2multiple(3);
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )

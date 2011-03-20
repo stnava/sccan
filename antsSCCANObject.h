@@ -71,6 +71,8 @@ public:
   /** ivars Set/Get functionality */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
+  itkSetMacro( AlreadyWhitened, bool );
+  itkGetConstMacro( AlreadyWhitened, bool );
   itkSetMacro( ConvergenceThreshold, RealType );
   itkGetConstMacro( ConvergenceThreshold, RealType );
   itkGetConstMacro( CurrentConvergenceMeasurement, RealType );
@@ -82,14 +84,22 @@ public:
 
   MatrixType PseudoInverse( MatrixType );
 
-  VectorType Orthogonalize(VectorType Mvec, VectorType V , MatrixType* projecter = NULL  )
+  VectorType Orthogonalize(VectorType Mvec, VectorType V , MatrixType* projecterM = NULL  ,  MatrixType* projecterV = NULL )
   {
-    if ( ! projecter ) {
+    if ( ! projecterM && ! projecterV ) {
       double ratio=inner_product(Mvec,V)/inner_product(V,V);
       VectorType  ortho=Mvec-V*ratio;
       return ortho;
+    } else if ( ! projecterM &&  projecterV ) {
+      double ratio=inner_product(Mvec,*projecterV*V)/inner_product(*projecterV*V,*projecterV*V);
+      VectorType  ortho=Mvec-V*ratio;
+      return ortho;
+    } else if ( ! projecterV  &&  projecterM ) {
+      double ratio=inner_product(*projecterM*Mvec,V)/inner_product(V,V);
+      VectorType  ortho=Mvec-V*ratio;
+      return ortho;
     } else {
-      double ratio=inner_product(*projecter*Mvec,*projecter*V)/inner_product(*projecter*V,*projecter*V);
+      double ratio=inner_product(*projecterM*Mvec,*projecterV*V)/inner_product(*projecterV*V,*projecterV*V);
       VectorType  ortho=Mvec-V*ratio;
       return ortho;
     }
