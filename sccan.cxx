@@ -478,7 +478,8 @@ template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	       unsigned int permct , bool run_partial_scca = false )
 {
-  std::cout <<" Entering MSCCA " << std::endl;
+  unsigned int n_e_vecs=1;
+  std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -612,7 +613,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
     //    truecorr=sccanobjCovar->RunSCCAN2();
-    truecorr=sccanobjCovar->RunSCCAN2multiple(3);
+    truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
       std::cout << " " << sccanobjCovar->GetCanonicalCorrelations()[ff];
@@ -667,8 +668,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
-      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar;
-      //            typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar;
+                  typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -682,8 +683,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       sccanobjPerm->SetMatrixR( r_perm );
       //      double permcorr=sccanobjPerm->RunSCCAN2();
       sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
-      sccanobjPerm->SetAlreadyWhitened( sccanobjCovar->GetAlreadyWhitened() );
-      double permcorr=sccanobjPerm->RunSCCAN2multiple(3);
+      sccanobjPerm->SetAlreadyWhitened( false );
+      double permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
         std::cout << " " << sccanobjPerm->GetCanonicalCorrelations()[ff];

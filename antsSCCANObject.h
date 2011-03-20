@@ -80,6 +80,7 @@ public:
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
 
+  void WhitenDataSetForRunSCCANMultiple();
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
   MatrixType PseudoInverse( MatrixType );

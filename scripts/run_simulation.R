@@ -46,7 +46,7 @@ X2<-Z2%*%xsig+matrix(rnorm(nsub*nvoxx,0,1),nrow=nsub,ncol=nvoxx)
 if ( testspatiallocalization == 1 ) {
 X<-matrix(c(X,X2),nrow=nsub,ncol=nvoxx*2) 
 Y<-matrix(c(Y,Y2),nrow=nsub,ncol=nvoxy*2)
-# Z<-matrix(c(Z,Z2),nrow=nsub,ncol=2)
+ Z<-matrix(c(Z,Z2),nrow=nsub,ncol=2)
 nvoxx<-nvoxx*2
 nvoxy<-nvoxy*2
 }

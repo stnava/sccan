@@ -408,7 +408,11 @@ void antsSCCANObject<TInputImage, TRealType>
       std::cout << "Qvec " << wv << " confound " << col << " : " << b <<std::endl; 
       if ( fabs(a) > corrthresh && fabs(b) > corrthresh ) {
        std::cout << " correlation with confound too high " << wv << std::endl;
-        this->m_CanonicalCorrelations[wv]=0; 
+       if (fabs(a) > fabs(b) ) 
+        this->m_CanonicalCorrelations[wv]=fabs( this->m_CanonicalCorrelations[wv])-fabs(a); 
+       else 
+        this->m_CanonicalCorrelations[wv]=fabs(this->m_CanonicalCorrelations[wv])-fabs(b); 
+       if ( this->m_CanonicalCorrelations[wv] < 0 ) this->m_CanonicalCorrelations[wv]=0;
       }
       }
   }
@@ -427,6 +431,30 @@ void antsSCCANObject<TInputImage, TRealType>
       std::cout << "Qvec " << wv << " Qvec " << yv << " : " << b <<std::endl; 
       }
  
+}
+
+
+
+template <class TInputImage, class TRealType>
+void antsSCCANObject<TInputImage, TRealType>
+::WhitenDataSetForRunSCCANMultiple()
+{
+    this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
+    this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
+    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
+    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
+    if ( this->m_OriginalMatrixR.size() > 0 ) {
+      this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
+      this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
+      this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
+
+      MatrixType temp=this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP;
+      temp=this->InverseCovarianceMatrix(temp);  
+      this->m_MatrixP=this->m_MatrixP*temp;
+      temp=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
+      temp=this->InverseCovarianceMatrix(temp); 
+      this->m_MatrixQ=this->m_MatrixQ*temp;
+    }
 }
 
 
@@ -449,22 +477,7 @@ antsSCCANObject<TInputImage, TRealType>
     exit(1);
   }
   if  (  !this->m_AlreadyWhitened  ) {
-    this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
-    this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
-    this->m_MatrixP=this->WhitenMatrix(this->m_MatrixP);  
-    this->m_MatrixQ=this->WhitenMatrix(this->m_MatrixQ);
-    if ( this->m_OriginalMatrixR.size() > 0 ) {
-      this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);  
-      this->m_MatrixR=this->WhitenMatrix(this->m_MatrixR);  
-      this->m_MatrixRRt=this->m_MatrixR*this->m_MatrixR.transpose(); 
-/*
-    MatrixType temp=this->m_MatrixP-this->m_MatrixRRt*this->m_MatrixP;
-    temp=this->InverseCovarianceMatrix(temp); 
-    this->m_MatrixP=this->m_MatrixP*temp;
-    temp=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
-    temp=this->InverseCovarianceMatrix(temp); 
-    this->m_MatrixQ=this->m_MatrixQ*temp;
-*/  }
+    this->WhitenDataSetForRunSCCANMultiple();    
     this->m_AlreadyWhitened=true; 
   } 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
@@ -490,36 +503,44 @@ antsSCCANObject<TInputImage, TRealType>
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
       {
-      VectorType temp=this->m_MatrixQ*this->m_WeightsQ;
-      if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
+      VectorType proj=this->m_MatrixQ*this->m_WeightsQ;
+      if ( this->m_MatrixRRt.size() > 0 ) proj=proj-this->m_MatrixRRt*proj;
       if ( which_e_vec > 0 ) { 
         if ( its == 0 ) {
+        this->WhitenDataSetForRunSCCANMultiple();    
         p_evecs_factor=this->m_MatrixQ*this->m_VariatesQ.get_n_columns(0,which_e_vec);
         p_evecs_factor=this->NormalizeMatrix( p_evecs_factor );  
         p_evecs_factor=this->WhitenMatrix(p_evecs_factor);  
         p_evecs_factor=p_evecs_factor*p_evecs_factor.transpose(); 
+        MatrixType temp=this->m_MatrixP-p_evecs_factor*this->m_MatrixP;
+        temp=this->InverseCovarianceMatrix(temp);  
+        this->m_MatrixP=this->m_MatrixP*temp;
         }
-        temp=temp-p_evecs_factor*temp; 
+        proj=proj-p_evecs_factor*proj; 
       }
-      this->m_WeightsP=this->m_MatrixP.transpose()*(temp);
+      this->m_WeightsP=this->m_MatrixP.transpose()*(proj);
 //      this->Orthogonalize(this->m_WeightsP,this->m_MatrixR.get_column(0),&this->m_MatrixP);
       this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
       this->m_VariatesP.set_column(which_e_vec,this->m_WeightsP);
       }
 
       {
-      VectorType temp=this->m_MatrixP*this->m_WeightsP;
-      if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
+      VectorType proj=this->m_MatrixP*this->m_WeightsP;
+      if ( this->m_MatrixRRt.size() > 0 ) proj=proj-this->m_MatrixRRt*proj;
       if ( which_e_vec > 0 ) { 
         if ( its == 0 ) {
+        this->WhitenDataSetForRunSCCANMultiple();    
         q_evecs_factor=this->m_MatrixP*this->m_VariatesP.get_n_columns(0,which_e_vec);
         q_evecs_factor=this->NormalizeMatrix( q_evecs_factor );  
         q_evecs_factor=this->WhitenMatrix(q_evecs_factor);  
         q_evecs_factor=q_evecs_factor*q_evecs_factor.transpose();
+        MatrixType temp=this->m_MatrixQ-q_evecs_factor*this->m_MatrixQ;
+        temp=this->InverseCovarianceMatrix(temp);  
+        this->m_MatrixQ=this->m_MatrixQ*temp;
         }
-        temp=temp-q_evecs_factor*temp; 
+        proj=proj-q_evecs_factor*proj; 
       }
-      this->m_WeightsQ=this->m_MatrixQ.transpose()*(temp);
+      this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj);
 //      this->Orthogonalize(this->m_WeightsQ,this->m_MatrixR.get_column(0),&this->m_MatrixQ);
       this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       this->m_VariatesQ.set_column(which_e_vec,this->m_WeightsQ);
