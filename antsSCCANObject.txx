@@ -395,7 +395,7 @@ void antsSCCANObject<TInputImage, TRealType>
   std::cout << "Quantitative diagnostics: "<<std::endl;
   std::cout << "Type 1: correlation from canonical variate to confounding vector "<<std::endl;
   std::cout << "Type 2: correlation from canonical variate to canonical variate "<<std::endl;
-  RealType corrthresh=0.2;
+  RealType corrthresh=0.3;
   if (this->m_OriginalMatrixR.size()>0){
     for (unsigned int col=0; col<this->m_MatrixR.columns(); col++) 
     for (unsigned int wv=0; wv<n_vecs; wv++)
@@ -413,11 +413,11 @@ void antsSCCANObject<TInputImage, TRealType>
     for (unsigned int yv=wv+1; yv<n_vecs; yv++)
       {
       RealType a=this->PearsonCorr(this->m_MatrixP*this->m_VariatesP.get_column(wv) , this->m_MatrixP*this->m_VariatesP.get_column(yv)); 
-      if ( fabs(a) > 0.1 ) {
+      if ( fabs(a) > corrthresh ) {
         this->m_CanonicalCorrelations[yv]=0; 
       }
       RealType b=this->PearsonCorr(this->m_MatrixQ*this->m_VariatesQ.get_column(wv) , this->m_MatrixQ*this->m_VariatesQ.get_column(yv));
-      if ( fabs(b) > 0.1 ) { 
+      if ( fabs(b) > corrthresh ) { 
         this->m_CanonicalCorrelations[yv]=0; 
       }
       std::cout << "Pvec " << wv << " Pvec " << yv << " : " << a <<std::endl; 
@@ -472,7 +472,7 @@ antsSCCANObject<TInputImage, TRealType>
     unsigned long its=0, min_its=3;
     while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
     {
-
+      for (unsigned int kk=0; kk < 5; kk++)
       {
       VectorType temp=this->m_MatrixQ*this->m_WeightsQ;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
@@ -488,6 +488,7 @@ antsSCCANObject<TInputImage, TRealType>
       this->m_VariatesP.set_column(which_e_vec,this->m_WeightsP);
       }
 
+      for (unsigned int kk=0; kk < 5; kk++)
       {
       VectorType temp=this->m_MatrixP*this->m_WeightsP;
       if ( this->m_MatrixRRt.size() > 0 ) temp=temp-this->m_MatrixRRt*temp;
@@ -502,7 +503,6 @@ antsSCCANObject<TInputImage, TRealType>
       this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       this->m_VariatesQ.set_column(which_e_vec,this->m_WeightsQ);
       }
-
 
       truecorr=this->PearsonCorr( this->m_MatrixP*this->m_WeightsP , this->m_MatrixQ*this->m_WeightsQ );
       std::cout << " corr " << truecorr << std::endl;
