@@ -69,7 +69,14 @@ void WriteVectorToSpatialImage( std::string filename , std::string post , vnl_ve
       for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
 	if (mIter.Get() >= 0.5) 
 	  {
-	    TComp val=w_p(vecind);
+	    TComp val=0;
+	    if ( vecind < w_p.size() ) val=w_p(vecind); 
+	    else {
+               std::cout << "vecind too large " << vecind << " vs " << w_p.size() << std::endl;
+	       std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
+	       exit(1);
+	    }
+	    //	    std::cout << " val " << val << std::endl;
 	    weights->SetPixel(mIter.GetIndex(),val);
 	    vecind++;
 	  } 
@@ -290,6 +297,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 template <unsigned int ImageDimension, class PixelType>
 int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
 {
+  unsigned int n_evec=3;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -353,7 +361,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  double truecorr=sccanobj->RunSCCAN2multiple( 3 );
+  double truecorr=sccanobj->RunSCCAN2multiple( n_evec );
   vVector w_p=sccanobj->GetPWeights();
   vVector w_q=sccanobj->GetQWeights();
   std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl; 
@@ -404,7 +412,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
       sccanobj->SetMatrixQ( q_perm );
-      double permcorr=sccanobj->RunSCCAN2multiple(3);
+      double permcorr=sccanobj->RunSCCAN2multiple(n_evec);
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobj->GetPWeights();
       vVector w_q_perm=sccanobj->GetQWeights();
@@ -612,7 +620,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-    //    truecorr=sccanobjCovar->RunSCCAN2();
     truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
@@ -668,8 +675,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
-      //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar;
-                  typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
+      // typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -722,25 +729,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   std::cout <<  " overall " <<  (double)perm_exceed_ct/(permct) << " ct " << permct << std::endl;
   std::cout << " p-vox " <<  (double)psigct/sccanobjCovar->GetVariateP(0).size() << " ct " << permct << std::endl;
   std::cout << " q-vox " <<  (double)qsigct/sccanobjCovar->GetVariateP(0).size() << " ct " << permct << std::endl;
-
-    if( outputOption )
-    { 
-      std::string filename =  outputOption->GetValue( 0 );
-      std::cout << " write " << filename << std::endl;
-      std::ofstream myfile;
-      std::string::size_type pos = filename.rfind( "." );
-      std::string filepre = std::string( filename, 0, pos );
-      std::string extension = std::string( filename, pos, filename.length()-1);
-      if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
-          filepre = std::string( filepre, 0, pos );
-      }
-      std::string post=std::string("View1pval");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
-      post=std::string("View2pval");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_q_signif_ct , mask2);
-    }
   }
 
     exit(0);
