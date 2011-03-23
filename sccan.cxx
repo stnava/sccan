@@ -295,9 +295,8 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 )
 {
-  unsigned int n_evec=3;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -484,9 +483,8 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct  )
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false )
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 )
 {
-  unsigned int n_e_vecs=2;
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -620,6 +618,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
+//        sccanobjCovar->RidgeCCA(4);
+    //	exit(1);
     truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
@@ -860,6 +860,15 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else permct=parser->Convert<unsigned int>( permoption->GetValue() );
 
+  unsigned int evec_ct=0;
+  itk::ants::CommandLineParser::OptionType::Pointer evec_option =
+    parser->GetOption( "n_eigenvectors" );
+  if( !evec_option || evec_option->GetNumberOfValues() == 0 )
+    {
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
+    }
+  else evec_ct=parser->Convert<unsigned int>( evec_option->GetValue() );
+
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
     parser->GetOption( "imageset-to-matrix" );
@@ -894,17 +903,17 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct );
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false );
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true );
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct );
       }
       else 
       {
@@ -960,6 +969,17 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetLongName( "n_permutations" );
   option->SetShortName( 'p' );
   option->SetUsageOption( 0, "500" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
+  {
+  std::string description =
+    std::string( "Number of permutations to use in scca." );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "n_eigenvectors" );
+  option->SetShortName( 'n' );
+  option->SetUsageOption( 0, "2" );
   option->SetDescription( description );
   parser->AddOption( option );
   }

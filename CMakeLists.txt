@@ -1,11 +1,12 @@
+project(sccan)
+cmake_minimum_required(VERSION 2.6.2)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR} )
+find_package(Eigen3 REQUIRED)
+include_directories(EIGEN3_INCLUDE_DIR)
 
-cmake_minimum_required(VERSION 2.4)
-#Change PROJECT_NAME to the name of your project
-PROJECT(sccan)
+# set (CMAKE_INCLUDE_DIRECTORIES_BEFORE ON)
 
-OPTION(USE_ITK "Use ITK Libraries" ON)
-set (CMAKE_INCLUDE_DIRECTORIES_BEFORE ON)
-  
+ 
 # Set up ITK
 IF(USE_ITK)
   FIND_PACKAGE(ITK)
@@ -26,7 +27,15 @@ IF (USE_ITK_FILE)
   INCLUDE(${USE_ITK_FILE}) 
 ENDIF(USE_ITK_FILE) 
 
+
+INCLUDE_DIRECTORIES(${SUMBA_INCLUDE_DIRS})
+
+
+# /Users/brianavants/code/eigen/
+set(CMAKE_BUILD_TYPE "Release")
+
 SET(SCCAN_INCLUDE_DIRS
+${EIGEN3_INCLUDE_DIR}
 ./
 )
 SET(SCCAN_SRC_DIR

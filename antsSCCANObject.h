@@ -18,6 +18,9 @@
 =========================================================================*/
 #ifndef __antsSCCANObject_h
 #define __antsSCCANObject_h
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/SVD>
 
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_cholesky.h>
@@ -36,6 +39,7 @@ public:
   typedef ImageToImageFilter<TInputImage, TInputImage>  Superclass;
   typedef SmartPointer<Self>                                 Pointer;
   typedef SmartPointer<const Self>                           ConstPointer;
+
 
   /** Method for creation through the object factory. */
   itkNewMacro( Self );
@@ -60,6 +64,13 @@ public:
   typedef Image<RealType,
     itkGetStaticConstMacro( ImageDimension )>         RealImageType;
 
+  /** Define eigen types */
+  typedef Eigen::Matrix<RealType, Eigen::Dynamic, Eigen::Dynamic> eMatrix;
+  typedef Eigen::Matrix<RealType, Eigen::Dynamic, 1> eVector;
+ // typedef Eigen::DynamicSparseMatrix<RealType,Eigen::RowMajor> sMatrix;
+  typedef Eigen::FullPivHouseholderQR<eMatrix> svdobj2;
+  typedef Eigen::JacobiSVD<eMatrix> svdobj;
+
   /** note, eigen for pseudo-eigenvals  */
   typedef vnl_matrix<RealType>        MatrixType;
   typedef vnl_vector<RealType>        VectorType;
@@ -80,7 +91,7 @@ public:
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
 
-  void WhitenDataSetForRunSCCANMultiple();
+  void WhitenDataSetForRunSCCANMultiple(unsigned int nvecs=0);
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
   MatrixType PseudoInverse( MatrixType );
@@ -97,7 +108,7 @@ public:
       return ortho;
     } else if ( ! projecterV  &&  projecterM ) {
       double ratio=inner_product(*projecterM*Mvec,V)/inner_product(V,V);
-      VectorType  ortho=Mvec-V*ratio;
+      VectorType  ortho=(*projecterM*Mvec)-V*ratio;
       return ortho;
     } else {
       double ratio=inner_product(*projecterM*Mvec,*projecterV*V)/inner_product(*projecterV*V,*projecterV*V);
@@ -181,6 +192,8 @@ public:
   { 
     return this->m_VariatesQ; 
   }
+
+  void RidgeCCA(unsigned int nvecs);
 
 protected:
 
@@ -278,6 +291,8 @@ private:
   bool       m_KeepPositiveR;
 /** a special variable for pscca, holds R^T R */
   MatrixType m_MatrixRRt;
+  MatrixType m_MatrixRp;
+  MatrixType m_MatrixRq;
 
 
   bool m_AlreadyWhitened;
