@@ -18,6 +18,7 @@
 =========================================================================*/
 #ifndef __antsSCCANObject_h
 #define __antsSCCANObject_h
+#define EIGEN_DEFAULT_TO_ROW_MAJOR
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SVD>
@@ -94,7 +95,22 @@ public:
   void WhitenDataSetForRunSCCANMultiple(unsigned int nvecs=0);
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
-  MatrixType PseudoInverse( MatrixType );
+  MatrixType PseudoInverse( MatrixType p_in ,  bool take_sqrt=false ) {
+    return this->VNLPseudoInverse(  p_in ,  take_sqrt );
+  }
+  MatrixType VNLPseudoInverse( MatrixType ,  bool take_sqrt=false );
+  MatrixType EigenPseudoInverse( MatrixType p_in , bool take_sqrt=false ){
+    eMatrix p=mVtoE(p_in);
+    typedef Eigen::FullPivHouseholderQR<eMatrix> svdobj2;
+    svdobj pSVD(p);
+    eMatrix pinvMat;
+    pSVD.pinv(pinvMat,take_sqrt);
+    return mEtoV(pinvMat);
+    // svdobj qSVD(Cqq);
+    // eMatrix CqqInv;
+    //  qSVD.pinv(CqqInv);
+  }
+
 
   VectorType Orthogonalize(VectorType Mvec, VectorType V , MatrixType* projecterM = NULL  ,  MatrixType* projecterV = NULL )
   {
@@ -158,9 +174,41 @@ public:
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   /** needed for partial scca */
-  MatrixType WhitenMatrixOrGetInverseCovarianceMatrix(MatrixType p , bool white_else_invcov=true, MatrixType* m=NULL); 
-  MatrixType InverseCovarianceMatrix(MatrixType p, MatrixType* m) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p, false, m); }
-  MatrixType WhitenMatrix(MatrixType p) { return this->WhitenMatrixOrGetInverseCovarianceMatrix(p); }
+  MatrixType CovarianceMatrix(MatrixType p, RealType regularization=1.e-2 ) {
+    if ( p.rows() < p.columns() ) {
+      MatrixType invcov=p*p.transpose();
+      invcov.set_identity();
+      invcov=invcov*regularization+p*p.transpose();
+      return (invcov);
+    }
+    else {
+      MatrixType invcov=p.transpose()*p;
+      invcov.set_identity();
+      invcov=invcov*regularization+p.transpose()*p;
+      return invcov;
+    }
+  }
+
+  MatrixType WhitenMatrix(MatrixType p, RealType regularization=1.e-2 ) {
+    MatrixType invcov=this->CovarianceMatrix(p,regularization);
+    invcov=this->PseudoInverse( invcov, true );
+    if ( p.rows() < p.columns() ) return (invcov*p);
+    else return p*invcov;
+  }
+
+  MatrixType WhitenMatrixByAnotherMatrix(MatrixType p, MatrixType op, RealType regularization=1.e-2) {
+    MatrixType invcov=this->CovarianceMatrix(op,regularization);
+    invcov=this->PseudoInverse( invcov, true );
+    if ( p.rows() < p.columns() ) return (invcov*p);
+    else return p*invcov;
+  }
+
+  MatrixType ProjectionMatrix(MatrixType b) {
+    b=this->NormalizeMatrix(b);
+    b=this->WhitenMatrix(b);  
+    return b*b.transpose(); 
+  }
+
   VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, bool factorOutR);
   MatrixType PartialOutZ( MatrixType X, MatrixType Y, MatrixType Z ) {
     /** compute the effect of Z and store it for later use */
@@ -193,7 +241,8 @@ public:
     return this->m_VariatesQ; 
   }
 
-  void RidgeCCA(unsigned int nvecs);
+  RealType SparseCCA(unsigned int nvecs);
+  RealType SparsePartialCCA(unsigned int nvecs);
 
 protected:
 
@@ -236,6 +285,42 @@ protected:
   if ( denom <= 0 ) return 0;
   return numer/denom;
   }
+
+  VectorType vEtoV( eVector v ) {
+    VectorType v_out( v.data() , v.size() );
+    return v_out;
+  }
+
+  eVector vVtoE( VectorType v ) {
+    eVector v_out( v.size() );
+    for (unsigned int i=0; i < v.size() ; i++) v_out(i)=v(i);
+    return v_out;
+  }
+
+  MatrixType mEtoV( eMatrix m , unsigned int ncols = 0) {
+    MatrixType m_out( m.data() , m.rows() , m.cols() );
+    if (  m(0,1) != m_out(0,1) ) {
+      std::cout << " WARNING!! in eigen to vnl coversion for matrices " << std::endl;
+      std::cout <<" eigen " << m(0,1) << " vnl " << m_out(0,1) << std::endl;
+    }
+    //    std::cout <<" eigen at (0,1) " << m(0,1) << " vnl at (0,1) " << m_out(0,1) <<  " vnl at (1,0) " << m_out(1,0)  << std::endl;
+    if ( ncols == 0 ) 
+      return m_out;
+    else return (m_out).get_n_columns(0,ncols);
+    // use this if you dont set #define EIGEN_DEFAULT_TO_ROW_MAJOR (we do this)
+    if ( ncols == 0 ) 
+      return m_out.transpose();
+    else return (m_out.transpose()).get_n_columns(0,ncols);
+  }
+
+  eMatrix mVtoE( MatrixType m ) {
+// NOTE: Eigen matrices are the transpose of vnl matrices unless you set # define EIGEN_DEFAULT_TO_ROW_MAJOR which we do
+    eMatrix m_out(m.rows(),m.cols());
+    for ( long i=0; i<m.rows(); ++i) 
+      for ( long j=0; j<m.cols(); ++j)  
+	m_out(i,j)=m(i,j); 
+    return m_out;
+   }
 
   antsSCCANObject(); 
   ~antsSCCANObject() {  }

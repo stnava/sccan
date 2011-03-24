@@ -106,7 +106,8 @@ void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_
   std::string post2;
   for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
     post2=post+sccan_to_string<unsigned int>(vars); 
-    WriteVectorToSpatialImage<TImage,TComp>( filename, post2, varmat.get_column(vars) , mask);
+    vnl_vector<TComp> temp=varmat.get_column(vars);
+    WriteVectorToSpatialImage<TImage,TComp>( filename, post2, temp , mask);
   }
 }
 
@@ -360,9 +361,13 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  double truecorr=sccanobj->RunSCCAN2multiple( n_evec );
-  vVector w_p=sccanobj->GetPWeights();
-  vVector w_q=sccanobj->GetQWeights();
+  bool newimp=true; 
+  //    newimp=false; 
+  double truecorr=0;
+  if (newimp) truecorr=sccanobj->SparseCCA(n_evec );
+  else truecorr=sccanobj->RunSCCAN2multiple(n_evec );
+  vVector w_p=sccanobj->GetVariateP(0);
+  vVector w_q=sccanobj->GetVariateQ(0);
   std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl; 
  
   if( outputOption )
@@ -411,10 +416,12 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       // 0. compute permutation for q ( switch around rows ) 
       vMatrix q_perm=PermuteMatrix<Scalar>( sccanobj->GetMatrixQ() );
       sccanobj->SetMatrixQ( q_perm );
-      double permcorr=sccanobj->RunSCCAN2multiple(n_evec);
+      double permcorr=0;
+      if (newimp) permcorr=sccanobj->SparseCCA(n_evec );
+      else permcorr=sccanobj->RunSCCAN2multiple(n_evec );
       if ( permcorr > truecorr ) perm_exceed_ct++;
-      vVector w_p_perm=sccanobj->GetPWeights();
-      vVector w_q_perm=sccanobj->GetQWeights();
+      vVector w_p_perm=sccanobj->GetVariateP(0);
+      vVector w_q_perm=sccanobj->GetVariateQ(0);
       for (unsigned long j=0; j<w_p.size(); j++)
 	if ( w_p_perm(j) > w_p(j)) 
 	  {
@@ -494,7 +501,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     }
   itk::ants::CommandLineParser::OptionType::Pointer option =
     parser->GetOption( "scca" );
-  std::cout << outputOption << std::endl;
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
@@ -515,7 +521,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 
   /** read the matrix images */
   typename matReaderType::Pointer matreader1 = matReaderType::New();
-  std::cout << option->GetParameter( 0 ) << std::endl;
   matreader1->SetFileName( option->GetParameter( 0 ) );
   matreader1->Update();
  
@@ -618,21 +623,15 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-//        sccanobjCovar->RidgeCCA(4);
-    //	exit(1);
-    truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
+    bool newimp=true;
+    //        newimp=false;
+    if (newimp) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
+    else truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
       std::cout << " " << sccanobjCovar->GetCanonicalCorrelations()[ff];
     std::cout << std::endl; 
   
-  // std::cout <<"  length p " << p.rows() << " wp " << w_p.size() << std::endl;
-  std::cout << " true-corr " << truecorr << std::endl; 
-  //  std::cout << " Projection-P " << p*w_p << std::endl;
-  // std::cout << " Projection-Q " << q*w_q << std::endl;
- //  double corr=vnl_pearson_corr<Scalar>( p*w_p , q*w_q );
-  //  std::cout << " w_q " << w_q<< std::endl;
- 
   if( outputOption )
     {
       std::string filename =  outputOption->GetValue( 0 );
@@ -675,8 +674,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   for (unsigned long pct=0; pct<=permct; pct++)
     {
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
-      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
-      // typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
+      typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -691,14 +690,16 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       //      double permcorr=sccanobjPerm->RunSCCAN2();
       sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
       sccanobjPerm->SetAlreadyWhitened( false );
-      double permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);
+      double permcorr=0;
+      if (!newimp) permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);
+      else permcorr=sccanobjPerm->SparsePartialCCA(n_e_vecs);
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
         std::cout << " " << sccanobjPerm->GetCanonicalCorrelations()[ff];
       std::cout << std::endl; 
       if ( permcorr > truecorr ) perm_exceed_ct++;
-      vVector w_p_perm=sccanobjPerm->GetPWeights();
-      vVector w_q_perm=sccanobjPerm->GetQWeights();
+      vVector w_p_perm=sccanobjPerm->GetVariateP(0);
+      vVector w_q_perm=sccanobjPerm->GetVariateQ(0);
       for (unsigned long j=0; j<p.cols(); j++)
 	if ( w_p_perm(j) > sccanobjCovar->GetVariateP(0)(j)) 
 	  {
@@ -860,7 +861,7 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else permct=parser->Convert<unsigned int>( permoption->GetValue() );
 
-  unsigned int evec_ct=0;
+  unsigned int evec_ct=1;
   itk::ants::CommandLineParser::OptionType::Pointer evec_option =
     parser->GetOption( "n_eigenvectors" );
   if( !evec_option || evec_option->GetNumberOfValues() == 0 )
