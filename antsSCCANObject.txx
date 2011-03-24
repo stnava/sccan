@@ -334,12 +334,24 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 
 // call this function to check we are doing conversions correctly , matrix-wise 
   this->mEtoV(pccaVecs);
-
+// map the variates back to P, Q space and sort them 
+  this->m_CanonicalCorrelations.set_size(nvecs);
+  this->m_CanonicalCorrelations.fill(0); 
 // copy to stl vector so we can sort the results  
-  std::vector<TRealType> evals(pccaSquaredCorrs.cols(),-9.e9);
+  std::vector<TRealType> evals(pccaSquaredCorrs.cols(),0);
+  std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
   for ( long j=0; j<pccaSquaredCorrs.cols(); ++j){
     RealType val=pccaSquaredCorrs(j,j);
     evals[j]=val;
+    oevals[j]=val;
+    if ( val > 0 ){
+      VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
+      VectorType tempq=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ))*temp;
+      VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+      VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      evals[j]=fabs(this->PearsonCorr(this->m_MatrixP*pvar,this->m_MatrixQ*qvar));
+      oevals[j]=evals[j];
+    }
   }
 
 // sort and reindex the eigenvectors/values 
@@ -347,30 +359,28 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::vector<int> sorted_indices(nvecs,-1);
   for (unsigned int i=0; i<evals.size(); i++) {
   for (unsigned int j=0; j<evals.size(); j++) {
-    if ( evals[i] == pccaSquaredCorrs(j,j) &&  sorted_indices[i] == -1 ) {
+    if ( evals[i] == oevals[j] &&  sorted_indices[i] == -1 ) {
       sorted_indices[i]=j;
-      pccaSquaredCorrs(j,j)=0;
+      oevals[j]=0;
     }
   }}
-  this->m_CanonicalCorrelations.set_size(nvecs);
-  this->m_CanonicalCorrelations.fill(0); 
-// map the variates back to P, Q space
+
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),nvecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),nvecs);
   for (unsigned int i=0; i<nvecs; i++) {
     VectorType temp=this->vEtoV( pccaVecs.col(  sorted_indices[i] ) );
-    VectorType tempq;
-    tempq=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ))*temp;
+    VectorType tempq=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ))*temp;
     VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
     VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
     this->m_VariatesP.set_column( i, pvar  );
     this->m_VariatesQ.set_column( i, qvar  );
   }
 
-for (unsigned int i=0; i<nvecs; i++) {
+  for (unsigned int i=0; i<nvecs; i++) {
     this->m_CanonicalCorrelations[i]=
       this->PearsonCorr(this->m_MatrixP*this->GetVariateP(i),this->m_MatrixQ*this->GetVariateQ(i) );
-    std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] <<  " eval " << evals[i] << std::endl;
+    std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] << 
+     " eval " << pccaSquaredCorrs(sorted_indices[i],sorted_indices[i]) << std::endl;
   }
   for (unsigned int i=0; i<nvecs-1; i++) {
     std::cout << "inner prod of projections " <<  this->PearsonCorr( this->m_MatrixP*this->GetVariateP(i) ,  this->m_MatrixP*this->GetVariateP(i+1) ) << std::endl;
@@ -438,7 +448,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       VectorType tempq=( CqqInv*( (QslashR*QslashR.transpose() )* (PslashR*PslashR.transpose() ) ))*temp;
       VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
       VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
-      evals[j]=this->PearsonCorr(PslashR*pvar,QslashR*qvar);
+      evals[j]=fabs(this->PearsonCorr(PslashR*pvar,QslashR*qvar));
       oevals[j]=evals[j];
     }
   }
@@ -468,7 +478,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   for (unsigned int i=0; i<nvecs; i++) {
     this->m_CanonicalCorrelations[i]=
       this->PearsonCorr(PslashR*this->GetVariateP(i),QslashR*this->GetVariateQ(i) );
-    std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] <<  " eval " << evals[i] << std::endl;
+    std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] <<  " eval " << pccaSquaredCorrs(sorted_indices[i],sorted_indices[i]) << std::endl;
   }
   for (unsigned int i=0; i<nvecs-1; i++) {
     std::cout << "inner prod of projections " <<  this->PearsonCorr( PslashR*this->GetVariateP(i) ,  PslashR*this->GetVariateP(i+1) ) << std::endl;
