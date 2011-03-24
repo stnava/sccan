@@ -343,9 +343,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
   for ( long j=0; j<pccaSquaredCorrs.cols(); ++j){
     RealType val=pccaSquaredCorrs(j,j);
-    evals[j]=val;
-    oevals[j]=val;
-    if ( val > 0 ){
+    if ( val > 0.05 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
       VectorType tempq=projToQ*temp;
       VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
@@ -383,8 +381,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] << 
      " eval " << pccaSquaredCorrs(sorted_indices[i],sorted_indices[i]) << std::endl;
   }
-  for (unsigned int i=0; i<nvecs-1; i++) {
-    std::cout << "inner prod of projections " <<  this->PearsonCorr( this->m_MatrixP*this->GetVariateP(i) ,  this->m_MatrixP*this->GetVariateP(i+1) ) << std::endl;
+  for (unsigned int i=0; i<nvecs; i++) {
+    std::cout << "inner prod of projections 0 vs i  " <<  this->PearsonCorr( this->m_MatrixP*this->GetVariateP(0) , this->m_MatrixP*this->GetVariateP(i) ) << std::endl;
   }
 
   return this->m_CanonicalCorrelations[0];
@@ -443,9 +441,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
   for ( long j=0; j<pccaSquaredCorrs.cols(); ++j){
     RealType val=pccaSquaredCorrs(j,j);
-    evals[j]=val;
-    oevals[j]=val;
-    if ( val > 0 ){
+    if ( val > 0.05 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
       VectorType tempq=projToQ*temp;
       VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
@@ -482,8 +478,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       this->PearsonCorr(PslashR*this->GetVariateP(i),QslashR*this->GetVariateQ(i) );
     std::cout << "correlation of mapped back data " << this->m_CanonicalCorrelations[i] <<  " eval " << pccaSquaredCorrs(sorted_indices[i],sorted_indices[i]) << std::endl;
   }
-  for (unsigned int i=0; i<nvecs-1; i++) {
-    std::cout << "inner prod of projections " <<  this->PearsonCorr( PslashR*this->GetVariateP(i) ,  PslashR*this->GetVariateP(i+1) ) << std::endl;
+  for (unsigned int i=0; i<nvecs; i++) {
+    std::cout << "inner prod of projections 0 vs i  " <<  this->PearsonCorr( PslashR*this->GetVariateP(0) ,  PslashR*this->GetVariateP(i) ) << std::endl;
   }
 
   return this->m_CanonicalCorrelations[0];
