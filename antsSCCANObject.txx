@@ -338,6 +338,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_CanonicalCorrelations.set_size(nvecs);
   this->m_CanonicalCorrelations.fill(0); 
 // copy to stl vector so we can sort the results  
+  MatrixType projToQ=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ));
   std::vector<TRealType> evals(pccaSquaredCorrs.cols(),0);
   std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
   for ( long j=0; j<pccaSquaredCorrs.cols(); ++j){
@@ -346,7 +347,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     oevals[j]=val;
     if ( val > 0 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
-      VectorType tempq=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ))*temp;
+      VectorType tempq=projToQ*temp;
       VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
       VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       evals[j]=fabs(this->PearsonCorr(this->m_MatrixP*pvar,this->m_MatrixQ*qvar));
@@ -369,7 +370,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),nvecs);
   for (unsigned int i=0; i<nvecs; i++) {
     VectorType temp=this->vEtoV( pccaVecs.col(  sorted_indices[i] ) );
-    VectorType tempq=( CqqInv*( (this->m_MatrixQ*this->m_MatrixQ.transpose() )* (this->m_MatrixP*this->m_MatrixP.transpose() ) ))*temp;
+    VectorType tempq=projToQ*temp;
     VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
     VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
     this->m_VariatesP.set_column( i, pvar  );
@@ -436,6 +437,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 // map the variates back to P, Q space and sort them 
   this->m_CanonicalCorrelations.set_size(nvecs);
   this->m_CanonicalCorrelations.fill(0); 
+  MatrixType projToQ=( CqqInv*( (QslashR*QslashR.transpose() )* (PslashR*PslashR.transpose() ) ));
 // copy to stl vector so we can sort the results  
   std::vector<TRealType> evals(pccaSquaredCorrs.cols(),0);
   std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
@@ -445,7 +447,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     oevals[j]=val;
     if ( val > 0 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
-      VectorType tempq=( CqqInv*( (QslashR*QslashR.transpose() )* (PslashR*PslashR.transpose() ) ))*temp;
+      VectorType tempq=projToQ*temp;
       VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
       VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       evals[j]=fabs(this->PearsonCorr(PslashR*pvar,QslashR*qvar));
@@ -468,7 +470,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_VariatesQ.set_size(QslashR.cols(),nvecs);
   for (unsigned int i=0; i<nvecs; i++) {
     VectorType temp=this->vEtoV( pccaVecs.col(  sorted_indices[i] ) );
-    VectorType tempq=( CqqInv*( (QslashR*QslashR.transpose() )* (PslashR*PslashR.transpose() ) ))*temp;
+    VectorType tempq=projToQ*temp;
     VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
     VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
     this->m_VariatesP.set_column( i, pvar  );
