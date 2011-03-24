@@ -423,12 +423,24 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   eMatrix pccaSquaredCorrs=pEG.pseudoEigenvalueMatrix();
 // call this function to check we are doing conversions correctly , matrix-wise 
   this->mEtoV(pccaVecs);
-
+// map the variates back to P, Q space and sort them 
+  this->m_CanonicalCorrelations.set_size(nvecs);
+  this->m_CanonicalCorrelations.fill(0); 
 // copy to stl vector so we can sort the results  
-  std::vector<TRealType> evals(pccaSquaredCorrs.cols(),-9.e9);
+  std::vector<TRealType> evals(pccaSquaredCorrs.cols(),0);
+  std::vector<TRealType> oevals(pccaSquaredCorrs.cols(),0);
   for ( long j=0; j<pccaSquaredCorrs.cols(); ++j){
     RealType val=pccaSquaredCorrs(j,j);
     evals[j]=val;
+    oevals[j]=val;
+    if ( val > 0 ){
+      VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
+      VectorType tempq=( CqqInv*( (QslashR*QslashR.transpose() )* (PslashR*PslashR.transpose() ) ))*temp;
+      VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+      VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      evals[j]=this->PearsonCorr(PslashR*pvar,QslashR*qvar);
+      oevals[j]=evals[j];
+    }
   }
 
 // sort and reindex the eigenvectors/values 
@@ -436,15 +448,12 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::vector<int> sorted_indices(nvecs,-1);
   for (unsigned int i=0; i<evals.size(); i++) {
   for (unsigned int j=0; j<evals.size(); j++) {
-    if ( evals[i] == pccaSquaredCorrs(j,j) &&  sorted_indices[i] == -1 ) {
+    if ( evals[i] == oevals[j] &&  sorted_indices[i] == -1 ) {
       sorted_indices[i]=j;
-      pccaSquaredCorrs(j,j)=0;
+      oevals[j]=0;
     }
   }}
-  this->m_CanonicalCorrelations.set_size(nvecs);
-  this->m_CanonicalCorrelations.fill(0); 
 
-// map the variates back to P, Q space
   this->m_VariatesP.set_size(PslashR.cols(),nvecs);
   this->m_VariatesQ.set_size(QslashR.cols(),nvecs);
   for (unsigned int i=0; i<nvecs; i++) {
