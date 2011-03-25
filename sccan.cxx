@@ -296,7 +296,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -361,8 +361,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   sccanobj->SetMaskImageP( mask1 );
   sccanobj->SetMaskImageQ( mask2 );
 
-  bool newimp=true; 
-  //    newimp=false; 
   double truecorr=0;
   if (newimp) truecorr=sccanobj->SparseCCA(n_evec );
   else truecorr=sccanobj->RunSCCAN2multiple(n_evec );
@@ -490,7 +488,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 )
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false)
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -623,8 +621,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-    bool newimp=true;
-    //        newimp=false;
     if (newimp) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
     else truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
@@ -870,6 +866,15 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else evec_ct=parser->Convert<unsigned int>( evec_option->GetValue() );
 
+  bool eigen_imp=false;
+  itk::ants::CommandLineParser::OptionType::Pointer eigen_option =
+    parser->GetOption( "eigen_cca" );
+  if( !eigen_option || eigen_option->GetNumberOfValues() == 0 )
+    {
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
+    }
+  else eigen_imp=parser->Convert<bool>( evec_option->GetValue() );
+
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
     parser->GetOption( "imageset-to-matrix" );
@@ -904,17 +909,17 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct);
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct);
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct );
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp);
       }
       else 
       {
@@ -984,6 +989,18 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetDescription( description );
   parser->AddOption( option );
   }
+
+  {
+  std::string description =
+    std::string( "Number of permutations to use in scca." );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "eigen_cca" );
+  option->SetShortName( 'e' );
+  option->SetUsageOption( 0, "0" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
 
   {
   std::string description =

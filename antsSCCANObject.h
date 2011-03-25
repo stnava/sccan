@@ -92,6 +92,7 @@ public:
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
 
+  void NormalizeWeightsByCovariance();
   void WhitenDataSetForRunSCCANMultiple(unsigned int nvecs=0);
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
