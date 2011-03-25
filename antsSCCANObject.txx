@@ -653,10 +653,45 @@ antsSCCANObject<TInputImage, TRealType>
     if ( fabs(truecorr) < 1.e-2 || (which_e_vec+1) == n_vecs ) notdone=false;
     else which_e_vec++;
   }     
+
+  std::vector<TRealType> evals(n_vecs,0);
+  std::vector<TRealType> oevals(n_vecs,0);
+  for ( long j=0; j<n_vecs; ++j){
+    RealType val=this->m_CanonicalCorrelations[j];
+    evals[j]=val;
+    oevals[j]=val;
+  }
+
+// sort and reindex the eigenvectors/values 
+  sort (evals.begin(), evals.end(), my_sccan_sort_object); 
+  std::vector<int> sorted_indices(n_vecs,-1);
+  for (unsigned int i=0; i<evals.size(); i++) {
+  for (unsigned int j=0; j<evals.size(); j++) {
+    if ( evals[i] == oevals[j] &&  sorted_indices[i] == -1 ) {
+      sorted_indices[i]=j;
+      oevals[j]=0;
+    }
+  }}
+  
+  VectorType newcorrs(n_vecs,0);
+  MatrixType varp(this->m_MatrixP.cols(),n_vecs,0);
+  MatrixType varq(this->m_MatrixQ.cols(),n_vecs,0);
+  for (unsigned int i=0; i<n_vecs; i++) {
+    varp.set_column(i,this->m_VariatesP.get_column( sorted_indices[i] ));
+    varq.set_column(i,this->m_VariatesQ.get_column( sorted_indices[i] ));
+    newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
+  }
+  this->m_CanonicalCorrelations=newcorrs;
+  std::cout <<" sanity check " << this->PearsonCorr(this->m_MatrixP*varp.get_column(2),this->m_MatrixQ*varq.get_column(2)) << std::endl;
+  this->m_VariatesP=varp;
+  this->m_VariatesQ=varq;
+
   this->RunDiagnostics(n_vecs);
-  RealType corrsum=0;
-  for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) 
+
+  RealType corrsum=0; 
+  for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) {
     corrsum+=fabs(this->m_CanonicalCorrelations[i]);
+  }
   return corrsum;
 }
 
