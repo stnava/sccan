@@ -671,7 +671,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
       //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
-      typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+            typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -692,8 +692,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
         std::cout << " " << sccanobjPerm->GetCanonicalCorrelations()[ff];
-      std::cout << std::endl; 
+      std::cout << std::endl;
       if ( permcorr > truecorr ) perm_exceed_ct++;
+ /*
       vVector w_p_perm=sccanobjPerm->GetVariateP(0);
       vVector w_q_perm=sccanobjPerm->GetVariateQ(0);
       for (unsigned long j=0; j<p.cols(); j++)
@@ -707,6 +708,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
 	  }	
       // end solve cca permutation
+      */
       std::cout << permcorr << " overall " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl; 
     }
   unsigned long psigct=0,qsigct=0;

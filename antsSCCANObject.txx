@@ -569,9 +569,6 @@ TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2multiple( unsigned int n_vecs ) 
 {
-  this->m_MatrixP=this->NormalizeMatrix(this->m_MatrixP);
-  this->m_MatrixQ=this->NormalizeMatrix(this->m_MatrixQ);
-  this->m_MatrixR=this->NormalizeMatrix(this->m_MatrixR);
   std::cout << " power iteration (partial) scca " <<std::endl;
   this->m_CanonicalCorrelations.set_size(n_vecs);
   this->m_CanonicalCorrelations.fill(0); 
@@ -682,7 +679,6 @@ antsSCCANObject<TInputImage, TRealType>
     newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
   }
   this->m_CanonicalCorrelations=newcorrs;
-  std::cout <<" sanity check " << this->PearsonCorr(this->m_MatrixP*varp.get_column(2),this->m_MatrixQ*varq.get_column(2)) << std::endl;
   this->m_VariatesP=varp;
   this->m_VariatesQ=varq;
 
