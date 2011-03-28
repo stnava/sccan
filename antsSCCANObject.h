@@ -19,6 +19,7 @@
 #ifndef __antsSCCANObject_h
 #define __antsSCCANObject_h
 #define EIGEN_DEFAULT_TO_ROW_MAJOR
+#define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SVD>

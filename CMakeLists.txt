@@ -49,4 +49,4 @@ LINK_DIRECTORIES( ${ITK_LIBRARY_PATH} )
 SET(SOURCES "./antsCommandLineParser" "./antsCommandLineOption" )
 
 ADD_EXECUTABLE(sccan ${SCCAN_SRC_DIR}sccan.cxx ${SOURCES})
-TARGET_LINK_LIBRARIES(sccan ITKCommon ITKIO ITKNumerics )
+TARGET_LINK_LIBRARIES(sccan ${ITK_LIBRARIES} )
