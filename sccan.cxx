@@ -1012,6 +1012,17 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
 
   {
   std::string description =
+    std::string( "rank-based scca" );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "robustify" );
+  option->SetShortName( 'r' );
+  option->SetUsageOption( 0, "0" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
+  {
+  std::string description =
     std::string( "Number of permutations to use in scca." );
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "eigen_cca" );
