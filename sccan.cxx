@@ -296,7 +296,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -356,6 +356,10 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
+  if ( robustify > 0 ) {
+    p=sccanobj->RankifyMatrixColumns(p);
+    q=sccanobj->RankifyMatrixColumns(q);
+  }
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixQ( q );
   sccanobj->SetMaskImageP( mask1 );
@@ -488,7 +492,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false)
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0)
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -583,6 +587,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vMatrix p=DeleteRow<MatrixImageType,Scalar>( pin , leave_out );
   vMatrix q=DeleteRow<MatrixImageType,Scalar>( qin , leave_out );
   vMatrix r=DeleteRow<MatrixImageType,Scalar>( rin , leave_out );
+  if ( robustify > 0 ) {
+    p=sccanobj->RankifyMatrixColumns(p);
+    q=sccanobj->RankifyMatrixColumns(q);
+    r=sccanobj->RankifyMatrixColumns(r);
+  }
   double truecorr=0;
   if ( run_partial_scca ){ 
     std::cout <<" begin partial PQ " << std::endl;
@@ -868,6 +877,15 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else evec_ct=parser->Convert<unsigned int>( evec_option->GetValue() );
 
+  unsigned int robustify=1;
+  itk::ants::CommandLineParser::OptionType::Pointer robust_option =
+    parser->GetOption( "robustify" );
+  if( !robust_option || robust_option->GetNumberOfValues() == 0 )
+    {
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
+    }
+  else robustify=parser->Convert<unsigned int>( robust_option->GetValue() );
+
   bool eigen_imp=false;
   itk::ants::CommandLineParser::OptionType::Pointer eigen_option =
     parser->GetOption( "eigen_cca" );
@@ -875,7 +893,7 @@ int sccan( itk::ants::CommandLineParser *parser )
     {
       //    std::cerr << "Warning:  no permutation option set." << std::endl;
     }
-  else eigen_imp=parser->Convert<bool>( evec_option->GetValue() );
+  else eigen_imp=parser->Convert<bool>( eigen_option->GetValue() );
 
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
@@ -911,17 +929,17 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp);
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp);
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp);
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify);
       }
       else 
       {

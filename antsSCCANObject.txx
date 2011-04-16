@@ -569,6 +569,8 @@ TRealType
 antsSCCANObject<TInputImage, TRealType>
 ::RunSCCAN2multiple( unsigned int n_vecs ) 
 {
+  this->m_Debug=false;
+  this->m_Debug=true;
   std::cout << " power iteration (partial) scca " <<std::endl;
   this->m_CanonicalCorrelations.set_size(n_vecs);
   this->m_CanonicalCorrelations.fill(0); 

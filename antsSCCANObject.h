@@ -146,6 +146,30 @@ public:
     return M;
   }
 
+  MatrixType RankifyMatrixColumns(MatrixType M )
+  {
+    RealType rows=(RealType)M.rows();
+    for ( unsigned long j = 0 ; j < M.cols() ; j++ ) {
+      VectorType Mvec=M.get_column(j);
+      VectorType rank=M.get_column(j);
+      for ( unsigned int i=0; i<rows; i++) {
+        double rankval=0;
+	RealType xi=Mvec(i);
+        for ( unsigned int k=0; k<rows; k++) {
+  	  RealType yi=Mvec(k);
+	  RealType diff=fabs(xi-yi);
+	  if ( diff > 0 ) {
+	    RealType val=(xi-yi)/diff;
+    	    rankval+=val;
+	  }
+        }
+        rank(i)=rankval/rows;
+      }
+      M.set_column(j,rank);
+    }
+    return M;
+  }
+
   itkSetMacro( FractionNonZeroP, RealType );
   itkSetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
