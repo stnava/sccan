@@ -552,12 +552,14 @@ void antsSCCANObject<TInputImage, TRealType>
 {
   VectorType w1=this->m_MatrixP*this->m_WeightsP;
   RealType normP=inner_product(w1,w1);
+  if ( normP > 0 ) 
   this->m_WeightsP=this->m_WeightsP/sqrt(normP);
   VectorType w2=this->m_MatrixP*this->m_WeightsP;
   RealType normP2=inner_product(w2,w2);
 //  std::cout << " normed p " <<  normP << " vs " << normP2 ;
    w1=this->m_MatrixQ*this->m_WeightsQ;
    normP=inner_product(w1,w1);
+  if ( normP > 0 ) 
   this->m_WeightsQ=this->m_WeightsQ/sqrt(normP);
    w2=this->m_MatrixQ*this->m_WeightsQ;
    normP2=inner_product(w2,w2);
@@ -612,7 +614,7 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_WeightsQ= this->m_VariatesQ.get_column(which_e_vec);
     unsigned long its=0, min_its=5;
     if ( this->m_Debug ) std::cout << " Begin " << std::endl;
-    while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold || its < min_its )
+    while ( its < this->m_MaximumNumberOfIterations && deltacorr > this->m_ConvergenceThreshold  || its < min_its )
     {
       if ( its == 0 ) this->WhitenDataSetForRunSCCANMultiple(which_e_vec);
       bool doorth=true;  //this->m_Debug=true;
@@ -629,6 +631,7 @@ antsSCCANObject<TInputImage, TRealType>
 
       {
         VectorType proj=this->m_MatrixP*this->m_WeightsP;
+	if ( this->m_Debug ) std::cout << proj << std::endl;
         this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj);
         if ( doorth ) for (unsigned int kk=0; kk<which_e_vec; kk++) 
           this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_VariatesQ.get_column(kk),&this->m_MatrixQ,&this->m_MatrixQ);
@@ -652,7 +655,7 @@ antsSCCANObject<TInputImage, TRealType>
     if ( fabs(truecorr) < 1.e-2 || (which_e_vec+1) == n_vecs ) notdone=false;
     else which_e_vec++;
   }     
-
+  if ( this->m_Debug ) std::cout << " done with loop " << std::endl;
   std::vector<TRealType> evals(n_vecs,0);
   std::vector<TRealType> oevals(n_vecs,0);
   for ( long j=0; j<n_vecs; ++j){
