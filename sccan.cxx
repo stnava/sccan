@@ -296,7 +296,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -356,6 +356,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
+  sccanobj->SetMinClusterSize( p_cluster_thresh );
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
     q=sccanobj->RankifyMatrixColumns(q);
@@ -492,7 +493,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0)
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 )
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -587,6 +588,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vMatrix p=DeleteRow<MatrixImageType,Scalar>( pin , leave_out );
   vMatrix q=DeleteRow<MatrixImageType,Scalar>( qin , leave_out );
   vMatrix r=DeleteRow<MatrixImageType,Scalar>( rin , leave_out );
+  sccanobj->SetMinClusterSize( p_cluster_thresh );
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
     q=sccanobj->RankifyMatrixColumns(q);
@@ -599,6 +601,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetMatrixP( p );
     sccanobjCovar->SetMatrixQ( q );
     sccanobjCovar->SetMatrixR( r );
+    sccanobjCovar->SetMinClusterSize( p_cluster_thresh );
 
     itk::ants::CommandLineParser::OptionType::Pointer partialccaOpt =
       parser->GetOption( "partial-scca-option" );
@@ -680,7 +683,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
       //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
-            typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      sccanobjPerm->SetMinClusterSize( p_cluster_thresh );
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -886,6 +890,15 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else robustify=parser->Convert<unsigned int>( robust_option->GetValue() );
 
+  unsigned int p_cluster_thresh=1;
+  itk::ants::CommandLineParser::OptionType::Pointer clust_option =
+    parser->GetOption( "PClusterThresh" );
+  if( !clust_option || clust_option->GetNumberOfValues() == 0 )
+    {
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
+    }
+  else p_cluster_thresh=parser->Convert<unsigned int>( clust_option->GetValue() );
+
   bool eigen_imp=false;
   itk::ants::CommandLineParser::OptionType::Pointer eigen_option =
     parser->GetOption( "eigen_cca" );
@@ -929,17 +942,17 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify);
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify, p_cluster_thresh);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify);
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify,  p_cluster_thresh);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify);
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh);
       }
       else 
       {
@@ -1020,6 +1033,17 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetDescription( description );
   parser->AddOption( option );
   }
+
+  {
+  std::string description =
+    std::string( "cluster threshold on view P" );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "PClusterThresh" );
+  option->SetUsageOption( 0, "1" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
 
   {
   std::string description =

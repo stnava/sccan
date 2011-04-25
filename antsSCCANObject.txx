@@ -17,6 +17,9 @@
   PURPOSE.  See the above copyright notices for more information.
 
 =========================================================================*/
+#include "itkMinimumMaximumImageFilter.h"
+#include "itkConnectedComponentImageFilter.h"
+#include "itkRelabelComponentImageFilter.h"
 #include <vnl/vnl_random.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_generalized_eigensystem.h>
@@ -28,6 +31,7 @@ namespace ants {
 template <class TInputImage, class TRealType>
 antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( ) 
 {
+  this->m_MinClusterSize=500;
   this->m_Debug=false;
   this->m_CorrelationForSignificanceTest=0;
   this->m_SpecializationForHBM2011=false;
@@ -46,6 +50,120 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_FractionNonZeroR=0.5;
   this->m_ConvergenceThreshold=1.e-6;
 } 
+
+
+
+template <class TInputImage, class TRealType>
+typename TInputImage::Pointer
+antsSCCANObject<TInputImage, TRealType>
+::ConvertVariateToSpatialImage(  typename antsSCCANObject<TInputImage, TRealType>::VectorType w_p  , typename TInputImage::Pointer mask  ) 
+{
+      typename TInputImage::Pointer weights = TInputImage::New();
+      weights->SetOrigin( mask->GetOrigin() );
+      weights->SetSpacing( mask->GetSpacing() );
+      weights->SetRegions( mask->GetLargestPossibleRegion() );
+      weights->SetDirection( mask->GetDirection() );
+      weights->Allocate();
+      weights->FillBuffer( itk::NumericTraits<PixelType>::Zero );
+
+      // overwrite weights with vector values;
+      unsigned long vecind=0;
+      typedef itk::ImageRegionIteratorWithIndex<TInputImage> Iterator;
+      Iterator mIter(mask,mask->GetLargestPossibleRegion() );
+      for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
+	if (mIter.Get() >= 0.5) 
+	  {
+	    TRealType val=0;
+	    if ( vecind < w_p.size() ) val=w_p(vecind); 
+	    else {
+               std::cout << "vecind too large " << vecind << " vs " << w_p.size() << std::endl;
+	       std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
+	       exit(1);
+	    }
+	    //	    std::cout << " val " << val << std::endl;
+	    weights->SetPixel(mIter.GetIndex(),val);
+	    vecind++;
+	  } 
+	else mIter.Set(0);
+
+	return weights;
+}
+
+
+template <class TInputImage, class TRealType>
+ typename antsSCCANObject<TInputImage, TRealType>::VectorType
+antsSCCANObject<TInputImage, TRealType>
+::ClusterThresholdVariate(  typename antsSCCANObject<TInputImage, TRealType>::VectorType w_p   , typename TInputImage::Pointer mask  ) 
+{
+  if ( this->m_MinClusterSize <= 1 ) return w_p; 
+  typedef unsigned long ULPixelType;
+  typedef itk::Image<ULPixelType, ImageDimension> labelimagetype;
+  typedef TInputImage InternalImageType;
+  typedef TInputImage OutputImageType;
+  typedef itk::ImageRegionIteratorWithIndex<ImageType> fIterator;
+  typedef itk::ImageRegionIteratorWithIndex<labelimagetype> Iterator;
+  typedef itk::ConnectedComponentImageFilter< TInputImage, labelimagetype > FilterType;
+  typedef itk::RelabelComponentImageFilter< labelimagetype, labelimagetype > RelabelType;
+
+// we assume w_p has been thresholded by another function 
+  typename TInputImage::Pointer image=this->ConvertVariateToSpatialImage( w_p , mask ); 
+
+  typename FilterType::Pointer filter = FilterType::New();
+  typename RelabelType::Pointer relabel = RelabelType::New();
+  filter->SetInput( image );
+  filter->SetFullyConnected( 1 );
+  relabel->SetInput( filter->GetOutput() );
+  relabel->SetMinimumObjectSize( this->m_MinClusterSize );    
+  try
+  {
+    relabel->Update();
+  }
+  catch( itk::ExceptionObject & excep )
+  {
+    std::cerr << "Relabel: exception caught !" << std::endl;
+    std::cerr << excep << std::endl;
+  }
+    
+  Iterator vfIter( relabel->GetOutput(),  relabel->GetOutput()->GetLargestPossibleRegion() );      
+  float maximum=relabel->GetNumberOfObjects();  
+  std::vector<unsigned long> histogram((int)maximum+1);
+  for (int i=0; i<=maximum; i++) 
+    {
+      histogram[i]=0;
+    }
+  for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ) {
+    if (vfIter.Get() > 0 )
+    {
+      float vox=vfIter.Get();
+      if (vox > 0 ) {
+        histogram[(unsigned long)vfIter.Get()]=histogram[(unsigned long)vfIter.Get()]+1;
+      }
+    }
+  }
+
+//  now create the output vector 
+  VectorType outvec( w_p.size() , 0 );
+  // iterate through the image and set the voxels where  countinlabel[(unsigned long)(labelimage->GetPixel(vfIter.GetIndex()) - min)] 
+  // is < MinClusterSize 
+  unsigned long vecind=0, keepct=0;
+  fIterator mIter( mask,  mask->GetLargestPossibleRegion() );      
+  for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter ) {
+    if (mIter.Get() > 0 )
+    {
+      float vox=mask->GetPixel(vfIter.GetIndex());
+      unsigned long clustersize=0;
+      if ( vox >= 0  ) {
+        clustersize=histogram[(unsigned long)(relabel->GetOutput()->GetPixel(mIter.GetIndex()) )];
+        if ( clustersize > this->m_MinClusterSize ) { outvec(vecind)=w_p(vecind);  keepct++; }
+	else { outvec(vecind)=0;  }
+	vecind++;
+      }
+    }
+  }
+  std::cout << " Cluster Threshold Kept " << 1 - (float)keepct/(float)w_p.size()  << " clust size " << this->m_MinClusterSize << std::endl;
+  return outvec;
+}
+
 
 template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::VectorType
@@ -162,6 +280,9 @@ antsSCCANObject<TInputImage, TRealType>
       minfdiff= fabs(frac - fractional_goal) ;
     }
   }
+
+
+// here , we apply the minimum threshold to the data. 
   ct=0;
   for ( unsigned int i=0; i<v_in.size(); i++) {
     RealType val=v_in(i);
@@ -624,6 +745,7 @@ antsSCCANObject<TInputImage, TRealType>
         if ( doorth ) for (unsigned int kk=0; kk<which_e_vec; kk++) 
           this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_VariatesP.get_column(kk),&this->m_MatrixP,&this->m_MatrixP);
         this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+	this->m_WeightsP=this->ClusterThresholdVariate( this->m_WeightsP , this->m_MaskImageP );
 	if (which_e_vec > 0   && this->m_Debug   ){
  	  std::cout << " p orth-b " << this->PearsonCorr( this->m_MatrixP*this->m_WeightsP,this->m_MatrixP*this->m_VariatesP.get_column(0) ) << std::endl;
         }

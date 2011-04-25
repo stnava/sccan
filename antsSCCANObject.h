@@ -84,6 +84,8 @@ public:
   /** ivars Set/Get functionality */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
+  itkSetMacro( MinClusterSize, unsigned int );
+  itkGetConstMacro( MinClusterSize, unsigned int );
   itkSetMacro( AlreadyWhitened, bool );
   itkGetConstMacro( AlreadyWhitened, bool );
   itkSetMacro( ConvergenceThreshold, RealType );
@@ -361,6 +363,10 @@ protected:
   void RunDiagnostics(unsigned int);
 
 private:
+
+  ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask );
+  VectorType ClusterThresholdVariate( VectorType, ImagePointer mask ); 
+
   bool m_Debug;
   MatrixType m_OriginalMatrixP;
   MatrixType m_OriginalMatrixQ;
@@ -409,6 +415,8 @@ private:
   bool m_AlreadyWhitened;
   bool m_SpecializationForHBM2011;
   RealType m_CorrelationForSignificanceTest;
+
+  unsigned int m_MinClusterSize;
 
 };
 
