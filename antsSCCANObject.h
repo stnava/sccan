@@ -86,6 +86,8 @@ public:
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
   itkSetMacro( MinClusterSize, unsigned int );
   itkGetConstMacro( MinClusterSize, unsigned int );
+  itkSetMacro( KeptClusterSize, unsigned int );
+  itkGetConstMacro( KeptClusterSize, unsigned int );
   itkSetMacro( AlreadyWhitened, bool );
   itkGetConstMacro( AlreadyWhitened, bool );
   itkSetMacro( ConvergenceThreshold, RealType );
@@ -417,6 +419,7 @@ private:
   RealType m_CorrelationForSignificanceTest;
 
   unsigned int m_MinClusterSize;
+  unsigned int m_KeptClusterSize;
 
 };
 
