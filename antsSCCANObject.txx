@@ -622,9 +622,15 @@ void antsSCCANObject<TInputImage, TRealType>
       this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
       if ( this->m_VariatesP.size() > 0 ) {
         this->m_MatrixRp.set_size(this->m_MatrixP.rows(),this->m_OriginalMatrixR.cols()+nvecs);
-	this->m_MatrixRp.set_columns(0,this->m_OriginalMatrixR);
-	this->m_MatrixRp.set_columns(this->m_OriginalMatrixR.cols(), 
-          this->m_MatrixP*(this->m_VariatesP.get_n_columns(0,nvecs)));
+	if ( this->m_OriginalMatrixR.size() > 0 ) {
+    	  this->m_MatrixRp.set_columns(0,this->m_OriginalMatrixR);
+	  this->m_MatrixRp.set_columns(this->m_OriginalMatrixR.cols(), 
+            this->m_MatrixP*(this->m_VariatesP.get_n_columns(0,nvecs)));
+        }
+	else {
+    	  this->m_MatrixRp.set_columns(0, 
+            this->m_MatrixP*(this->m_VariatesP.get_n_columns(0,nvecs)));
+        }
       } 
       else {
         this->m_MatrixRp=this->NormalizeMatrix(this->m_OriginalMatrixR);  
@@ -642,10 +648,16 @@ void antsSCCANObject<TInputImage, TRealType>
       this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);  
       if ( this->m_VariatesQ.size() > 0 ) {
         this->m_MatrixRq.set_size(this->m_MatrixQ.rows(),this->m_OriginalMatrixR.cols()+nvecs);
-	this->m_MatrixRq.set_columns(0,this->m_OriginalMatrixR);
-	this->m_MatrixRq.set_columns(this->m_OriginalMatrixR.cols(),
-          this->m_MatrixQ*(this->m_VariatesQ.get_n_columns(0,nvecs)));
-      } 
+	if ( this->m_OriginalMatrixR.size() > 0 ) {
+    	  this->m_MatrixRq.set_columns(0,this->m_OriginalMatrixR);
+	  this->m_MatrixRq.set_columns(this->m_OriginalMatrixR.cols(), 
+            this->m_MatrixQ*(this->m_VariatesQ.get_n_columns(0,nvecs)));
+        }
+	else {
+    	  this->m_MatrixRq.set_columns(0, 
+            this->m_MatrixQ*(this->m_VariatesQ.get_n_columns(0,nvecs)));
+        }
+      }
       else {
         this->m_MatrixRq=this->NormalizeMatrix(this->m_OriginalMatrixR); 
       }
