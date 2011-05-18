@@ -84,8 +84,10 @@ public:
   /** ivars Set/Get functionality */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
-  itkSetMacro( MinClusterSize, unsigned int );
-  itkGetConstMacro( MinClusterSize, unsigned int );
+  itkSetMacro( MinClusterSizeP, unsigned int );
+  itkGetConstMacro( MinClusterSizeP, unsigned int );
+  itkSetMacro( MinClusterSizeQ, unsigned int );
+  itkGetConstMacro( MinClusterSizeQ, unsigned int );
   itkSetMacro( KeptClusterSize, unsigned int );
   itkGetConstMacro( KeptClusterSize, unsigned int );
   itkSetMacro( AlreadyWhitened, bool );
@@ -135,6 +137,7 @@ public:
     } else {
       double ratio=inner_product(*projecterM*Mvec,*projecterV*V)/inner_product(*projecterV*V,*projecterV*V);
       VectorType  ortho=Mvec-V*ratio;
+      for (unsigned int i=0; i<Mvec.size(); i++) if ( Mvec(i) == 0 ) ortho(i)=0;
       return ortho;
     }
   }
@@ -367,7 +370,7 @@ protected:
 private:
 
   ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask );
-  VectorType ClusterThresholdVariate( VectorType, ImagePointer mask ); 
+  VectorType ClusterThresholdVariate( VectorType, ImagePointer mask , unsigned int); 
 
   bool m_Debug;
   MatrixType m_OriginalMatrixP;
@@ -418,7 +421,8 @@ private:
   bool m_SpecializationForHBM2011;
   RealType m_CorrelationForSignificanceTest;
 
-  unsigned int m_MinClusterSize;
+  unsigned int m_MinClusterSizeP;
+  unsigned int m_MinClusterSizeQ;
   unsigned int m_KeptClusterSize;
 
 };

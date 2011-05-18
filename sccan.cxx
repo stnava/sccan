@@ -101,9 +101,31 @@ inline std::string sccan_to_string (const T& t)
 }
 
 template <class TImage,class TComp>
-void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask )
+void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask,  vnl_matrix<TComp> data_mat )
 {
+  std::string::size_type pos = filename.rfind( "." );
+  std::string filepre = std::string( filename, 0, pos );
+      std::string extension;
+      if ( pos != std::string::npos ){
+        extension = std::string( filename, pos, filename.length()-1);
+        if (extension==std::string(".gz")){
+	  pos = filepre.rfind( "." );
+	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+          filepre = std::string( filepre, 0, pos );
+        }
+      }
   std::string post2;
+  vnl_matrix<TComp> projections=data_mat*varmat;
+  std::ofstream myfile;
+  std::string fnmp=filepre+std::string("projections")+post+std::string(".csv");
+  myfile.open(fnmp.c_str(), std::ios::out );
+  for (unsigned int j=0; j<projections.rows(); j++ ) {
+  for (unsigned int i=0; i<projections.cols()-1; i++ ) myfile << projections(j,i) << " , ";
+  myfile << projections(j,projections.cols()-1) << std::endl;
+  }
+  myfile << std::endl;
+  myfile.close();
+
   for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
     post2=post+sccan_to_string<unsigned int>(vars); 
     vnl_vector<TComp> temp=varmat.get_column(vars);
@@ -296,7 +318,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int q_cluster_thresh = 1 )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -356,7 +378,8 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
-  sccanobj->SetMinClusterSize( p_cluster_thresh );
+  sccanobj->SetMinClusterSizeP( p_cluster_thresh );
+  sccanobj->SetMinClusterSizeQ( q_cluster_thresh );
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
     q=sccanobj->RankifyMatrixColumns(q);
@@ -377,7 +400,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
     {
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
-      std::ofstream myfile;
       std::string::size_type pos = filename.rfind( "." );
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
@@ -386,25 +408,10 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      vVector temp=p*w_p;
-      std::string fnmp=filepre+std::string("proj1.csv");
-      myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
-      std::string fnmq=filepre+std::string("proj2.csv");
-      myfile.open(fnmq.c_str(), std::ios::out );
-      temp=q*w_q;
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-	//        myfile << w_q[i] <<",";
-      myfile << std::endl;
-      myfile.close();
       std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() );
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2 , sccanobj->GetMatrixQ() );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -459,7 +466,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
     { 
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
-      std::ofstream myfile;
       std::string::size_type pos = filename.rfind( "." );
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
@@ -468,20 +474,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string fnmp=filepre+std::string("proj1.csv");
-      vVector temp=p*w_p;
-      myfile.open(fnmp.c_str(), std::ios::out );
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
-      std::string fnmq=filepre+std::string("proj2.csv");
-      myfile.open(fnmq.c_str(), std::ios::out );
-      temp=q*w_q;
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
       std::string post=std::string("View1pval");
       WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_p_signif_ct , mask1);
       post=std::string("View2pval");
@@ -493,7 +485,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 )
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  )
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -588,7 +580,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   vMatrix p=DeleteRow<MatrixImageType,Scalar>( pin , leave_out );
   vMatrix q=DeleteRow<MatrixImageType,Scalar>( qin , leave_out );
   vMatrix r=DeleteRow<MatrixImageType,Scalar>( rin , leave_out );
-  sccanobj->SetMinClusterSize( p_cluster_thresh );
+  sccanobj->SetMinClusterSizeP( p_cluster_thresh );
+  sccanobj->SetMinClusterSizeQ( q_cluster_thresh );
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
     q=sccanobj->RankifyMatrixColumns(q);
@@ -601,7 +594,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetMatrixP( p );
     sccanobjCovar->SetMatrixQ( q );
     sccanobjCovar->SetMatrixR( r );
-    sccanobjCovar->SetMinClusterSize( p_cluster_thresh );
+    sccanobjCovar->SetMinClusterSizeP( p_cluster_thresh );
+    sccanobjCovar->SetMinClusterSizeQ( q_cluster_thresh );
 
     itk::ants::CommandLineParser::OptionType::Pointer partialccaOpt =
       parser->GetOption( "partial-scca-option" );
@@ -643,7 +637,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   if( outputOption )
     {
       std::string filename =  outputOption->GetValue( 0 );
-      std::ofstream myfile;
       std::string::size_type pos = filename.rfind( "." );
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
@@ -652,24 +645,10 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string fnmp=filepre+std::string("proj1.csv");
-      myfile.open(fnmp.c_str(), std::ios::out );
-      vVector temp=p*sccanobjCovar->GetVariateP(0);
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
-      std::string fnmq=filepre+std::string("proj2.csv");
-      myfile.open(fnmq.c_str(), std::ios::out );
-      temp=q*sccanobjCovar->GetVariateQ(0);
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
       std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesP() , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesP() , mask1, sccanobjCovar->GetMatrixP() );
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesQ() , mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesQ() , mask2, sccanobjCovar->GetMatrixQ() );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -684,7 +663,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
       //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
       typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
-      sccanobjPerm->SetMinClusterSize( p_cluster_thresh );
+      sccanobjPerm->SetMinClusterSizeP( p_cluster_thresh );
+      sccanobjPerm->SetMinClusterSizeQ( q_cluster_thresh );
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
@@ -772,7 +752,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
       std::string filename =  outputOption->GetValue( 0 );
       std::cout << " write " << filename << std::endl;
-      std::ofstream myfile;
       std::string::size_type pos = filename.rfind( "." );
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
@@ -781,27 +760,12 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string fnmp=filepre+std::string("proj1.csv");
-      myfile.open(fnmp.c_str(), std::ios::out );
-      vVector temp=p*w_p;
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-      myfile << std::endl;
-      myfile.close();
-      std::string fnmq=filepre+std::string("proj2.csv");
-      myfile.open(fnmq.c_str(), std::ios::out );
-      temp=q*w_q;
-      for (unsigned int i=0; i<temp.size(); i++ )
-        myfile << i << "," << temp[i] << std::endl;
-	//        myfile << w_q[i] <<",";
-      myfile << std::endl;
-      myfile.close();
       std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1, sccanobj->GetMatrixP() );
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2);
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2,  sccanobj->GetMatrixQ() );
       post=std::string("View3vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_r , mask3);
+      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_r , mask3 );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -899,6 +863,14 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else p_cluster_thresh=parser->Convert<unsigned int>( clust_option->GetValue() );
 
+  unsigned int q_cluster_thresh=1;
+  clust_option = parser->GetOption( "QClusterThresh" );
+  if( !clust_option || clust_option->GetNumberOfValues() == 0 )
+    {
+      //    std::cerr << "Warning:  no permutation option set." << std::endl;
+    }
+  else q_cluster_thresh=parser->Convert<unsigned int>( clust_option->GetValue() );
+
   bool eigen_imp=false;
   itk::ants::CommandLineParser::OptionType::Pointer eigen_option =
     parser->GetOption( "eigen_cca" );
@@ -942,17 +914,17 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify, p_cluster_thresh);
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify, p_cluster_thresh, q_cluster_thresh);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify,  p_cluster_thresh);
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh);
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh);
       }
       else 
       {
@@ -1039,6 +1011,15 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
     std::string( "cluster threshold on view P" );
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "PClusterThresh" );
+  option->SetUsageOption( 0, "1" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+  {
+  std::string description =
+    std::string( "cluster threshold on view Q" );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "QClusterThresh" );
   option->SetUsageOption( 0, "1" );
   option->SetDescription( description );
   parser->AddOption( option );
