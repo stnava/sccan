@@ -813,8 +813,6 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesQ.set_column(kk,temp);
   }
 */
-  }// makesparse
-
   if ( this->m_Debug ) std::cout << " done with loop " << std::endl;
   std::vector<TRealType> evals(n_vecs,0);
   std::vector<TRealType> oevals(n_vecs,0);
@@ -847,6 +845,10 @@ antsSCCANObject<TInputImage, TRealType>
   this->m_VariatesP=varp;
   this->m_VariatesQ=varq;
   this->RunDiagnostics(n_vecs);
+
+
+  }// makesparse
+
 
   RealType corrsum=0; 
   for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) {
