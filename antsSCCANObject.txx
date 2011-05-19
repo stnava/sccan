@@ -747,7 +747,7 @@ antsSCCANObject<TInputImage, TRealType>
       bool doorth=true;  //this->m_Debug=true;
       {
         VectorType proj=this->m_MatrixQ*this->m_WeightsQ;
-	if ( this->m_MatrixRp.size() > 0 ) { this->m_WeightsP=this->m_MatrixP.transpose()*(proj - this->m_MatrixRp*proj);}
+	if ( this->m_MatrixRp.size() > 0 && ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  ) { this->m_WeightsP=this->m_MatrixP.transpose()*(proj - this->m_MatrixRp*proj);}
 	else this->m_WeightsP=this->m_MatrixP.transpose()*(proj);
         if ( doorth ) for (unsigned int kk=0; kk<which_e_vec; kk++) 
           this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_VariatesP.get_column(kk),&this->m_MatrixP,&this->m_MatrixP);
@@ -761,7 +761,7 @@ antsSCCANObject<TInputImage, TRealType>
 
       {
         VectorType proj=this->m_MatrixP*this->m_WeightsP;
-	if ( this->m_MatrixRq.size() > 0 ) this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj - this->m_MatrixRq*proj);
+	if ( this->m_MatrixRq.size() > 0  && ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )   ) this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj - this->m_MatrixRq*proj);
 	else this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj);
         if ( doorth ) for (unsigned int kk=0; kk<which_e_vec; kk++) 
           this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_VariatesQ.get_column(kk),&this->m_MatrixQ,&this->m_MatrixQ);

@@ -86,6 +86,8 @@ public:
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
   itkSetMacro( MinClusterSize, unsigned int );
   itkGetConstMacro( MinClusterSize, unsigned int );
+//  itkSetMacro( MinClusterSizeQ, unsigned int );
+//  itkGetConstMacro( MinClusterSizeQ, unsigned int );
   itkSetMacro( KeptClusterSize, unsigned int );
   itkGetConstMacro( KeptClusterSize, unsigned int );
   itkSetMacro( AlreadyWhitened, bool );
@@ -135,6 +137,7 @@ public:
     } else {
       double ratio=inner_product(*projecterM*Mvec,*projecterV*V)/inner_product(*projecterV*V,*projecterV*V);
       VectorType  ortho=Mvec-V*ratio;
+      for (unsigned int i=0; i<Mvec.size(); i++) if ( Mvec(i) == 0 ) ortho(i)=0;
       return ortho;
     }
   }
@@ -176,11 +179,13 @@ public:
 
   itkSetMacro( FractionNonZeroP, RealType );
   itkSetMacro( KeepPositiveP, bool );
+  itkGetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
   void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
   
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
+  itkGetMacro( KeepPositiveQ, bool ); 
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }
   void SetMatrixQ(  MatrixType  matrix ) {  this->m_OriginalMatrixQ.set_size(matrix.rows(),matrix.cols());  this->m_MatrixQ.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixQ.update(matrix); this->m_MatrixQ.update(matrix);}
 
@@ -419,6 +424,7 @@ private:
   RealType m_CorrelationForSignificanceTest;
 
   unsigned int m_MinClusterSize;
+//  unsigned int m_MinClusterSizeQ;
   unsigned int m_KeptClusterSize;
 
 };
