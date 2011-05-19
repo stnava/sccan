@@ -624,7 +624,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       }
     }
     sccanobjCovar->SetFractionNonZeroP(FracNonZero1);
+    sccanobjCovar->SetKeepPositiveP( sccanobj->GetKeepPositiveP() );
     sccanobjCovar->SetFractionNonZeroQ(FracNonZero2);
+    sccanobjCovar->SetKeepPositiveQ( sccanobj->GetKeepPositiveQ() );
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
     if (newimp) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
@@ -666,6 +668,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       sccanobjPerm->SetMinClusterSizeP( p_cluster_thresh );
       sccanobjPerm->SetMinClusterSizeQ( q_cluster_thresh );
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
+      sccanobjPerm->SetKeepPositiveP( sccanobj->GetKeepPositiveP() );
+      sccanobjPerm->SetKeepPositiveQ( sccanobj->GetKeepPositiveQ() );
       sccanobjPerm->SetFractionNonZeroQ(FracNonZero2);
       sccanobjPerm->SetMaskImageP( mask1 );
       sccanobjPerm->SetMaskImageQ( mask2 );

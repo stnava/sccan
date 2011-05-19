@@ -179,11 +179,13 @@ public:
 
   itkSetMacro( FractionNonZeroP, RealType );
   itkSetMacro( KeepPositiveP, bool );
+  itkGetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
   void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
   
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
+  itkGetMacro( KeepPositiveQ, bool );
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }
   void SetMatrixQ(  MatrixType  matrix ) {  this->m_OriginalMatrixQ.set_size(matrix.rows(),matrix.cols());  this->m_MatrixQ.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixQ.update(matrix); this->m_MatrixQ.update(matrix);}
 
