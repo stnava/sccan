@@ -162,7 +162,7 @@ antsSCCANObject<TInputImage, TRealType>
       }
     }
   }
-  this->m_KeptClusterSize=keepct;
+  this->m_KeptClusterSize=histogram[1];
 //  std::cout << " Cluster Threshold Kept % of sparseness " <<  ( (float)keepct/(float)w_p.size() ) / this->m_FractionNonZeroP   << " kept clust size " << keepct << std::endl;
   return outvec;
 }
@@ -181,7 +181,7 @@ antsSCCANObject<TInputImage, TRealType>
     { 
 //      w_p(i)+=randgen.normal();
 //      w_p(i)=randgen.drand32();//1.0/p.rows();//
-      w_p(i)=1.0/p.rows()+randgen.normal()*1.e-3;
+      w_p(i)=1.0/p.rows()+randgen.normal()*1.e-9;
 //1.0+fabs(randgen.drand32())*1.e-3; 
     }
   }
@@ -732,9 +732,9 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
-  MatrixType p_evecs_factor;
-  MatrixType q_evecs_factor;
-  for ( unsigned int makesparse=0; makesparse<2 ; makesparse++ ) {
+
+// begin computing solution 
+  for ( unsigned int makesparse=1; makesparse<2 ; makesparse++ ) {
   unsigned int which_e_vec=0; 
   bool notdone=true;
   while ( notdone ) {
@@ -752,13 +752,13 @@ antsSCCANObject<TInputImage, TRealType>
       if ( its == 0 ) this->WhitenDataSetForRunSCCANMultiple(which_e_vec);
       {
         VectorType proj=this->m_MatrixQ*this->m_WeightsQ;
-	if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )
+	if ( true && ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR ) )
         for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
           proj=this->Orthogonalize(proj,this->m_MatrixR.get_column(kk));
         this->m_WeightsP=this->m_MatrixP.transpose()*(proj);
         for (unsigned int kk=0; kk< which_e_vec; kk++) 
           this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_VariatesP.get_column(kk),&this->m_MatrixP,&this->m_MatrixP);
-	if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )
+	if (  false && ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR ) )
         for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
           this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_MatrixR.get_column(kk)*this->m_MatrixP,&this->m_MatrixP,&this->m_MatrixP);
 	if ( makesparse ) {
@@ -767,7 +767,7 @@ antsSCCANObject<TInputImage, TRealType>
  	    this->m_WeightsP=this->ClusterThresholdVariate( this->m_WeightsP , this->m_MaskImageP, this->m_MinClusterSizeP );
           for (unsigned int kk=0; kk< which_e_vec; kk++) 
             this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_VariatesP.get_column(kk),&this->m_MatrixP,&this->m_MatrixP);
-	if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )
+	if (  false && ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR ) )
           for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
             this->m_WeightsP=this->Orthogonalize(this->m_WeightsP,this->m_MatrixR.get_column(kk)*this->m_MatrixP,&this->m_MatrixP,&this->m_MatrixP);
         }
@@ -778,13 +778,13 @@ antsSCCANObject<TInputImage, TRealType>
 
       {
         VectorType proj=this->m_MatrixP*this->m_WeightsP;
-	if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )
+	if ( true && ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR ) )
         for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
           proj=this->Orthogonalize(proj,this->m_MatrixR.get_column(kk));
 	this->m_WeightsQ=this->m_MatrixQ.transpose()*(proj);
         for (unsigned int kk=0; kk< which_e_vec; kk++) 
           this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_VariatesQ.get_column(kk),&this->m_MatrixQ,&this->m_MatrixQ);
-	if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )
+	if (  false && ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR ) )
         for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
           this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_MatrixR.get_column(kk)*this->m_MatrixQ,&this->m_MatrixQ,&this->m_MatrixQ);
 
@@ -794,7 +794,7 @@ antsSCCANObject<TInputImage, TRealType>
  	    this->m_WeightsQ=this->ClusterThresholdVariate( this->m_WeightsQ , this->m_MaskImageQ, this->m_MinClusterSizeQ );
           for (unsigned int kk=0; kk< which_e_vec; kk++) 
             this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_VariatesQ.get_column(kk),&this->m_MatrixQ,&this->m_MatrixQ);
-	if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )
+	if ( false && ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR ) )
           for (unsigned int kk=0; kk< this->m_OriginalMatrixR.cols(); kk++) 
             this->m_WeightsQ=this->Orthogonalize(this->m_WeightsQ,this->m_MatrixR.get_column(kk)*this->m_MatrixQ,&this->m_MatrixQ,&this->m_MatrixQ);
         }
@@ -846,9 +846,11 @@ antsSCCANObject<TInputImage, TRealType>
     varq.set_column(i,this->m_VariatesQ.get_column( sorted_indices[i] ));
     newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
   }
+  for (unsigned int i=0; i<n_vecs; i++) {
+    this->m_VariatesP.set_column(i,varp.get_column( i ));
+    this->m_VariatesQ.set_column(i,varq.get_column( i ));
+  }
   this->m_CanonicalCorrelations=newcorrs;
-  this->m_VariatesP=varp;
-  this->m_VariatesQ=varq;
   this->RunDiagnostics(n_vecs);
 
   }// makesparse
@@ -857,7 +859,7 @@ antsSCCANObject<TInputImage, TRealType>
   for ( unsigned int i=0; i < this->m_CanonicalCorrelations.size(); i++) {
     corrsum+=fabs(this->m_CanonicalCorrelations[i]);
   }
-  return corrsum;
+  return this->m_CanonicalCorrelations[0]; //corrsum;
 }
 
 template <class TInputImage, class TRealType>
