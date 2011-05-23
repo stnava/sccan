@@ -223,17 +223,21 @@ template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
 ::VNLPseudoInverse( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool take_sqrt ) {
-    double pinvTolerance=1.e-6; // this->m_PinvTolerance;
+  double pinvTolerance=1.e-5; // this->m_PinvTolerance;
       MatrixType dd=rin;
       unsigned int ss=dd.rows();
       if ( dd.rows() > dd.columns() ) ss=dd.columns();
-      else if ( dd.rows() < dd.columns() ) dd=dd.transpose();
       vnl_svd<RealType> eig(dd,pinvTolerance);
-      eig.zero_out_absolute(pinvTolerance);
-//      std::cout << " Udim " << eig.U().rows() << " c " << eig.U().cols()  << std::endl;
-//      std::cout << " Vdim " << eig.W().rows() << " c " << eig.W().cols()  << std::endl;
-      if ( rin.rows() < rin.columns() )  {  return ( eig.U()*( eig.Winverse() * eig.V() ));} 
-      return ( eig.recompose() ).transpose();
+      for (unsigned int j=0; j<ss; j++) 
+	{
+	  RealType eval=eig.W(j,j);
+	  if ( eval > pinvTolerance )  {// FIXME -- check tolerances against matlab pinv
+	    eig.W(j,j)=1/(eval);// need eval for inv cov 
+	    if ( take_sqrt ) eig.W(j,j)=1/sqrt(eval);
+	  }
+	  else eig.W(j,j)=0; 
+	} 
+  return ( eig.recompose() ).transpose();
 }
 
 
@@ -524,8 +528,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   RealType tau=0.01;
   if (this->m_Debug) std::cout << " inv view mats " << std::endl;
   this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
-  MatrixType PslashR=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
-  MatrixType QslashR=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
+  MatrixType PslashR=this->m_MatrixP;
+  if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
+    PslashR=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+  MatrixType QslashR=this->m_MatrixQ;
+  if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )  
+    QslashR=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
+
   if (this->m_Debug) {
     std::cout <<" corr-pre " << this->PearsonCorr( this->m_MatrixP.get_column(0) , this->m_OriginalMatrixR.get_column(0)  ) << std::endl  ; std::cout <<" corr-post " << this->PearsonCorr( PslashR.get_column(0) , this->m_OriginalMatrixR.get_column(0)  ) << std::endl; 
     std::cout <<" corr-pre " << this->PearsonCorr( this->m_MatrixQ.get_column(0) , this->m_OriginalMatrixR.get_column(0)  ) << std::endl  ; std::cout <<" corr-post " << this->PearsonCorr( QslashR.get_column(0) , this->m_OriginalMatrixR.get_column(0)  ) << std::endl;
@@ -617,7 +626,7 @@ void antsSCCANObject<TInputImage, TRealType>
   std::vector<TRealType> evals(n_vecs,0);
   std::vector<TRealType> oevals(n_vecs,0);
   for ( long j=0; j<n_vecs; ++j){
-    RealType val=this->m_CanonicalCorrelations[j];
+    RealType val=fabs(this->m_CanonicalCorrelations[j]);
     evals[j]=val;
     oevals[j]=val;
   }  sort (evals.begin(), evals.end(), my_sccan_sort_object); 
@@ -700,7 +709,14 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
   this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
   this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);
-  
+
+  if ( this->m_OriginalMatrixR.size() > 0 ) {
+    this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
+    if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
+      this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+    if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )  
+      this->m_MatrixQ=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
+  }
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
@@ -709,8 +725,9 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
   unsigned int maxloop=100;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
-  RealType fnp=this->m_FractionNonZeroP+(1.0-this->m_FractionNonZeroP)*(RealType)(maxloop-loop)/(RealType)maxloop;
-  RealType fnq=this->m_FractionNonZeroQ+(1.0-this->m_FractionNonZeroQ)*(RealType)(maxloop-loop)/(RealType)maxloop;
+  RealType frac=((RealType)maxloop-(RealType)loop-(RealType)5)/(RealType)maxloop;
+  RealType fnp=this->m_FractionNonZeroP+(1.0-this->m_FractionNonZeroP)*frac;
+  RealType fnq=this->m_FractionNonZeroQ+(1.0-this->m_FractionNonZeroQ)*frac;
   if ( fnp <this->m_FractionNonZeroP ) fnp=this->m_FractionNonZeroP;
   if ( fnq <this->m_FractionNonZeroQ ) fnq=this->m_FractionNonZeroQ;
 // Arnoldi Iteration
@@ -737,10 +754,27 @@ TRealType antsSCCANObject<TInputImage, TRealType>
           inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qj);
       for (unsigned int i=0; i<qveck.size(); i++)  qveck(i)=qveck(i)-hjk*qj(i); 
     }
-// now deal with covariates 
+    RealType hkkm1=pveck.two_norm();
+    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
+             hkkm1=qveck.two_norm();
+    if ( hkkm1 > 0 ) this->m_VariatesQ.set_column(k,qveck/hkkm1);
+    this->NormalizeWeightsByCovariance(k); 
+    this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
+  }
+  std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
+//  std::cout << this->m_VariatesQ.get_column(1) << std::endl;
+  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
+  } // outer loop 
+  this->SortResults(n_vecs);  
+  this->RunDiagnostics(n_vecs);
+  return fabs(this->m_CanonicalCorrelations[1]);
+
+/*
+
+// now deal with covariates --- this could work but needs to be fixed. 
     for ( unsigned int j=0; j< this->m_MatrixR.cols(); j++) {
-    /** is this really what qj should be?  it should be the projection of the nuisance variable 
-        into the space of qj ...  */
+    // FIXME is this really what qj should be?  it should be the projection of the nuisance variable 
+    //    into the space of qj ...  
       VectorType cov=this->m_MatrixR.get_column(j);
       VectorType qj=cov*this->m_MatrixP;
       RealType hjk=inner_product(cov,this->m_MatrixP*pveck)/
@@ -753,20 +787,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )  
         for (unsigned int i=0; i<qveck.size(); i++)  qveck(i)=qveck(i)-hjk*qj(i); 
     }
-    RealType hkkm1=pveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
-             hkkm1=qveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesQ.set_column(k,qveck/hkkm1);
-    this->NormalizeWeightsByCovariance(k); 
-    this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
-  }
-  std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
-  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
-  } // outer loop 
-  this->SortResults(n_vecs);  
-  this->RunDiagnostics(n_vecs);
-  return fabs(this->m_CanonicalCorrelations[0]);
-/*
+
+// evil code below ....
 
     if ( this->m_SCCANFormulation != PQ ) {
     for ( unsigned int dd=0; dd<20 ; dd++) {
@@ -1016,7 +1038,7 @@ antsSCCANObject<TInputImage, TRealType>
   std::vector<TRealType> evals(n_vecs,0);
   std::vector<TRealType> oevals(n_vecs,0);
   for ( long j=0; j<n_vecs; ++j){
-    RealType val=this->m_CanonicalCorrelations[j];
+    RealType val=fabs(this->m_CanonicalCorrelations[j]);
     evals[j]=val;
     oevals[j]=val;
   }
@@ -1045,7 +1067,7 @@ antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesQ.set_column(i,varq.get_column( i ));
   }
   this->m_CanonicalCorrelations=newcorrs;
-  this->RunDiagnostics(n_vecs);
+//  this->RunDiagnostics(n_vecs);
 
   }// makesparse
 

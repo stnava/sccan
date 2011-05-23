@@ -687,9 +687,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
       sccanobjPerm->SetAlreadyWhitened( false );
       double permcorr=0;
-      if ( newimp == 0 ) sccanobjPerm->SparsePartialArnoldiCCA(n_e_vecs);
-      else if ( newimp == 1 ) sccanobjPerm->SparsePartialCCA(n_e_vecs);
-      else if ( newimp == 2 ) sccanobjPerm->SparseArnoldiSVD(n_e_vecs);
+      if ( newimp == 0 ) permcorr=sccanobjPerm->SparsePartialArnoldiCCA(n_e_vecs);
+      else if ( newimp == 1 ) permcorr=sccanobjPerm->SparsePartialCCA(n_e_vecs);
+      else if ( newimp == 2 ) permcorr=sccanobjPerm->SparseArnoldiSVD(n_e_vecs);
       //permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);//
       //else permcorr=
       std::cout << " partialed out corr " ; 

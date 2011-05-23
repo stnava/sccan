@@ -225,8 +225,11 @@ public:
   }
 
   MatrixType WhitenMatrix(MatrixType p, RealType regularization=1.e-2 ) {
-    MatrixType invcov=this->CovarianceMatrix(p,regularization);
-    invcov=this->PseudoInverse( invcov, true );
+    double reg=1.e-8;
+    if ( p.rows() < p.cols() ) reg=regularization;
+    MatrixType cov=this->CovarianceMatrix(p,reg);
+    MatrixType invcov=this->PseudoInverse( cov, true );
+    //    std::cout << invcov*cov << std::endl; exit(0);
     if ( p.rows() < p.columns() ) return (invcov*p);
     else return p*invcov;
   }
