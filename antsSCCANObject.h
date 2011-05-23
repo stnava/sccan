@@ -99,7 +99,7 @@ public:
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
 
-  void NormalizeWeightsByCovariance();
+  void NormalizeWeightsByCovariance(unsigned int);
   void WhitenDataSetForRunSCCANMultiple(unsigned int nvecs=0);
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
@@ -278,9 +278,11 @@ public:
 
   RealType SparseCCA(unsigned int nvecs);
   RealType SparsePartialCCA(unsigned int nvecs);
+  RealType SparsePartialArnoldiCCA(unsigned int nvecs);
 
 protected:
 
+  void SortResults(unsigned int n_vecs);
 // for pscca 
   void UpdatePandQbyR( );
 

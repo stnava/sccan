@@ -630,7 +630,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
     if (newimp) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
-    else truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
+    else truecorr=sccanobjCovar->SparsePartialArnoldiCCA(n_e_vecs);
+      //truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
       std::cout << " " << sccanobjCovar->GetCanonicalCorrelations()[ff];
@@ -684,7 +685,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
       sccanobjPerm->SetAlreadyWhitened( false );
       double permcorr=0;
-      if (!newimp) permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);
+      if (!newimp) permcorr=sccanobjPerm->SparsePartialArnoldiCCA(n_e_vecs);//RunSCCAN2multiple(n_e_vecs);
       else permcorr=sccanobjPerm->SparsePartialCCA(n_e_vecs);
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
