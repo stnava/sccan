@@ -767,8 +767,9 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   } // outer loop 
   this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
-  return fabs(this->m_CanonicalCorrelations[1]);
-
+  if ( n_vecs > 1 ) 
+  return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
+  return fabs(this->m_CanonicalCorrelations[0]);
 /*
 
 // now deal with covariates --- this could work but needs to be fixed. 
