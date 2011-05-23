@@ -279,6 +279,7 @@ public:
   RealType SparseCCA(unsigned int nvecs);
   RealType SparsePartialCCA(unsigned int nvecs);
   RealType SparsePartialArnoldiCCA(unsigned int nvecs);
+  RealType SparseArnoldiSVD(unsigned int nvecs);
 
 protected:
 

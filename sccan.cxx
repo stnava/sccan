@@ -318,7 +318,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , bool newimp = false , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int q_cluster_thresh = 1 )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int q_cluster_thresh = 1 )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -485,7 +485,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , bool newimp = false, unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  )
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  )
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -494,6 +494,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     {
     std::cerr << "Warning:  no output option set." << std::endl;
     }
+  std::cout << " newimp " << newimp << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer option =
     parser->GetOption( "scca" );
   typedef itk::Image<PixelType, ImageDimension> ImageType;
@@ -629,9 +630,10 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
     sccanobjCovar->SetKeepPositiveQ( sccanobj->GetKeepPositiveQ() );
     sccanobjCovar->SetMaskImageP( mask1 );
     sccanobjCovar->SetMaskImageQ( mask2 );
-    if (newimp) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
-    else truecorr=sccanobjCovar->SparsePartialArnoldiCCA(n_e_vecs);
-      //truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
+    if (newimp == 1) truecorr=sccanobjCovar->SparsePartialCCA(n_e_vecs);
+    else if (newimp == 2 ) truecorr=sccanobjCovar->SparseArnoldiSVD(n_e_vecs);
+    else if (newimp == 0 ) truecorr=sccanobjCovar->SparsePartialArnoldiCCA(n_e_vecs);
+    //  truecorr=sccanobjCovar->RunSCCAN2multiple(n_e_vecs );
     std::cout << " partialed out corr " ; 
     for (unsigned int ff=0; ff< sccanobjCovar->GetCanonicalCorrelations().size() ; ff++ )
       std::cout << " " << sccanobjCovar->GetCanonicalCorrelations()[ff];
@@ -685,8 +687,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       sccanobjPerm->SetSCCANFormulation( sccanobjCovar->GetSCCANFormulation() );
       sccanobjPerm->SetAlreadyWhitened( false );
       double permcorr=0;
-      if (!newimp) permcorr=sccanobjPerm->SparsePartialArnoldiCCA(n_e_vecs);//RunSCCAN2multiple(n_e_vecs);
-      else permcorr=sccanobjPerm->SparsePartialCCA(n_e_vecs);
+      if ( newimp == 0 ) sccanobjPerm->SparsePartialArnoldiCCA(n_e_vecs);
+      else if ( newimp == 1 ) sccanobjPerm->SparsePartialCCA(n_e_vecs);
+      else if ( newimp == 2 ) sccanobjPerm->SparseArnoldiSVD(n_e_vecs);
+      //permcorr=sccanobjPerm->RunSCCAN2multiple(n_e_vecs);//
+      //else permcorr=
       std::cout << " partialed out corr " ; 
       for (unsigned int ff=0; ff< sccanobjPerm->GetCanonicalCorrelations().size() ; ff++ )
         std::cout << " " << sccanobjPerm->GetCanonicalCorrelations()[ff];
@@ -931,6 +936,11 @@ int sccan( itk::ants::CommandLineParser *parser )
       std::cout << " pscca "<< std::endl;
       mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh);
       }
+      else if ( !initializationStrategy.compare( std::string("svd") )   ) 
+      {
+	std::cout << " sparse-svd "<< std::endl; // note: 2 (in options) is for svd implementation
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , 2 , robustify,  p_cluster_thresh, q_cluster_thresh);
+      }
       else 
       {
       std::cout <<" unrecognized option in matrixPairOperation " << std::endl;
@@ -1073,6 +1083,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetUsageOption( 0, "two-view[matrix-view1.mhd,matrix-view2.mhd,mask1,mask2,FracNonZero1,FracNonZero2] ");
   option->SetUsageOption( 1, "three-view[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
   option->SetUsageOption( 2, "partial[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3]" );
+  option->SetUsageOption( 3, "svd[matrix-view1.mhd,matrix-view2.mhd,matrix-view3.mhd,FracNonZero1,FracNonZero2,FracNonZero3] --- will only use view1 ... " );
   option->SetDescription( description );
   parser->AddOption( option );
   }
