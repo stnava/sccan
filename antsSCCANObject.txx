@@ -737,7 +737,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
   unsigned int maxloop=200;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
-  RealType frac=((RealType)maxloop-(RealType)loop)/(RealType)maxloop;
+  RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
   if ( frac < 0 ) frac=0;
   RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
   RealType fnq=fabs(this->m_FractionNonZeroQ)+(1.0-this->m_FractionNonZeroQ)*frac;
