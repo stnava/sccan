@@ -95,7 +95,7 @@ antsSCCANObject<TInputImage, TRealType>
 template <class TInputImage, class TRealType>
  typename antsSCCANObject<TInputImage, TRealType>::VectorType
 antsSCCANObject<TInputImage, TRealType>
-::ClusterThresholdVariate(  typename antsSCCANObject<TInputImage, TRealType>::VectorType w_p   , typename TInputImage::Pointer mask , unsigned int minclust ) 
+::ClusterThresholdVariate(  typename antsSCCANObject<TInputImage, TRealType>::VectorType& w_p   , typename TInputImage::Pointer mask , unsigned int minclust ) 
 {
   if ( minclust <= 1 ) return w_p; 
   typedef unsigned long ULPixelType;
@@ -144,7 +144,6 @@ antsSCCANObject<TInputImage, TRealType>
   }
 
 //  now create the output vector 
-  VectorType outvec( w_p.size() , 0 );
   // iterate through the image and set the voxels where  countinlabel[(unsigned long)(labelimage->GetPixel(vfIter.GetIndex()) - min)] 
   // is < MinClusterSize 
   unsigned long vecind=0, keepct=0;
@@ -156,15 +155,15 @@ antsSCCANObject<TInputImage, TRealType>
       unsigned long clustersize=0;
       if ( vox >= 0  ) {
         clustersize=histogram[(unsigned long)(relabel->GetOutput()->GetPixel(mIter.GetIndex()) )];
-        if ( clustersize > minclust ) { outvec(vecind)=w_p(vecind);  keepct++; }
-	else { outvec(vecind)=0;  }
+        if ( clustersize > minclust ) { keepct++; }
+	else { w_p(vecind)=0;  }
 	vecind++;
       }
     }
   }
   this->m_KeptClusterSize=histogram[1];
 //  std::cout << " Cluster Threshold Kept % of sparseness " <<  ( (float)keepct/(float)w_p.size() ) / this->m_FractionNonZeroP   << " kept clust size " << keepct << std::endl;
-  return outvec;
+  return w_p;
 }
 
 
@@ -240,17 +239,14 @@ antsSCCANObject<TInputImage, TRealType>
   return ( eig.recompose() ).transpose();
 }
 
-
-
 template <class TInputImage, class TRealType>
-typename antsSCCANObject<TInputImage, TRealType>::VectorType
+void
 antsSCCANObject<TInputImage, TRealType>
-::SoftThreshold( typename antsSCCANObject<TInputImage, TRealType>::VectorType
+::ReSoftThreshold( typename antsSCCANObject<TInputImage, TRealType>::VectorType&
  v_in, TRealType fractional_goal , bool allow_negative_weights )
 {
   VectorType v_out(v_in);
-//  std::cout <<  " compute sparse " << fractional_goal <<" keep_pos " << ! allow_negative_weights   << std::endl;
-  if ( fabs(fractional_goal) >= 1 || fabs((float)(v_in.size())*fractional_goal) <= 1 ) return v_out;
+//  if ( fabs(fractional_goal) >= 1 || fabs((float)(v_in.size())*fractional_goal) <= 1 ) return ;
   RealType minv=v_in.min_value();
   RealType maxv=v_in.max_value();
   if ( fabs(v_in.min_value()) > maxv ) maxv=fabs(v_in.min_value());
@@ -259,6 +255,11 @@ antsSCCANObject<TInputImage, TRealType>
   RealType frac=0;
   unsigned int its=0,ct=0;
   RealType soft_thresh=lambg;
+
+  for ( unsigned int i=0; i<v_out.size(); i++) {
+    if ( ! allow_negative_weights && v_in(i) < 0 ) v_in(i)=0;
+    v_out(i)=v_in(i);
+  }
  
   RealType minthresh=0,minfdiff=1;
   unsigned int maxits=1000;
@@ -269,6 +270,7 @@ antsSCCANObject<TInputImage, TRealType>
     for ( unsigned int i=0; i<v_in.size(); i++) {
       RealType val=v_in(i);
       if ( allow_negative_weights ) val=fabs(val);
+      else if ( val < 0 ) val=0; 
       if ( val < soft_thresh ) 
       {
 	v_out(i)=0;
@@ -288,19 +290,20 @@ antsSCCANObject<TInputImage, TRealType>
 // here , we apply the minimum threshold to the data. 
   ct=0;
   for ( unsigned int i=0; i<v_in.size(); i++) {
-    RealType val=v_in(i);
-    if ( allow_negative_weights ) val=fabs(val);
-    if ( val < minthresh ) 
+      RealType val=v_in(i);
+      if ( allow_negative_weights ) val=fabs(val);
+      else if ( val < 0 ) val=0; 
+      if ( val < minthresh ) 
       {
-	v_out(i)=0;
+	v_in(i)=0;
 	ct++;
       }
-    else v_out(i)=v_in(i);
+      else v_in(i)=val;
   }
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
 //  std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
-  if ( v_out.two_norm() > 0 ) return v_out/v_out.two_norm();
-  return v_out;
+  if ( v_in.two_norm() > 0 ) v_in=v_in/v_in.two_norm();
+  return;
 }
 
 
@@ -322,7 +325,7 @@ antsSCCANObject<TInputImage, TRealType>
     VectorType temp=q*w_q;
     wpnew=p.transpose()*temp;
   }
-  wpnew=this->SoftThreshold( wpnew , penalty1 , !keep_pos );
+  this->ReSoftThreshold( wpnew , penalty1 , !keep_pos );
   norm=wpnew.two_norm();
   if ( norm > 0 ) wpnew=wpnew/(norm);
   return wpnew;
@@ -470,8 +473,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( val > 0.05 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
       VectorType tempq=projToQ*temp;
-      VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
-      VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      VectorType pvar=temp*this->m_MatrixP;
+      this->ReSoftThreshold( pvar , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+      VectorType qvar= tempq*this->m_MatrixQ;
+      this->ReSoftThreshold( qvar , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       evals[j]=fabs(this->PearsonCorr(this->m_MatrixP*pvar,this->m_MatrixQ*qvar));
       oevals[j]=evals[j];
     }
@@ -493,8 +498,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   for (unsigned int i=0; i<nvecs; i++) {
     VectorType temp=this->vEtoV( pccaVecs.col(  sorted_indices[i] ) );
     VectorType tempq=projToQ*temp;
-    VectorType pvar=this->SoftThreshold(  temp*this->m_MatrixP , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
-    VectorType qvar=this->SoftThreshold( tempq*this->m_MatrixQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+    VectorType pvar= temp*this->m_MatrixP;
+    this->ReSoftThreshold(pvar , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+    VectorType qvar= tempq*this->m_MatrixQ ;
+    this->ReSoftThreshold(qvar , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
     this->m_VariatesP.set_column( i, pvar  );
     this->m_VariatesQ.set_column( i, qvar  );
   }
@@ -574,8 +581,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( val > 0.05 ){
       VectorType temp=this->vEtoV( pccaVecs.col(  j ) );
       VectorType tempq=projToQ*temp;
-      VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
-      VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      VectorType pvar= temp*PslashR;
+      this->ReSoftThreshold(pvar  , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+      VectorType qvar=tempq*QslashR;
+      this->ReSoftThreshold(qvar , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       evals[j]=fabs(this->PearsonCorr(PslashR*pvar,QslashR*qvar));
       oevals[j]=evals[j];
     }
@@ -597,8 +606,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   for (unsigned int i=0; i<nvecs; i++) {
     VectorType temp=this->vEtoV( pccaVecs.col(  sorted_indices[i] ) );
     VectorType tempq=projToQ*temp;
-    VectorType pvar=this->SoftThreshold(  temp*PslashR , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
-    VectorType qvar=this->SoftThreshold( tempq*QslashR , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+    VectorType pvar=temp*PslashR ;
+    this->ReSoftThreshold(pvar  , this->m_FractionNonZeroP , !this->m_KeepPositiveP ); 
+    VectorType qvar=tempq*QslashR;
+    this->ReSoftThreshold(qvar  , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
     this->m_VariatesP.set_column( i, pvar  );
     this->m_VariatesQ.set_column( i, qvar  );
   }
@@ -678,8 +689,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType pveck=this->m_MatrixP*ptemp;      
     pveck=this->m_MatrixP.transpose()*pveck;
     if ( loop > 2 ) {
-      pveck=this->SoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-      pveck=this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
@@ -706,6 +717,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_CanonicalCorrelations.set_size(n_vecs);
   this->m_CanonicalCorrelations.fill(0); 
   std::cout <<" arnoldi sparse partial cca " << std::endl;
+  std::cout << "  pos-p " << this->GetKeepPositiveP() << " pos-q "<< this->GetKeepPositiveQ() << std::endl;
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
   this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
   this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);
@@ -725,11 +737,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
   unsigned int maxloop=100;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
-  RealType frac=((RealType)maxloop-(RealType)loop-(RealType)5)/(RealType)maxloop;
-  RealType fnp=this->m_FractionNonZeroP+(1.0-this->m_FractionNonZeroP)*frac;
-  RealType fnq=this->m_FractionNonZeroQ+(1.0-this->m_FractionNonZeroQ)*frac;
-  if ( fnp <this->m_FractionNonZeroP ) fnp=this->m_FractionNonZeroP;
-  if ( fnq <this->m_FractionNonZeroQ ) fnq=this->m_FractionNonZeroQ;
+  RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
+  RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
+  RealType fnq=fabs(this->m_FractionNonZeroQ)+(1.0-this->m_FractionNonZeroQ)*frac;
+  if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
+  if ( this->m_FractionNonZeroQ  < 0 ) fnq*=(-1);
+  if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
+  if ( fabs(fnq) < fabs(this->m_FractionNonZeroQ) ) fnq=this->m_FractionNonZeroQ;
 // Arnoldi Iteration
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
@@ -738,12 +752,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType qveck=this->m_MatrixP*ptemp;     
     pveck=this->m_MatrixP.transpose()*pveck;
     qveck=this->m_MatrixQ.transpose()*qveck;
+    this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+    this->ReSoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
     if ( loop > 2 ) {
-      pveck=this->SoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-      pveck=this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-      qveck=this->SoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
-      qveck=this->ClusterThresholdVariate( qveck , this->m_MaskImageQ, this->m_MinClusterSizeQ );
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+      this->ClusterThresholdVariate( qveck , this->m_MaskImageQ, this->m_MinClusterSizeQ );
     }
+    if ( k > 0 )
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
       RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*pveck)/
@@ -1000,8 +1015,8 @@ antsSCCANObject<TInputImage, TRealType>
 
       this->m_WeightsP=this->m_MatrixP.transpose()*(projp);
       this->m_WeightsQ=this->m_MatrixQ.transpose()*(projq);
-      this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
-      this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+      this->ReSoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+      this->ReSoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
       if ( its > 1 ) {
         this->m_WeightsP=this->ClusterThresholdVariate( this->m_WeightsP , this->m_MaskImageP, this->m_MinClusterSizeP );
         this->m_WeightsQ=this->ClusterThresholdVariate( this->m_WeightsQ , this->m_MaskImageQ, this->m_MinClusterSizeQ );
@@ -1173,17 +1188,17 @@ antsSCCANObject<TInputImage, TRealType>
    *     w_i \leftarrow \frac{ S( X_i^T ( \sum_{j \ne i} X_j w_j  ) }{norm of above } 
    */
     this->m_WeightsP=this->m_MatrixP.transpose()*(this->m_MatrixQ*this->m_WeightsQ+this->m_MatrixR*this->m_WeightsR);
-    this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP,!this->m_KeepPositiveP);
+    this->ReSoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP,!this->m_KeepPositiveP);
     norm=this->m_WeightsP.two_norm();
     this->m_WeightsP=this->m_WeightsP/(norm);
 
     this->m_WeightsQ=this->m_MatrixQ.transpose()*(this->m_MatrixP*this->m_WeightsP+this->m_MatrixR*this->m_WeightsR);
-    this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ,!this->m_KeepPositiveQ);
+    this->ReSoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ,!this->m_KeepPositiveQ);
     norm=this->m_WeightsQ.two_norm();
     this->m_WeightsQ=this->m_WeightsQ/(norm);
 
     this->m_WeightsR=this->m_MatrixR.transpose()*(this->m_MatrixP*this->m_WeightsP+this->m_MatrixQ*this->m_WeightsQ);
-    this->m_WeightsR=this->SoftThreshold( this->m_WeightsR , this->m_FractionNonZeroR,!this->m_KeepPositiveR);
+    this->ReSoftThreshold( this->m_WeightsR , this->m_FractionNonZeroR,!this->m_KeepPositiveR);
     norm=this->m_WeightsR.two_norm();
     this->m_WeightsR=this->m_WeightsR/(norm);
 
@@ -1262,14 +1277,14 @@ antsSCCANObject<TInputImage, TRealType>
       double deltaip=1,lastip=0;
       while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0 || ct < 4 ) {
         ip=0;
-        this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+        this->ReSoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
         VectorType ptem=this->m_WeightsP;
 	if ( which_e_vec >= 1 ) 
           ptem=this->Orthogonalize(ptem,this->m_VariatesP.get_column(0),&this->m_MatrixP);
   	if ( which_e_vec >= 2 ) 
           ptem=this->Orthogonalize(ptem,this->m_VariatesP.get_column(1),&this->m_MatrixP);
 	this->m_WeightsP=ptem;
-        this->m_WeightsP=this->SoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
+        this->ReSoftThreshold( this->m_WeightsP , this->m_FractionNonZeroP , !this->m_KeepPositiveP );
         ip+=this->PearsonCorr(this->m_MatrixP*this->m_WeightsP,this->m_MatrixP*this->m_VariatesP.get_column(0));
 	if ( which_e_vec >= 2) 
           ip+=this->PearsonCorr(this->m_MatrixP*this->m_WeightsP,this->m_MatrixP*this->m_VariatesP.get_column(1));
@@ -1283,14 +1298,14 @@ antsSCCANObject<TInputImage, TRealType>
        deltaip=1;lastip=0;
       while ( (deltaip) > 1.e-3 && ct < max_ip_its && which_e_vec > 0  || ct < 4 ) {
         ip=0;
-        this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+        this->ReSoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
         VectorType ptem=this->m_WeightsQ;
 	if ( which_e_vec >= 1 ) 
           ptem=this->Orthogonalize(ptem,this->m_VariatesQ.get_column(0),&this->m_MatrixQ);
   	if ( which_e_vec >= 2 ) 
           ptem=this->Orthogonalize(ptem,this->m_VariatesQ.get_column(1),&this->m_MatrixQ);
 	this->m_WeightsQ=ptem;
-        this->m_WeightsQ=this->SoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
+        this->ReSoftThreshold( this->m_WeightsQ , this->m_FractionNonZeroQ , !this->m_KeepPositiveQ );
         ip+=this->PearsonCorr(this->m_MatrixQ*this->m_WeightsQ,this->m_MatrixQ*this->m_VariatesQ.get_column(0));
 	if ( which_e_vec >= 2) 
           ip+=this->PearsonCorr(this->m_MatrixQ*this->m_WeightsQ,this->m_MatrixQ*this->m_VariatesQ.get_column(1));

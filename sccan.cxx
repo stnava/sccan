@@ -391,7 +391,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
   double truecorr=0;
   if (newimp) truecorr=sccanobj->SparseCCA(n_evec );
-  else truecorr=sccanobj->RunSCCAN2multiple(n_evec );
+  else truecorr=sccanobj->SparsePartialArnoldiCCA(n_evec );
   vVector w_p=sccanobj->GetVariateP(0);
   vVector w_q=sccanobj->GetVariateQ(0);
   std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl; 
@@ -428,7 +428,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       sccanobj->SetMatrixQ( q_perm );
       double permcorr=0;
       if (newimp) permcorr=sccanobj->SparseCCA(n_evec );
-      else permcorr=sccanobj->RunSCCAN2multiple(n_evec );
+      else permcorr=sccanobj->SparsePartialArnoldiCCA(n_evec );
       if ( permcorr > truecorr ) perm_exceed_ct++;
       vVector w_p_perm=sccanobj->GetVariateP(0);
       vVector w_q_perm=sccanobj->GetVariateQ(0);

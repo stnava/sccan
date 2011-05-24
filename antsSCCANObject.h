@@ -205,7 +205,7 @@ public:
   RealType RunSCCAN2( );
   RealType RunSCCAN3();
  
-  VectorType SoftThreshold( VectorType v_in, RealType fractional_goal , bool allow_negative_weights );
+  void ReSoftThreshold( VectorType& v_in, RealType fractional_goal , bool allow_negative_weights );
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   /** needed for partial scca */
@@ -378,7 +378,7 @@ protected:
 private:
 
   ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask );
-  VectorType ClusterThresholdVariate( VectorType, ImagePointer mask , unsigned int); 
+  VectorType ClusterThresholdVariate( VectorType&, ImagePointer mask , unsigned int); 
 
   bool m_Debug;
   MatrixType m_OriginalMatrixP;
