@@ -735,11 +735,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
-  unsigned int maxloop=100;
+  unsigned int maxloop=200;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
-  RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
+  RealType frac=((RealType)maxloop-(RealType)loop)/(RealType)maxloop;
+  if ( frac < 0 ) frac=0;
   RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
   RealType fnq=fabs(this->m_FractionNonZeroQ)+(1.0-this->m_FractionNonZeroQ)*frac;
+  if ( loop < 10 ) { fnp=1; fnq=1; }
   if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
   if ( this->m_FractionNonZeroQ  < 0 ) fnq*=(-1);
   if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
@@ -763,11 +765,11 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       VectorType qj=this->m_VariatesP.get_column(j);
       RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*pveck)/
                    inner_product(this->m_MatrixP*qj,this->m_MatrixP*qj);
-      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
+      for (unsigned int i=0; i<pveck.size(); i++) pveck(i)=pveck(i)-hjk*qj(i); 
       qj=this->m_VariatesQ.get_column(j); 
       hjk=inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qveck)/
           inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qj);
-      for (unsigned int i=0; i<qveck.size(); i++)  qveck(i)=qveck(i)-hjk*qj(i); 
+      for (unsigned int i=0; i<qveck.size(); i++) qveck(i)=qveck(i)-hjk*qj(i); 
     }
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
