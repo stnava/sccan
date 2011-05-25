@@ -377,7 +377,7 @@ protected:
 
 private:
 
-  ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask );
+  ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask , bool threshold_at_zero=false );
   VectorType ClusterThresholdVariate( VectorType&, ImagePointer mask , unsigned int); 
 
   bool m_Debug;

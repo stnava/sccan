@@ -58,7 +58,7 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
 template <class TInputImage, class TRealType>
 typename TInputImage::Pointer
 antsSCCANObject<TInputImage, TRealType>
-::ConvertVariateToSpatialImage(  typename antsSCCANObject<TInputImage, TRealType>::VectorType w_p  , typename TInputImage::Pointer mask  ) 
+::ConvertVariateToSpatialImage(  typename antsSCCANObject<TInputImage, TRealType>::VectorType w_p  , typename TInputImage::Pointer mask , bool threshold_at_zero  ) 
 {
       typename TInputImage::Pointer weights = TInputImage::New();
       weights->SetOrigin( mask->GetOrigin() );
@@ -82,8 +82,8 @@ antsSCCANObject<TInputImage, TRealType>
 	       std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
 	       exit(1);
 	    }
-	    //	    std::cout << " val " << val << std::endl;
-	    weights->SetPixel(mIter.GetIndex(),val);
+	    if ( threshold_at_zero && fabs(val) > 0  )  weights->SetPixel(mIter.GetIndex(),1);
+	    else weights->SetPixel(mIter.GetIndex(),val);
 	    vecind++;
 	  } 
 	else mIter.Set(0);
@@ -108,7 +108,8 @@ antsSCCANObject<TInputImage, TRealType>
   typedef itk::RelabelComponentImageFilter< labelimagetype, labelimagetype > RelabelType;
 
 // we assume w_p has been thresholded by another function 
-  typename TInputImage::Pointer image=this->ConvertVariateToSpatialImage( w_p , mask ); 
+  bool threshold_at_zero=true;
+  typename TInputImage::Pointer image=this->ConvertVariateToSpatialImage( w_p , mask , threshold_at_zero ); 
 
   typename FilterType::Pointer filter = FilterType::New();
   typename RelabelType::Pointer relabel = RelabelType::New();
@@ -707,7 +708,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->m_CanonicalCorrelations[k]=1; 
   }
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
-  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
+//  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
   } // outer loop 
   this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
@@ -784,7 +785,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
 //  std::cout << this->m_VariatesQ.get_column(1) << std::endl;
-  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
+//  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
   } // outer loop 
   this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
