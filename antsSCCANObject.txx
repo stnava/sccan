@@ -249,6 +249,7 @@ antsSCCANObject<TInputImage, TRealType>
 //  if ( fabs(fractional_goal) >= 1 || fabs((float)(v_in.size())*fractional_goal) <= 1 ) return ;
   RealType minv=v_in.min_value();
   RealType maxv=v_in.max_value();
+//  std::cout << " pre minv " << minv << " pre maxv " << maxv << std::endl;
   if ( fabs(v_in.min_value()) > maxv ) maxv=fabs(v_in.min_value());
   minv=0;
   RealType lambg=1.e-3;
@@ -256,11 +257,11 @@ antsSCCANObject<TInputImage, TRealType>
   unsigned int its=0,ct=0;
   RealType soft_thresh=lambg;
 
-  for ( unsigned int i=0; i<v_out.size(); i++) {
+  for ( unsigned int i=0; i<v_in.size(); i++) {
     if ( ! allow_negative_weights && v_in(i) < 0 ) v_in(i)=0;
     v_out(i)=v_in(i);
   }
- 
+
   RealType minthresh=0,minfdiff=1;
   unsigned int maxits=1000;
   for ( its=0; its<maxits; its++) 
@@ -286,7 +287,6 @@ antsSCCANObject<TInputImage, TRealType>
     }
   }
 
-
 // here , we apply the minimum threshold to the data. 
   ct=0;
   for ( unsigned int i=0; i<v_in.size(); i++) {
@@ -298,11 +298,15 @@ antsSCCANObject<TInputImage, TRealType>
 	v_in(i)=0;
 	ct++;
       }
-      else v_in(i)=val;
   }
+//  tminv=v_in.min_value();
+//  tmaxv=v_in.max_value();
+//  std::cout << " post minv " << tminv << " post maxv " << tmaxv << " allow-neg? " <<  allow_negative_weights << std::endl;
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
 //  std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
   if ( v_in.two_norm() > 0 ) v_in=v_in/v_in.two_norm();
+
+
   return;
 }
 
