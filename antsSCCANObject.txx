@@ -684,7 +684,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
 
-  unsigned int maxloop=100;
+  unsigned int maxloop=this->m_MaximumNumberOfIterations;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
   RealType fnp=this->m_FractionNonZeroP+(1.0-this->m_FractionNonZeroP)*(RealType)(maxloop-loop)/(RealType)maxloop;
   if ( fnp <this->m_FractionNonZeroP ) fnp=this->m_FractionNonZeroP;
@@ -740,7 +740,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
     this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixQ));
   }
-  unsigned int maxloop=200;
+  unsigned int maxloop=this->m_MaximumNumberOfIterations;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
   RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
   if ( frac < 0 ) frac=0;

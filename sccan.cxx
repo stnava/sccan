@@ -318,7 +318,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int q_cluster_thresh = 1 )
+int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int q_cluster_thresh = 1 , unsigned int iterct = 20 )
 {
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
@@ -335,6 +335,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   typedef itk::ImageFileReader<MatrixImageType> matReaderType;
   typedef itk::ImageFileReader<ImageType> imgReaderType;
   typename SCCANType::Pointer sccanobj=SCCANType::New();
+  sccanobj->SetMaximumNumberOfIterations(iterct);
   typedef typename SCCANType::MatrixType         vMatrix;
   typedef typename SCCANType::VectorType         vVector;
   typedef typename SCCANType::DiagonalMatrixType dMatrix;
@@ -485,7 +486,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  )
+	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  , unsigned int iterct = 20 )
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -504,6 +505,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   typedef itk::ImageFileReader<MatrixImageType> matReaderType;
   typedef itk::ImageFileReader<ImageType> imgReaderType;
   typename SCCANType::Pointer sccanobj=SCCANType::New();
+  sccanobj->SetMaximumNumberOfIterations(iterct);
   typedef typename SCCANType::MatrixType         vMatrix;
   typedef typename SCCANType::VectorType         vVector;
   typedef typename SCCANType::DiagonalMatrixType dMatrix;
@@ -592,6 +594,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   if ( run_partial_scca ){ 
     std::cout <<" begin partial PQ " << std::endl;
     typename SCCANType::Pointer sccanobjCovar=SCCANType::New();
+    sccanobjCovar->SetMaximumNumberOfIterations(iterct);
     sccanobjCovar->SetMatrixP( p );
     sccanobjCovar->SetMatrixQ( q );
     sccanobjCovar->SetMatrixR( r );
@@ -668,6 +671,7 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       /** both the new object and the copy object should produce the same results - verified in 1 example!*/
       //      typename SCCANType::Pointer sccanobjPerm=sccanobjCovar; 
       typename SCCANType::Pointer sccanobjPerm=SCCANType::New();
+      sccanobjPerm->SetMaximumNumberOfIterations(iterct);
       sccanobjPerm->SetMinClusterSizeP( p_cluster_thresh );
       sccanobjPerm->SetMinClusterSizeQ( q_cluster_thresh );
       sccanobjPerm->SetFractionNonZeroP(FracNonZero1);
@@ -846,6 +850,12 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else permct=parser->Convert<unsigned int>( permoption->GetValue() );
 
+  unsigned int iterct=20;
+  permoption = parser->GetOption( "iterations" );
+  if( permoption && permoption->GetNumberOfValues() > 0 )
+    iterct=parser->Convert<unsigned int>( permoption->GetValue() );
+  if (iterct < 20 ) iterct=20;
+
   unsigned int evec_ct=1;
   itk::ants::CommandLineParser::OptionType::Pointer evec_option =
     parser->GetOption( "n_eigenvectors" );
@@ -910,7 +920,7 @@ int sccan( itk::ants::CommandLineParser *parser )
       writer->Update();     
       return EXIT_SUCCESS;
     }
-  std::cout <<" you will assess significance with " << permct << " permutations." << std::endl;
+  std::cout <<" scca-max-iterations " << iterct << " you will assess significance with " << permct << " permutations." << std::endl;
   //  operations on pairs of matrices
   if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
     {
@@ -924,22 +934,22 @@ int sccan( itk::ants::CommandLineParser *parser )
       if (  !initializationStrategy.compare( std::string( "two-view" ) )  ) 
       {
       std::cout << " scca 2-view "<< std::endl;
-      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify, p_cluster_thresh, q_cluster_thresh);
+      SCCA_vnl<ImageDimension, double>( parser , permct , evec_ct, eigen_imp, robustify, p_cluster_thresh, q_cluster_thresh, iterct);
       }
       else if (  !initializationStrategy.compare( std::string("three-view") )  ) 
       {
       std::cout << " mscca 3-view "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh);
+      mSCCA_vnl<ImageDimension, double>( parser, permct,  false , evec_ct, eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh, iterct);
       }
       else if ( !initializationStrategy.compare( std::string("partial") )   ) 
       {
       std::cout << " pscca "<< std::endl;
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh);
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , eigen_imp, robustify,  p_cluster_thresh, q_cluster_thresh, iterct);
       }
       else if ( !initializationStrategy.compare( std::string("svd") )   ) 
       {
 	std::cout << " sparse-svd "<< std::endl; // note: 2 (in options) is for svd implementation
-      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , 2 , robustify,  p_cluster_thresh, q_cluster_thresh);
+      mSCCA_vnl<ImageDimension, double>( parser, permct , true , evec_ct , 2 , robustify,  p_cluster_thresh, q_cluster_thresh, iterct);
       }
       else 
       {
@@ -998,6 +1008,18 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetDescription( description );
   parser->AddOption( option );
   }
+
+  {
+  std::string description =
+    std::string( "Max iterations for scca optimization (min 20)." );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "iterations" );
+  option->SetShortName( 'i' );
+  option->SetUsageOption( 0, "20" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
 
   {
   std::string description =
