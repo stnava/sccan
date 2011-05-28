@@ -677,6 +677,11 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_CanonicalCorrelations.fill(0); 
   std::cout <<" arnoldi sparse svd " << std::endl;
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
+  if ( this->m_OriginalMatrixR.size() > 0 ) {
+    this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
+    if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
+      this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+  }
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
@@ -686,8 +691,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
   for ( unsigned int loop=0; loop<maxloop; loop++) {
-  RealType fnp=this->m_FractionNonZeroP+(1.0-this->m_FractionNonZeroP)*(RealType)(maxloop-loop)/(RealType)maxloop;
-  if ( fnp <this->m_FractionNonZeroP ) fnp=this->m_FractionNonZeroP;
+    RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
+    if ( frac < 0 ) frac=0;
+    RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
+    if ( loop < 10 ) { fnp=1; }
+    if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
+    if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
+
 // Arnoldi Iteration
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
@@ -705,7 +715,15 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     }
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
-    this->m_CanonicalCorrelations[k]=1; 
+    RealType avgcorr=0; unsigned long corrct=0;
+    VectorType proj=this->m_MatrixP*pveck;
+    for (unsigned int col=0;  col<this->m_MatrixP.cols(); col++) {
+      if ( pveck(col) > 0 ){
+        avgcorr+=this->PearsonCorr(proj,this->m_MatrixP.get_column(col));
+        corrct++;
+      }
+    }
+    this->m_CanonicalCorrelations[k]=avgcorr/(RealType)corrct; 
   }
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
 //  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
