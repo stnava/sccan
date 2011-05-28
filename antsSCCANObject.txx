@@ -718,12 +718,12 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     RealType avgcorr=0; unsigned long corrct=0;
     VectorType proj=this->m_MatrixP*pveck;
     for (unsigned int col=0;  col<this->m_MatrixP.cols(); col++) {
-      if ( pveck(col) > 0 ){
-        avgcorr+=this->PearsonCorr(proj,this->m_MatrixP.get_column(col));
+      if ( fabs(pveck(col)) > 0 ){
+        avgcorr+=fabs(this->PearsonCorr(proj,this->m_MatrixP.get_column(col)));
         corrct++;
       }
     }
-    this->m_CanonicalCorrelations[k]=avgcorr/(RealType)corrct; 
+    if ( corrct > 0 ) this->m_CanonicalCorrelations[k]=avgcorr/(RealType)corrct; 
   }
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
 //  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
