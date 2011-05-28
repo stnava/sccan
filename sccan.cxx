@@ -231,6 +231,8 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 }
 
 
+
+
 template <unsigned int ImageDimension, class PixelType>
 typename itk::Image<PixelType,2>::Pointer 
 ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::string outname  ) 
@@ -315,6 +317,103 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 	}
   return matimage;
 }
+
+//p.d.
+template <unsigned int ImageDimension, class PixelType>
+void ConvertImageVecListToProjection( std::string veclist, std::string imagelist , std::string outname  ) 
+{
+	//typedef itk::Image<PixelType,ImageDimension> ImageType;
+	typedef itk::Image<PixelType,ImageDimension> ImageType;
+	typedef itk::ImageFileReader<ImageType> ReaderType;
+	
+	std::vector<std::string> image_fn_list;
+	std::vector<std::string> vec_fn_list;
+	
+	// first, count the number of files
+	const unsigned int maxChar = 512;
+	char lineBuffer[maxChar],lineBufferVec[maxChar]; 
+	char filenm[maxChar],filenmVec[maxChar];
+	unsigned int filecount=0, filecountVec=0;
+	{
+		std::ifstream inputStreamA( imagelist.c_str(), std::ios::in );
+		if ( !inputStreamA.is_open() )
+		{
+			std::cout << "Can't open image list file: " << imagelist << std::endl;  
+			return;
+		}
+		while ( !inputStreamA.eof() )
+		{
+			inputStreamA.getline( lineBuffer, maxChar, '\n' ); 
+      	    if ( sscanf( lineBuffer, "%s ",filenm) != 1 ){
+				continue;
+			}
+			else {
+				image_fn_list.push_back(std::string(filenm));
+				filecount++;
+			}
+		}
+		inputStreamA.close();  
+	}
+	
+	{
+		std::ifstream inputStreamVec( veclist.c_str(), std::ios::in );
+		if ( !inputStreamVec.is_open() )
+		{
+			std::cout << "Can't open Vec list file: " << veclist << std::endl;  
+			return;
+		}
+		while ( !inputStreamVec.eof() )
+		{
+			inputStreamVec.getline( lineBufferVec, maxChar, '\n' ); 
+      	    if ( sscanf( lineBufferVec, "%s ",filenmVec) != 1 ){
+				continue;
+			}
+			else {
+				vec_fn_list.push_back(std::string(filenmVec));
+				filecountVec++;
+			}
+		}
+		inputStreamVec.close();  
+	}
+	
+		
+	std::ofstream myfile;
+	std::string fnmp=outname+std::string(".csv");
+	myfile.open(fnmp.c_str(), std::ios::out );
+	typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
+	
+	
+	for (unsigned int j=0; j< image_fn_list.size(); j++)
+	{
+		for (unsigned int k=0; k< vec_fn_list.size(); k++) {
+			double proj=0,dotSum=0;
+			typename ReaderType::Pointer reader1 = ReaderType::New();
+			reader1->SetFileName( image_fn_list[j] );
+			reader1->Update();
+			typename ReaderType::Pointer reader2 = ReaderType::New();
+			reader2->SetFileName( vec_fn_list[k] );
+			reader2->Update();
+			Iterator mIter( reader1->GetOutput(),reader1->GetOutput()->GetLargestPossibleRegion() );
+			Iterator mIter2( reader2->GetOutput(),reader2->GetOutput()->GetLargestPossibleRegion() );
+			
+			for(  mIter.GoToBegin(),mIter2.GoToBegin(); !mIter.IsAtEnd(),!mIter2.IsAtEnd(); ++mIter,++mIter2 )
+			{
+				proj=mIter.Get()*mIter2.Get();
+				dotSum+=proj;
+			}
+			if (k==vec_fn_list.size()-1)
+				myfile << dotSum;
+			else
+				myfile << dotSum << " , ";
+		}
+		myfile << std::endl;
+	}
+	myfile.close();
+	
+}
+
+
+
 
 
 template <unsigned int ImageDimension, class PixelType>
@@ -903,6 +1002,11 @@ int sccan( itk::ants::CommandLineParser *parser )
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
     parser->GetOption( "imageset-to-matrix" );
+	
+	//p.d.
+	itk::ants::CommandLineParser::OptionType::Pointer matrixProjectionOption =
+    parser->GetOption( "imageset-to-projections" );
+	
   itk::ants::CommandLineParser::OptionType::Pointer matrixPairOption =
     parser->GetOption( "scca" );
   if( matrixOption && matrixOption->GetNumberOfValues() > 0 )
@@ -920,6 +1024,19 @@ int sccan( itk::ants::CommandLineParser *parser )
       writer->Update();     
       return EXIT_SUCCESS;
     }
+	
+	//p.d.
+	if( matrixProjectionOption && matrixProjectionOption->GetNumberOfValues() > 0 )
+    { 
+		
+		std::string outFilename =  outputOption->GetValue( 0 );
+		std::string vecList=matrixProjectionOption->GetParameter( 0 );
+		std::string imageList=matrixProjectionOption->GetParameter( 1 );
+		//std::cout <<"here" << outFilename << " " << vecList << " " <<imageList << std::endl;
+		ConvertImageVecListToProjection<ImageDimension,double>(vecList,imageList,outFilename );
+		return EXIT_SUCCESS;
+    }
+	
   std::cout <<" scca-max-iterations " << iterct << " you will assess significance with " << permct << " permutations." << std::endl;
   //  operations on pairs of matrices
   if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
@@ -1095,7 +1212,20 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   option->SetDescription( description );
   parser->AddOption( option );
   }
+	//p.d.
 
+	{
+		std::string description =
+		std::string( "takes a list of image and projection files names (one per line) " ) +
+		std::string( "and writes them to a  csv file" );
+		OptionType::Pointer option = OptionType::New();
+		option->SetLongName( "imageset-to-projections" );
+		option->SetUsageOption( 0, "[list_projections.txt,list_images.txt]" );
+		option->SetDescription( description );
+		parser->AddOption( option );
+	}
+	
+	
   {
   std::string description =
     std::string( "Matrix-based scca operations for 2 and 3 views." ) +
