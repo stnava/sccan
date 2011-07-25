@@ -10,7 +10,7 @@
 \usepackage{amsmath,amssymb,algorithm,algorithmic}
 \usepackage{times}
 \usepackage{setspace,verbatim}
-\usepackage{epsfig,url}
+\usepackage{epsfig,url,subfigure}
 
 \begin{document}
 \title{Partial sparse canonical correlation analysis (PSCCA) for population
@@ -140,6 +140,19 @@ describe the iterative algorithm for performing PSCCA. In Section 4,
 we provide experimental results on synthetic and real world
 neuroimaging datasets and we conclude with a brief summary in Section
 5.
+
+
+Neuropsychological measures detect high-level cognitive function that
+emerges from complex, large-scale neural
+networks that include multiple gray matter (GM) regions integrated by
+white matter (WM) projections. The clinically-validated Philadelphia
+Brief Assessment of Cognition (PBAC) \cite{Libon2007} examines several
+cognitive domains, including executive functioning/working memory
+(exe), language (lang), visuospatial skills (vs), visual/verbal
+episodic memory (mem) and social comportment/behavior (behav). We use
+the open-source sparse canonical correlation analysis for neuroimaging
+(SCCAN) software to {\bf cross-validate} putative relationships
+between the neural substrate and cognition.   We thus relate three quantitative measures: the PBAC, GM density (GMD) derived from T1 MRI, and the fractional anisotropy (FA) of WM derived from DTI.
 
 %What we are doing here ( a few sentences )
 
@@ -524,7 +537,7 @@ Figure~\ref{fig:comp} compares the PSCCA output with the regression
 results overlaid on the brain at the level of $p=0.01$ uncorrected.
 \begin{figure}
 \begin{center}
-\includegraphics[width=120mm]{MUvPSCCAN.pdf} 
+\includegraphics[width=120mm]{figs/MUvPSCCAN.pdf} 
 % \includegraphics[width=50mm]{Pvalue_f_of_sparsenss_and_corr.pdf} 
 \end{center}
 \vspace{-0.1in}
@@ -541,6 +554,69 @@ outlined in a dashed box.  In a real study, one would only use the
 pre-selected sparseness parameter.}
 \label{fig:comp}
 \end{figure}
+\subsection{PBAC}
+\paragraph{Description of cohort: }
+104 subjects had complete cognitive evaluations as well as Siemens
+3.0T T1 and DTI collected at the University of Pennsylvania. The
+cohort contained subjects diagnosed with Alzheimer's disease (AD;
+n=23), behavioral- variant frontotemporal degeneration (bvFTD; n=31),
+primary progressive aphasia (PPA) variants of FTD (n=24), 17 with
+extrapyramidal motor disorders, and 9 elderly controls. We use
+multiple different disorders only to obtain variance in cognition but
+do not include clinical diagnosis in subsequent analyses. We
+normalized and segmented \cite{Avants2011a} the DT and T1 images using
+the ITK-based open-source ANTs \cite{Avants2011} and Pipedream software.
+
+\paragraph{Part 1-imaging \& cognition:} SCCAN identifies, for each PBAC domain, uniquely related WM regions. We perform the same type of study, independently, using GMD. The output from each run of SCCAN is the subset of WM / GM voxels that (as a set) relate most significantly to the cognitive domain of interest (e.g. language).
+\newline
+\newline
+ We found significant associations between GM and each domain of
+cognition consistent with putative neuroanatomical substrates at the
+p<0.001 level. FA in WM was related to exec, soc, vs (p<0.05), weakly
+related to memory (p<0.072) and unrelated to lang (p<0.89).
+\newline
+\paragraph{Part 2:}~We directly tested relationships between
+ cognition-specific GMD and FA voxels derived from Part A. For
+ example, we test if language-defined GMD voxels relate significantly
+ to language-defined FA voxels, where SCCAN treats the voxels as a
+ set.
+\newline
+\newline
+ FA regions and GM regions were strongly related within each cognitive
+domain (p<0.001) except for language where the relation was modest
+(p<0.05). Fig 1 and 2 show the anatomic distribution of the
+cognition-specific regions for both WM and GM for each cognitive
+domain. Fig 3 shows the behav-based GMD and FA scatterplot.
+\newline
+\paragraph{Highlights:} Behav relates strongly to medial orbitofrontal cortex GM and genu in WM. Vs to occipital GM (cuneus) and occipital projections. Exec to insula, dorsolateral prefrontal, lateral orbitofrontal, and bilateral hippocampus GM regions and WM projections in the superior frontal lobe and the anterior callosum. Mem to GM insula, cuneus and posterior superior temporal gyrus, and WM fornix and superior longitudinal fasciculus.
+
+\begin{figure}
+\centering
+\mbox{\subfigure{
+    \includegraphics[height=1.5in]{figs/gm}
+}
+\quad
+\subfigure{
+    \includegraphics[height=1.5in]{figs/gm}
+}
+}
+\caption{In this figure, we illustrate two dimensionality-reduction applications of the same
+  class of the multivariate correlation-based method, sparse canonical
+  correlation analysis (SCCA).  At left, {\bf we use SCCA as a direct tool for quantifying significant
+  associations between cortical thickness and five neuropsychological
+  batteries}: social behavior (apathy/disinhibition), executive
+  function, language skill, visuospatial skill and memory.  SCCA draws out a network of
+  voxels that, as a set, correlates optimally with each domain and
+  the location of these networks  largely confirm putative brain-behavior
+  relationships.  In a second study, right, {\bf we used SCCA as a feature
+  selection tool to identify diagnosis-relevant imaging signatures of ADHD} from a large dataset of
+  structural and resting state fMRI taken from ADHD and control
+  subjects. The figure at right shows the features from the rsf MRI that are most relevant to ADHD-control classification and
+improve performance by a factor of almost 10\% over using clinical variables
+alone.  Lateral inferior prefrontal cortex, middle frontal gyrus and thalamus
+connectivity with anterior cingulate were most important.} \label{fig:fig3}
+\end{figure}
+
 \section{Discussion and Conclusion}
 In this paper we proposed a new statistical tool that is
 ideal for multivariate imaging studies. 
@@ -571,6 +647,15 @@ assessing PSCCA significance in interpretable ways. Finally, as in standard corr
 % difficulty of interpretation remains ....  
 
 
+ {\bf Our results confirm putative brain-behavior associations.}  At
+ the least, they suggest unique relationships between cognitive variation
+ and large-scale GM-WM networks that vary uniquely with cognitive domain. Furthermore,
+ these results suggest that SCCAN may enhance detection power over
+ traditional univariate approaches.  In particular, the significance
+ of GM and cognition relationships ($\approx$  p<0.001) far exceeds those of the FA
+ cognition relationships ($\approx$ p<0.05).  Despite this, there is
+ significant association between FA-cognition identified voxels and GM-cognition
+ identified voxels ($\approx$  p<0.001).  
 
 
 %\noindent{\bf Acknowledgment}

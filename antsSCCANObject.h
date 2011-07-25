@@ -84,10 +84,10 @@ public:
   /** ivars Set/Get functionality */
   itkSetMacro( MaximumNumberOfIterations, unsigned int );
   itkGetConstMacro( MaximumNumberOfIterations, unsigned int );
-  itkSetMacro( MinClusterSize, unsigned int );
-  itkGetConstMacro( MinClusterSize, unsigned int );
-//  itkSetMacro( MinClusterSizeQ, unsigned int );
-//  itkGetConstMacro( MinClusterSizeQ, unsigned int );
+  itkSetMacro( MinClusterSizeP, unsigned int );
+  itkGetConstMacro( MinClusterSizeP, unsigned int );
+  itkSetMacro( MinClusterSizeQ, unsigned int );
+  itkGetConstMacro( MinClusterSizeQ, unsigned int );
   itkSetMacro( KeptClusterSize, unsigned int );
   itkGetConstMacro( KeptClusterSize, unsigned int );
   itkSetMacro( AlreadyWhitened, bool );
@@ -99,7 +99,7 @@ public:
   itkSetMacro( SCCANFormulation, SCCANFormulationType );
   itkGetConstMacro( SCCANFormulation, SCCANFormulationType );
 
-  void NormalizeWeightsByCovariance();
+  void NormalizeWeightsByCovariance(unsigned int);
   void WhitenDataSetForRunSCCANMultiple(unsigned int nvecs=0);
   void SetPseudoInversePercentVariance( RealType p ) { this->m_PercentVarianceForPseudoInverse=p; }
 
@@ -185,7 +185,8 @@ public:
   
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
-  itkGetMacro( KeepPositiveQ, bool ); 
+  itkGetMacro( KeepPositiveQ, bool );
+
   void SetMaskImageQ( ImagePointer mask ) { this->m_MaskImageQ=mask; }
   void SetMatrixQ(  MatrixType  matrix ) {  this->m_OriginalMatrixQ.set_size(matrix.rows(),matrix.cols());  this->m_MatrixQ.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixQ.update(matrix); this->m_MatrixQ.update(matrix);}
 
@@ -205,7 +206,7 @@ public:
   RealType RunSCCAN2( );
   RealType RunSCCAN3();
  
-  VectorType SoftThreshold( VectorType v_in, RealType fractional_goal , bool allow_negative_weights );
+  void ReSoftThreshold( VectorType& v_in, RealType fractional_goal , bool allow_negative_weights );
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   /** needed for partial scca */
@@ -225,8 +226,11 @@ public:
   }
 
   MatrixType WhitenMatrix(MatrixType p, RealType regularization=1.e-2 ) {
-    MatrixType invcov=this->CovarianceMatrix(p,regularization);
-    invcov=this->PseudoInverse( invcov, true );
+    double reg=1.e-8;
+    if ( p.rows() < p.cols() ) reg=regularization;
+    MatrixType cov=this->CovarianceMatrix(p,reg);
+    MatrixType invcov=this->PseudoInverse( cov, true );
+    //    std::cout << invcov*cov << std::endl; exit(0);
     if ( p.rows() < p.columns() ) return (invcov*p);
     else return p*invcov;
   }
@@ -278,9 +282,12 @@ public:
 
   RealType SparseCCA(unsigned int nvecs);
   RealType SparsePartialCCA(unsigned int nvecs);
+  RealType SparsePartialArnoldiCCA(unsigned int nvecs);
+  RealType SparseArnoldiSVD(unsigned int nvecs);
 
 protected:
 
+  void SortResults(unsigned int n_vecs);
 // for pscca 
   void UpdatePandQbyR( );
 
@@ -371,8 +378,8 @@ protected:
 
 private:
 
-  ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask );
-  VectorType ClusterThresholdVariate( VectorType, ImagePointer mask ); 
+  ImagePointer ConvertVariateToSpatialImage( VectorType variate, ImagePointer mask , bool threshold_at_zero=false );
+  VectorType ClusterThresholdVariate( VectorType&, ImagePointer mask , unsigned int); 
 
   bool m_Debug;
   MatrixType m_OriginalMatrixP;
@@ -423,8 +430,8 @@ private:
   bool m_SpecializationForHBM2011;
   RealType m_CorrelationForSignificanceTest;
 
-  unsigned int m_MinClusterSize;
-//  unsigned int m_MinClusterSizeQ;
+  unsigned int m_MinClusterSizeP;
+  unsigned int m_MinClusterSizeQ;
   unsigned int m_KeptClusterSize;
 
 };
