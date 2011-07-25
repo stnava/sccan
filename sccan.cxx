@@ -21,6 +21,9 @@
 #include <vnl/algo/vnl_real_eigensystem.h>
 #include <vnl/algo/vnl_generalized_eigensystem.h>
 #include "antsSCCANObject.h"
+#include "itkCSVNumericObjectFileWriter.h"
+#include "itkCSVArray2DDataObject.h"
+#include "itkCSVArray2DFileReader.h"
 
 template <class TComp>
 double vnl_pearson_corr( vnl_vector<TComp> v1, vnl_vector<TComp> v2 )
@@ -231,12 +234,50 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 }
 
 
-
+template <class PixelType>
+void 
+ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
+{
+  typedef PixelType Scalar;
+  typedef itk::Image<PixelType,2> MatrixImageType;
+  typedef itk::ImageFileReader<MatrixImageType> matReaderType;
+  std::string ext = itksys::SystemTools::GetFilenameExtension( matname );
+  if  (strcmp(ext.c_str(),".csv") == 0 ) {
+    typedef itk::CSVArray2DFileReader<double> ReaderType;
+    typename ReaderType::Pointer reader = ReaderType::New();
+    reader->SetFileName ( matname.c_str() );
+    reader->SetFieldDelimiterCharacter( ',' );
+    reader->SetStringDelimiterCharacter( '"' );
+    reader->HasColumnHeadersOn();
+    reader->HasRowHeadersOff();
+    reader->UseStringDelimiterCharacterOff();
+    try
+    {
+      reader->Update();
+    }
+    catch(itk::ExceptionObject& exp)
+    {
+    std::cerr << "Exception caught!" << std::endl;
+    std::cerr << exp << std::endl;
+    }
+    typedef itk::CSVArray2DDataObject<double> DataFrameObjectType;
+    DataFrameObjectType::Pointer dfo = reader->GetOutput();
+    p = dfo->GetMatrix();
+  }
+  else {
+  typename matReaderType::Pointer matreader1 = matReaderType::New();
+  matreader1->SetFileName( matname.c_str() );
+  matreader1->Update();
+  p=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
+  }
+  return;
+}
 
 template <unsigned int ImageDimension, class PixelType>
-typename itk::Image<PixelType,2>::Pointer
+void
 ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::string outname  )
 {
+  std::string ext = itksys::SystemTools::GetFilenameExtension( outname );
   typedef itk::Image<PixelType,ImageDimension> ImageType;
   typedef itk::Image<PixelType,2> MatrixImageType;
   typedef itk::ImageFileReader<ImageType> ReaderType;
@@ -261,7 +302,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
     if ( !inputStreamA.is_open() )
       {
 	std::cout << "Can't open image list file: " << imagelist << std::endl;
-	return NULL;
+	return ;
       }
 	while ( !inputStreamA.eof() )
 	  {
@@ -283,6 +324,46 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
       typename MatrixImageType::SizeType tilesize;
       tilesize[0]=xsize;
       tilesize[1]=ysize;
+
+  if  (strcmp(ext.c_str(),".csv") == 0 ) {
+    typedef itk::Array2D<double> MatrixType;
+    MatrixType matrix(xsize,ysize);
+    matrix.Fill(0);
+    for (unsigned int j=0; j< image_fn_list.size(); j++)
+    {
+      typename ReaderType::Pointer reader2 = ReaderType::New();
+      reader2->SetFileName( image_fn_list[j] );
+      reader2->Update();
+      unsigned long xx=0,yy=0,tvoxct=0;
+      xx=j;
+      for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
+      {
+        if (mIter.Get() >= 0.5)
+        {
+          yy=tvoxct;
+          matrix[xx][yy]=reader2->GetOutput()->GetPixel(mIter.GetIndex());
+          tvoxct++;
+        }
+      }
+    }
+    // write out the array2D object
+    typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+    WriterType::Pointer writer = WriterType::New();
+    writer->SetFileName( outname );
+    writer->SetInput( &matrix );
+    try
+    {
+      writer->Write();
+    }
+    catch (itk::ExceptionObject& exp)
+    {
+      std::cerr << "Exception caught!" << std::endl;
+      std::cerr << exp << std::endl;
+      return ;
+    }
+    return;
+  }
+  else {
       typename MatrixImageType::RegionType region;
       region.SetSize( tilesize );
       typename MatrixImageType::Pointer matimage=MatrixImageType::New();
@@ -315,7 +396,15 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 		}
 	    }
 	}
-  return matimage;
+
+      typedef itk::ImageFileWriter<MatrixImageType> WriterType;
+      typename WriterType::Pointer writer = WriterType::New();
+      writer->SetFileName( outname );
+      writer->SetInput( matimage );
+      writer->Update();
+
+  }
+  return ;
 }
 
 //p.d.
@@ -455,7 +544,6 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
   typedef itk::Image<Scalar,2> MatrixImageType;
-  typedef itk::ImageFileReader<MatrixImageType> matReaderType;
   typedef itk::ImageFileReader<ImageType> imgReaderType;
   typename SCCANType::Pointer sccanobj=SCCANType::New();
   sccanobj->SetMaximumNumberOfIterations(iterct);
@@ -463,10 +551,11 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   typedef typename SCCANType::VectorType         vVector;
   typedef typename SCCANType::DiagonalMatrixType dMatrix;
   /** read the matrix images */
-  typename matReaderType::Pointer matreader1 = matReaderType::New();
-  matreader1->SetFileName( option->GetParameter( 0 ) );
-  matreader1->Update();
-
+  /** we refer to the two view matrices as P and Q */
+  std::string pmatname=std::string(option->GetParameter( 0 ));
+  vMatrix p;
+  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+  
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
   imgreader1->SetFileName( option->GetParameter( 1 ) );
   imgreader1->Update();
@@ -483,19 +572,14 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   /** read the nuisance matrix image */
   vMatrix r;
   if ( option->GetNumberOfParameters() > 3 ) {
-  typename matReaderType::Pointer matreadern = matReaderType::New();
   std::string nuis_img=option->GetParameter( 3 );
   if ( nuis_img.length() > 3 ) {
     std::cout << " nuis_img " << nuis_img << std::endl;
-    matreadern->SetFileName( option->GetParameter( 3 ) );
-    matreadern->Update();
-    r=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreadern->GetOutput() );
+    ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
   }
   }
   else std::cout << " No nuisance parameters." << std::endl;
 
-  /** we refer to the two view matrices as P and Q */
-  vMatrix p=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetMinClusterSizeP( p_cluster_thresh );
@@ -546,7 +630,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
   typedef itk::Image<Scalar,2> MatrixImageType;
-  typedef itk::ImageFileReader<MatrixImageType> matReaderType;
   typedef itk::ImageFileReader<ImageType> imgReaderType;
   typename SCCANType::Pointer sccanobj=SCCANType::New();
   sccanobj->SetMaximumNumberOfIterations(iterct);
@@ -555,13 +638,13 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   typedef typename SCCANType::DiagonalMatrixType dMatrix;
   Scalar pinvtoler=1.e-6;
   /** read the matrix images */
-  typename matReaderType::Pointer matreader1 = matReaderType::New();
-  matreader1->SetFileName( option->GetParameter( 0 ) );
-  matreader1->Update();
-
-  typename matReaderType::Pointer matreader2 = matReaderType::New();
-  matreader2->SetFileName( option->GetParameter( 1 ) );
-  matreader2->Update();
+  /** we refer to the two view matrices as P and Q */
+  std::string pmatname=std::string(option->GetParameter( 0 ));
+  vMatrix p;
+  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+  std::string qmatname=std::string(option->GetParameter( 1 ));
+  vMatrix q;
+  ReadMatrixFromCSVorImageSet<Scalar>(qmatname,q);
 
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
   imgreader1->SetFileName( option->GetParameter( 2 ) );
@@ -586,10 +669,6 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       FracNonZero2=fabs(FracNonZero2);
       sccanobj->SetKeepPositiveQ(false);
     }
-
-  /** we refer to the two view matrices as P and Q */
-  vMatrix p=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
-  vMatrix q=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader2->GetOutput() );
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
@@ -732,17 +811,15 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   typedef itk::ImageFileReader<ImageType> imgReaderType;
 
   /** read the matrix images */
-  typename matReaderType::Pointer matreader1 = matReaderType::New();
-  matreader1->SetFileName( option->GetParameter( 0 ) );
-  matreader1->Update();
-
-  typename matReaderType::Pointer matreader2 = matReaderType::New();
-  matreader2->SetFileName( option->GetParameter( 1 ) );
-  matreader2->Update();
-
-  typename matReaderType::Pointer matreader3 = matReaderType::New();
-  matreader3->SetFileName( option->GetParameter( 2 ) );
-  matreader3->Update();
+  std::string pmatname=std::string(option->GetParameter( 0 ));
+  vMatrix pin;
+  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,pin);
+  std::string qmatname=std::string(option->GetParameter( 1 ));
+  vMatrix qin;
+  ReadMatrixFromCSVorImageSet<Scalar>(qmatname,qin);
+  std::string rmatname=std::string(option->GetParameter( 2 ));
+  vMatrix rin;
+  ReadMatrixFromCSVorImageSet<Scalar>(rmatname,rin);
 
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
   imgreader1->SetFileName( option->GetParameter( 3 ) );
@@ -778,9 +855,6 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       FracNonZero3=fabs(FracNonZero3);
       sccanobj->SetKeepPositiveR(false);
     }
-  vMatrix pin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
-  vMatrix qin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader2->GetOutput() );
-  vMatrix rin=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader3->GetOutput() );
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetFractionNonZeroQ(FracNonZero2);
@@ -1126,13 +1200,7 @@ int sccan( itk::ants::CommandLineParser *parser )
       std::string imagelist=matrixOption->GetParameter( 0 );
       std::string maskfn=matrixOption->GetParameter( 1 );
       typedef itk::Image<double,2> MyImageType;
-      MyImageType::Pointer matimage=
-        ConvertImageListToMatrix<ImageDimension,double>( imagelist,  maskfn  , outname );
-      typedef itk::ImageFileWriter<MyImageType> WriterType;
-      WriterType::Pointer writer = WriterType::New();
-      writer->SetFileName( outname );
-      writer->SetInput( matimage );
-      writer->Update();
+      ConvertImageListToMatrix<ImageDimension,double>( imagelist,  maskfn  , outname );
       return EXIT_SUCCESS;
     }
 
@@ -1320,7 +1388,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   {
   std::string description =
     std::string( "takes a list of image files names (one per line) " ) +
-    std::string( "and converts it to a 2D matrix / image." );
+    std::string( "and converts it to a 2D matrix / image in binary or csv format depending on the filetype used to define the output." );
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "imageset-to-matrix" );
   option->SetUsageOption( 0, "[list.txt,mask.nii.gz]" );
@@ -1332,7 +1400,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   {
     std::string description =
     std::string( "takes a list of image and projection files names (one per line) " ) +
-    std::string( "and writes them to a  csv file" );
+    std::string( "and writes them to a  csv file --- basically computing X*Y (matrices)." );
     OptionType::Pointer option = OptionType::New();
     option->SetLongName( "imageset-to-projections" );
     option->SetUsageOption( 0, "[list_projections.txt,list_images.txt]" );
