@@ -248,7 +248,7 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
     reader->SetFileName ( matname.c_str() );
     reader->SetFieldDelimiterCharacter( ',' );
     reader->SetStringDelimiterCharacter( '"' );
-    reader->HasColumnHeadersOn();
+    reader->HasColumnHeadersOff();
     reader->HasRowHeadersOff();
     reader->UseStringDelimiterCharacterOff();
     try
@@ -501,32 +501,6 @@ void ConvertImageVecListToProjection( std::string veclist, std::string imagelist
 
 }
 
-/*
-{
-  typedef itk::CSVArray2DFileReader<double > ReaderType;
-  ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileName( filename );
-  reader->SetFieldDelimiterCharacter(',');
-  reader->SetStringDelimiterCharacter('"');
-  reader->SetHasColumnHeaders(headers);
-  reader->SetHasRowHeaders(headers);
-  reader->UseStringDelimiterCharacterOff();
-
-  // read the file
-  try
-    {
-    reader->Update();
-    }
-  catch (itk::ExceptionObject& exp)
-    {
-    std::cerr << "Exception caught!" << std::endl;
-    std::cerr << exp << std::endl;
-    return EXIT_FAILURE;
-    }
-
-  reader->Print(std::cout);
-}
-*/
 
 template <unsigned int ImageDimension, class PixelType>
 int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20 )
