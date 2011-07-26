@@ -104,7 +104,7 @@ inline std::string sccan_to_string (const T& t)
 }
 
 template <class TImage,class TComp>
-void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask,  vnl_matrix<TComp> data_mat )
+void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask,  vnl_matrix<TComp> data_mat , bool is_csv )
 {
   std::string::size_type pos = filename.rfind( "." );
   std::string filepre = std::string( filename, 0, pos );
@@ -128,11 +128,30 @@ void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_
   }
   myfile << std::endl;
   myfile.close();
-
+  if ( ! is_csv ) {
   for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
     post2=post+sccan_to_string<unsigned int>(vars);
     vnl_vector<TComp> temp=varmat.get_column(vars);
     WriteVectorToSpatialImage<TImage,TComp>( filename, post2, temp , mask);
+  }
+  }
+  else {
+    // write out the array2D object
+    std::string fnmp=filepre+std::string("ViewVecs")+std::string(".csv");
+    typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+    WriterType::Pointer writer = WriterType::New();
+    writer->SetFileName( fnmp.c_str() );
+    writer->SetInput( &varmat );
+    try
+    {
+      writer->Write();
+    }
+    catch (itk::ExceptionObject& exp)
+    {
+      std::cerr << "Exception caught!" << std::endl;
+      std::cerr << exp << std::endl;
+      return ;
+    }
   }
 }
 
@@ -235,7 +254,7 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 
 
 template <class PixelType>
-void 
+bool
 ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
 {
   typedef PixelType Scalar;
@@ -263,6 +282,7 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
     typedef itk::CSVArray2DDataObject<double> DataFrameObjectType;
     DataFrameObjectType::Pointer dfo = reader->GetOutput();
     p = dfo->GetMatrix();
+    return true;
   }
   else {
   typename matReaderType::Pointer matreader1 = matReaderType::New();
@@ -270,7 +290,7 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
   matreader1->Update();
   p=CopyImageToVnlMatrix<MatrixImageType,Scalar>( matreader1->GetOutput() );
   }
-  return;
+  return false;
 }
 
 template <unsigned int ImageDimension, class PixelType>
@@ -528,12 +548,15 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   /** we refer to the two view matrices as P and Q */
   std::string pmatname=std::string(option->GetParameter( 0 ));
   vMatrix p;
-  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+  bool p_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
   
+  typename ImageType::Pointer mask1=NULL;
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
   imgreader1->SetFileName( option->GetParameter( 1 ) );
+  if ( !p_is_csv ) {
   imgreader1->Update();
-  typename ImageType::Pointer mask1=imgreader1->GetOutput();
+  mask1=imgreader1->GetOutput();
+  }
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
@@ -580,8 +603,8 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() );
+      std::string post=std::string("View1vec");      
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , p_is_csv );
     }
 
   return EXIT_SUCCESS;
@@ -615,20 +638,26 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   /** we refer to the two view matrices as P and Q */
   std::string pmatname=std::string(option->GetParameter( 0 ));
   vMatrix p;
-  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+  bool p_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
   std::string qmatname=std::string(option->GetParameter( 1 ));
   vMatrix q;
-  ReadMatrixFromCSVorImageSet<Scalar>(qmatname,q);
+  bool q_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(qmatname,q);
 
+  typename ImageType::Pointer mask1=NULL;
+  if ( !p_is_csv ) {
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
   imgreader1->SetFileName( option->GetParameter( 2 ) );
-  imgreader1->Update();
-  typename ImageType::Pointer mask1=imgreader1->GetOutput();
+  imgreader1->Update(); 
+  mask1=imgreader1->GetOutput();
+  }
 
+  typename ImageType::Pointer mask2=NULL;
+  if ( !q_is_csv ) {
   typename imgReaderType::Pointer imgreader2 = imgReaderType::New();
   imgreader2->SetFileName( option->GetParameter( 3 ) );
   imgreader2->Update();
-  typename ImageType::Pointer mask2=imgreader2->GetOutput();
+  mask2=imgreader2->GetOutput();
+  }
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 4 ) );
@@ -677,9 +706,9 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() );
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , p_is_csv );
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2 , sccanobj->GetMatrixQ() );
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2 , sccanobj->GetMatrixQ() , q_is_csv );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -787,28 +816,37 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   /** read the matrix images */
   std::string pmatname=std::string(option->GetParameter( 0 ));
   vMatrix pin;
-  ReadMatrixFromCSVorImageSet<Scalar>(pmatname,pin);
+  bool p_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(pmatname,pin);
   std::string qmatname=std::string(option->GetParameter( 1 ));
   vMatrix qin;
-  ReadMatrixFromCSVorImageSet<Scalar>(qmatname,qin);
+  bool q_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(qmatname,qin);
   std::string rmatname=std::string(option->GetParameter( 2 ));
   vMatrix rin;
-  ReadMatrixFromCSVorImageSet<Scalar>(rmatname,rin);
+  bool r_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(rmatname,rin);
 
-  typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
-  imgreader1->SetFileName( option->GetParameter( 3 ) );
-  imgreader1->Update();
-  typename ImageType::Pointer mask1=imgreader1->GetOutput();
+  typename ImageType::Pointer mask1=NULL;
+  if ( !p_is_csv ) {
+  typename imgReaderType::Pointer imgreader = imgReaderType::New();
+  imgreader->SetFileName( option->GetParameter( 3 ) );
+  imgreader->Update();
+  mask1=imgreader->GetOutput();
+  }
 
-  typename imgReaderType::Pointer imgreader2 = imgReaderType::New();
-  imgreader2->SetFileName( option->GetParameter( 4 ) );
-  imgreader2->Update();
-  typename ImageType::Pointer mask2=imgreader2->GetOutput();
+  typename ImageType::Pointer mask2=NULL;
+  if ( !q_is_csv ) {
+  typename imgReaderType::Pointer imgreader = imgReaderType::New();
+  imgreader->SetFileName( option->GetParameter( 4 ) );
+  imgreader->Update();
+  mask2=imgreader->GetOutput();
+  }
 
-  typename imgReaderType::Pointer imgreader3 = imgReaderType::New();
-  imgreader3->SetFileName( option->GetParameter( 5 ) );
-  imgreader3->Update();
-  typename ImageType::Pointer mask3=imgreader3->GetOutput();
+  typename ImageType::Pointer mask3=NULL;
+  if ( !r_is_csv ) {
+  typename imgReaderType::Pointer imgreader = imgReaderType::New();
+  imgreader->SetFileName( option->GetParameter( 5 ) );
+  imgreader->Update();
+  mask3=imgreader->GetOutput();
+  }
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 6 ) );
@@ -915,9 +953,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesP() , mask1, sccanobjCovar->GetMatrixP() );
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesP() , mask1, sccanobjCovar->GetMatrixP() , p_is_csv );
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesQ() , mask2, sccanobjCovar->GetMatrixQ() );
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobjCovar->GetVariatesQ() , mask2, sccanobjCovar->GetMatrixQ() ,  q_is_csv  );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
@@ -1034,12 +1072,13 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
 	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string post=std::string("View1vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1, sccanobj->GetMatrixP() );
+      std::string post=std::string("View1vec");      
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1, sccanobj->GetMatrixP() , p_is_csv);
       post=std::string("View2vec");
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2,  sccanobj->GetMatrixQ() );
+      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2,  sccanobj->GetMatrixQ(), q_is_csv );
       post=std::string("View3vec");
-      WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_r , mask3 );
+      //      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesR(), mask3,  sccanobj->GetMatrixR(), r_is_csv );
+      // WriteVectorToSpatialImage<ImageType,Scalar>( filename, post, w_r , mask3 , r_is_csv );
     }
 
   /** begin permutation 1. q_pvMatrix CqqInv=vnl_svd_inverse<Scalar>(Cqq);
