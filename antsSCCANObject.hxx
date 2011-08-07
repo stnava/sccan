@@ -384,7 +384,10 @@ void antsSCCANObject<TInputImage, TRealType>
   std::cout << "Type 2: correlation from canonical variate to canonical variate "<<std::endl;
   RealType corrthresh=0.3;
   MatrixType omatP=this->NormalizeMatrix(this->m_OriginalMatrixP);
-  MatrixType omatQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
+  MatrixType omatQ;
+  bool doq=true;
+  if ( this->m_OriginalMatrixQ.size() > 0 ) omatQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
+  else { doq=false ; omatQ=omatP; }
   if (this->m_OriginalMatrixR.size()>0){
    for (unsigned int wv=0; wv<n_vecs; wv++)
      for (unsigned int col=0; col<this->m_MatrixR.columns(); col++) 
@@ -407,13 +410,15 @@ void antsSCCANObject<TInputImage, TRealType>
       std::cout << " not orthogonal p " <<  a << std::endl; 
  //       this->m_CanonicalCorrelations[yv]=0; 
       }
+      std::cout << "Pvec " << wv << " Pvec " << yv << " : " << a <<std::endl; 
+      if ( doq ) {
       RealType b=this->PearsonCorr(omatQ*this->m_VariatesQ.get_column(wv) ,omatQ*this->m_VariatesQ.get_column(yv));
       if ( fabs(b) > corrthresh ) { 
       std::cout << " not orthogonal q " <<  a << std::endl; 
    //     this->m_CanonicalCorrelations[yv]=0; 
       }
-      std::cout << "Pvec " << wv << " Pvec " << yv << " : " << a <<std::endl; 
       std::cout << "Qvec " << wv << " Qvec " << yv << " : " << b <<std::endl; 
+      }// doq
       }
  
 }
@@ -737,15 +742,22 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   // this->m_MatrixP=this->m_MatrixP - outer_product(this->m_VariatesP.get_column(k),this->m_VariatesQ.get_column(k));
   //  this->m_MatrixQ=this->m_MatrixP.transpose();
   } //kloop 
-  std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
-  }//opt-loop
-
   MatrixType temp=this->m_VariatesP;
   this->m_VariatesP=this->m_VariatesQ;
   this->m_VariatesQ=temp;
   this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
-  // this->RunDiagnostics(n_vecs);
+  temp=this->m_VariatesQ;
+  this->m_VariatesQ=this->m_VariatesP;
+  this->m_VariatesP=temp;
+  std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
+  }//opt-loop
+  MatrixType temp=this->m_VariatesP;
+  this->m_VariatesP=this->m_VariatesQ;
+  this->m_VariatesQ=temp;
+  this->ComputeSPCAEigenvalues(n_vecs);
+  this->SortResults(n_vecs);  
+  this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 
@@ -761,6 +773,22 @@ void antsSCCANObject<TInputImage, TRealType>
     this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
   }
   return; 
+  MatrixType ptemp(this->m_MatrixP);
+  VectorType d_i(n_vecs,0);
+  for ( unsigned int i=0; i < n_vecs ; i++ ) 
+  {
+    // find d_i
+    MatrixType m=outer_product(this->m_VariatesQ.get_column(i),this->m_VariatesP.get_column(i));
+    // now find d_i to bring m close to ptemp
+    RealType a=ptemp.frobenius_norm();
+    RealType b=m.frobenius_norm();
+    //    m=m*(a/b);
+    RealType hypod=inner_product(this->m_VariatesQ.get_column(i),this->m_MatrixP*this->m_VariatesP.get_column(i));
+    std::cout <<" hypod " << hypod << " a " << a << " b " << b << " a/b " << a/b << " " << std::endl;
+    ptemp=ptemp+m*a;
+  }
+
+
 }
 
 template <class TInputImage, class TRealType>
@@ -831,11 +859,11 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->NormalizeWeightsByCovariance(k); 
     this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
   }
+  this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
 //  std::cout << this->m_VariatesQ.get_column(1) << std::endl;
 //  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
   } // outer loop 
-  this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
   if ( n_vecs > 1 ) 
   return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
