@@ -743,9 +743,24 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   MatrixType temp=this->m_VariatesP;
   this->m_VariatesP=this->m_VariatesQ;
   this->m_VariatesQ=temp;
+  this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
   // this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
+}
+
+template <class TInputImage, class TRealType>
+void antsSCCANObject<TInputImage, TRealType>
+::ComputeSPCAEigenvalues(unsigned int n_vecs)
+{
+  //   we have   variates  P = X  ,  Q = X^T  ,    X \approx \sum_i d_i q_i^T p_i
+  for ( unsigned int i=0; i < n_vecs ; i++ ) 
+  {
+    VectorType  u=this->m_VariatesP.get_column(i);
+    VectorType m=this->m_MatrixP*u; 
+    this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
+  }
+  return; 
 }
 
 template <class TInputImage, class TRealType>
