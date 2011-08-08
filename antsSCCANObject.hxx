@@ -682,18 +682,16 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_CanonicalCorrelations.fill(0); 
   std::cout <<" arnoldi sparse svd " << std::endl;
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
-  this->m_MatrixQ=this->m_MatrixP.transpose();
+  this->m_MatrixQ=this->m_MatrixP;
   if ( this->m_OriginalMatrixR.size() > 0 ) {
     this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
     if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
       this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
   }
 
-  this->m_VariatesP.set_size(this->m_MatrixP.rows(),n_vecs);
-  this->m_VariatesQ.set_size(this->m_MatrixP.cols(),n_vecs);
+  this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
-    this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixQ));
-    this->m_VariatesQ.set_column(kk,this->InitializeV(this->m_MatrixP));
+    this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
   }
 
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
@@ -706,57 +704,34 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
     if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
   for ( unsigned int k=0; k<n_vecs; k++) {
-    VectorType qtemp=this->m_VariatesQ.get_column(k);
-    VectorType pveck=this->m_MatrixP*qtemp;      
+    VectorType ptemp=this->m_VariatesP.get_column(k);
+    VectorType pveck=this->m_MatrixP*ptemp;      
+    pveck=this->m_MatrixP.transpose()*pveck;
     pveck=pveck/pveck.two_norm();
-    VectorType qveck=this->m_MatrixQ*pveck;
     if ( loop > 2 ) {
-      this->ReSoftThreshold( qveck , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( qveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
-    bool doorth=false;
+    pveck=pveck/pveck.two_norm();
+    bool rethresh=true;
     for ( unsigned int j=0; j< k; j++) {
-      VectorType qj=this->m_VariatesQ.get_column(j);
-      RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*qveck)/
+      VectorType qj=this->m_VariatesP.get_column(j);
+      RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*pveck)/
                    inner_product(this->m_MatrixP*qj,this->m_MatrixP*qj);
-      for (unsigned int i=0; i<qveck.size(); i++)  qveck(i)=qveck(i)-hjk*qj(i); 
+      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
     }
-    if (!doorth) {
-      this->ReSoftThreshold( qveck , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( qveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+    if (rethresh) {
+      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
-    RealType hkkm1=qveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesQ.set_column(k,qveck/hkkm1);
-    RealType avgcorr=0; unsigned long corrct=0;
-    VectorType proj=this->m_MatrixP*qveck;
-    proj=proj/proj.two_norm();
-    for (unsigned int col=0;  col<this->m_MatrixP.cols(); col++) {
-      if ( fabs(pveck(col)) > 0 ){
-        avgcorr+=fabs(this->PearsonCorr(proj,this->m_MatrixP.get_column(col)));
-        corrct++;
-      }
-    }
-    if ( corrct > 0 ) this->m_CanonicalCorrelations[k]=avgcorr/(RealType)corrct; 
-//  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
-//  RealType dk=inner_product(this->m_VariatesP.get_column(k),(this->m_MatrixP*this->m_VariatesQ.get_column(k)));
-  // this->m_MatrixP=this->m_MatrixP - outer_product(this->m_VariatesP.get_column(k),this->m_VariatesQ.get_column(k));
-  //  this->m_MatrixQ=this->m_MatrixP.transpose();
+    RealType hkkm1=pveck.two_norm();
+    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
-  MatrixType temp=this->m_VariatesP;
-  this->m_VariatesP=this->m_VariatesQ;
-  this->m_VariatesQ=temp;
+  this->m_VariatesQ=this->m_VariatesP;
   this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
-  temp=this->m_VariatesQ;
-  this->m_VariatesQ=this->m_VariatesP;
-  this->m_VariatesP=temp;
   std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
   }//opt-loop
-  MatrixType temp=this->m_VariatesP;
-  this->m_VariatesP=this->m_VariatesQ;
-  this->m_VariatesQ=temp;
-  this->ComputeSPCAEigenvalues(n_vecs);
-  this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
@@ -769,9 +744,11 @@ void antsSCCANObject<TInputImage, TRealType>
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
-    VectorType m=this->m_MatrixP*u; 
+    //    VectorType m=this->m_MatrixP.transpose()*(this->m_MatrixP*u);
+    VectorType m=(this->m_MatrixP*u);
     this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
   }
+  
   return; 
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);

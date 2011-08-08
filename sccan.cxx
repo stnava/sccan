@@ -1149,11 +1149,11 @@ int sccan( itk::ants::CommandLineParser *parser )
     }
   else permct=parser->Convert<unsigned int>( permoption->GetValue() );
 
-  unsigned int iterct=20;
+  unsigned int iterct=10;
   permoption = parser->GetOption( "iterations" );
   if( permoption && permoption->GetNumberOfValues() > 0 )
     iterct=parser->Convert<unsigned int>( permoption->GetValue() );
-  if (iterct < 20 ) iterct=20;
+  if (iterct < 10 ) iterct=10;
 
   unsigned int evec_ct=1;
   itk::ants::CommandLineParser::OptionType::Pointer evec_option =
