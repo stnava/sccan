@@ -698,31 +698,31 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 // Arnoldi Iteration
   for ( unsigned int loop=0; loop<maxloop; loop++) {
     RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
+             frac=((RealType)maxloop-(RealType)loop-(RealType)1)/(RealType)maxloop;
     if ( frac < 0 ) frac=0;
     RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
-    if ( loop < 10 ) { fnp=1; }
+    //    if ( loop < 10 ) { fnp=1; }
     if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
-    if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
+    //    if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) 
+    
+    if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
+
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     VectorType pveck=this->m_MatrixP*ptemp;      
     pveck=this->m_MatrixP.transpose()*pveck;
-    pveck=pveck/pveck.two_norm();
     if ( loop > 2 ) {
       this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
       this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
-    pveck=pveck/pveck.two_norm();
-    bool rethresh=true;
+    //    bool rethresh=true;
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
-      RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*pveck)/
-                   inner_product(this->m_MatrixP*qj,this->m_MatrixP*qj);
-      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
-    }
-    if (rethresh) {
-      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+      RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);\
+      pveck=pveck-qj*hjk;
+      //      VectorType temp=this->m_MatrixP*qj;
+      //      RealType hjk=inner_product(temp,this->m_MatrixP*pveck)/inner_product(temp,temp);
+      //      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
     }
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
