@@ -732,7 +732,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
   }//opt-loop
-  this->RunDiagnostics(n_vecs);
+  //this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 
