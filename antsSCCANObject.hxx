@@ -724,6 +724,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       //      RealType hjk=inner_product(temp,this->m_MatrixP*pveck)/inner_product(temp,temp);
       //      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
     }
+    if ( loop > 2 ) {
+      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+    }
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
