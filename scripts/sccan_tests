@@ -1,13 +1,20 @@
 #!/bin/bash
+PATHTOSCCAN=$1
+if [[ ${#1} -lt 2 ]] ; then 
+  echo define the path to the sccan executable 
+  echo usage 
+  echo $0 path_to_sccan_bin_directory 
+  exit 1
+fi
 OUT=SCCAN_TEST
 params=" -e 0 -n 2 -i 20 -r 0 -p 0  " # most common parameters 
-t1=`../bin/sccan --scca two-view[ myview1.csv , myview_mismatch.csv , na , na , 0.5 , 0.25 ] -o ${OUT}.nii.gz $params `
+t1=`${PATHTOSCCAN}/sccan --scca two-view[ myview1.csv , myview_mismatch.csv , na , na , 0.5 , 0.25 ] -o ${OUT}.nii.gz $params `
 test1=$?
-t2=`../bin/sccan --scca two-view[ myview1.csv , myview2.csv , na , na , 0.5 , 0.25 ] -o ${OUT}.nii.gz `
+t2=`${PATHTOSCCAN}/sccan --scca two-view[ myview1.csv , myview2.csv , na , na , 0.5 , 0.25 ] -o ${OUT}.nii.gz `
 test2=$?
-t3=`../bin/sccan --scca partial[ myview1.csv , myview2.csv , myview3.csv , na , na , na , 0.5 , -0.25 , 1] -o ${OUT}.nii.gz `
+t3=`${PATHTOSCCAN}/sccan --scca partial[ myview1.csv , myview2.csv , myview3.csv , na , na , na , 0.5 , -0.25 , 1] -o ${OUT}.nii.gz `
 test3=$?
-t4=`../bin/sccan --sparse-svd [ myview1.csv , na , 0.5 ] -o ${OUT}.nii.gz `
+t4=`${PATHTOSCCAN}/sccan --sparse-svd [ myview1.csv , na , 0.5 ] -o ${OUT}.nii.gz `
 test4=$?
 if [[ $test1 != 1 ]] ; then 
   echo $1
