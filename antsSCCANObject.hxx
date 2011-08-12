@@ -816,12 +816,6 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType qveck=this->m_MatrixP*ptemp;     
     pveck=this->m_MatrixP.transpose()*pveck;
     qveck=this->m_MatrixQ.transpose()*qveck;
-    this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-    this->ReSoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
-    if ( loop > 2 ) {
-      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-      this->ClusterThresholdVariate( qveck , this->m_MaskImageQ, this->m_MinClusterSizeQ );
-    }
     if ( k > 0 )
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
@@ -832,6 +826,12 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       hjk=inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qveck)/
           inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qj);
       for (unsigned int i=0; i<qveck.size(); i++) qveck(i)=qveck(i)-hjk*qj(i); 
+    }
+    this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+    this->ReSoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
+    if ( loop > 2 ) {
+      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+      this->ClusterThresholdVariate( qveck , this->m_MaskImageQ, this->m_MinClusterSizeQ );
     }
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
