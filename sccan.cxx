@@ -253,6 +253,19 @@ int matrixOperation( itk::ants::CommandLineParser::OptionType *option,
 }
 
 
+template <class RealType>
+int
+CompareMatrixSizes(  vnl_matrix<RealType> & p ,  vnl_matrix<RealType> & q )
+{
+  if ( p.rows() != q.rows() ) {
+    std::cout << " The number of rows must match !!" << std::endl;
+    std::cout << " matrix-1 has " << p.rows() << " rows " << std::endl;
+    std::cout << " matrix-2 has " << q.rows() << " rows " << std::endl;
+    exit(1);
+  }
+  return 0;
+}
+
 template <class PixelType>
 bool
 ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
@@ -267,7 +280,7 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
     reader->SetFileName ( matname.c_str() );
     reader->SetFieldDelimiterCharacter( ',' );
     reader->SetStringDelimiterCharacter( '"' );
-    reader->HasColumnHeadersOff();
+    reader->HasColumnHeadersOn();
     reader->HasRowHeadersOff();
     reader->UseStringDelimiterCharacterOff();
     try
@@ -347,6 +360,8 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
   if  (strcmp(ext.c_str(),".csv") == 0 ) {
     typedef itk::Array2D<double> MatrixType;
+    std::vector<std::string> ColumnHeaders;
+
     MatrixType matrix(xsize,ysize);
     matrix.Fill(0);
     for (unsigned int j=0; j< image_fn_list.size(); j++)
@@ -362,6 +377,8 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
         {
           yy=tvoxct;
           matrix[xx][yy]=reader2->GetOutput()->GetPixel(mIter.GetIndex());
+	  std::string colname=std::string("V")+sccan_to_string<unsigned int>(tvoxct);
+          ColumnHeaders.push_back( colname );
           tvoxct++;
         }
       }
@@ -371,6 +388,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
     WriterType::Pointer writer = WriterType::New();
     writer->SetFileName( outname );
     writer->SetInput( &matrix );
+    writer->SetColumnHeaders( ColumnHeaders );
     try
     {
       writer->Write();
@@ -573,10 +591,10 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   if ( nuis_img.length() > 3 ) {
     std::cout << " nuis_img " << nuis_img << std::endl;
     ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
+    CompareMatrixSizes<Scalar>( p,r );
   }
   }
   else std::cout << " No nuisance parameters." << std::endl;
-
 
   sccanobj->SetFractionNonZeroP(FracNonZero1);
   sccanobj->SetMinClusterSizeP( p_cluster_thresh );
@@ -642,6 +660,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   std::string qmatname=std::string(option->GetParameter( 1 ));
   vMatrix q;
   bool q_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(qmatname,q);
+  CompareMatrixSizes<Scalar>( p,q );
 
   typename ImageType::Pointer mask1=NULL;
   if ( !p_is_csv ) {
@@ -823,6 +842,9 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   std::string rmatname=std::string(option->GetParameter( 2 ));
   vMatrix rin;
   bool r_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(rmatname,rin);
+  CompareMatrixSizes<Scalar>( pin,qin );
+  CompareMatrixSizes<Scalar>( qin,rin );
+  CompareMatrixSizes<Scalar>( pin,rin );
 
   typename ImageType::Pointer mask1=NULL;
   if ( !p_is_csv ) {
