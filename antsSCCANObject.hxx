@@ -82,7 +82,7 @@ antsSCCANObject<TInputImage, TRealType>
 	       std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
 	       exit(1);
 	    }
-	    if ( threshold_at_zero && fabs(val) > 0  )  weights->SetPixel(mIter.GetIndex(),1);
+	    if ( threshold_at_zero && fabs(val) > 1.e-9  )  weights->SetPixel(mIter.GetIndex(),1);
 	    else weights->SetPixel(mIter.GetIndex(),val);
 	    vecind++;
 	  } 
@@ -114,7 +114,7 @@ antsSCCANObject<TInputImage, TRealType>
   typename FilterType::Pointer filter = FilterType::New();
   typename RelabelType::Pointer relabel = RelabelType::New();
   filter->SetInput( image );
-  filter->SetFullyConnected( 1 );
+  filter->SetFullyConnected( 0 );
   relabel->SetInput( filter->GetOutput() );
   relabel->SetMinimumObjectSize( minclust );    
   try
@@ -711,10 +711,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType ptemp=this->m_VariatesP.get_column(k);
     VectorType pveck=this->m_MatrixP*ptemp;      
     pveck=this->m_MatrixP.transpose()*pveck;
-    if ( loop > 2 ) {
-      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-    }
+    //    if ( loop > 2 ) {
+    //   this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+    //  this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+    // }
     //    bool rethresh=true;
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
