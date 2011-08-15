@@ -702,11 +702,15 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( frac < 0 ) frac=0;
     RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
     if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
+    fnp=this->m_FractionNonZeroP;
 
-fnp=this->m_FractionNonZeroP;
+
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
-    VectorType pveck=this->m_MatrixP.transpose()*(this->m_MatrixP*ptemp);      
+    //    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),0);
+    // for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) > 0 ) indicator(j,j)=1; 
+    MatrixType pmod=this->m_MatrixP;//*indicator; 
+    VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
     for ( unsigned int j=0; j< k; j++) {
@@ -742,7 +746,10 @@ void antsSCCANObject<TInputImage, TRealType>
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
-    VectorType m=this->m_MatrixP.transpose()*(this->m_MatrixP*u);
+    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),0);
+    for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) > 0 ) indicator(j,j)=1; 
+    MatrixType pmod=this->m_MatrixP*indicator; 
+    VectorType m=pmod.transpose()*(pmod*u);
     //    VectorType m=(this->m_MatrixP*u);
     this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
     VectorType diff=u*this->m_CanonicalCorrelations[i]-m;
