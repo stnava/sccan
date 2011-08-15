@@ -696,14 +696,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
 // Arnoldi Iteration
-  for ( unsigned int loop=0; loop<maxloop; loop++) {
-    RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
-             frac=((RealType)maxloop-(RealType)loop-(RealType)1)/(RealType)maxloop;
-    if ( frac < 0 ) frac=0;
-    RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
-    // we want to initialize with something close to the solution 
-    //    if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
-  fnp=this->m_FractionNonZeroP;
+  RealType conv=1;
+  unsigned int loop=0;
+  while ( loop < maxloop && conv > 1.e-3 ) {
+  RealType fnp=this->m_FractionNonZeroP;
 
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
@@ -730,16 +726,17 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
-  this->ComputeSPCAEigenvalues(n_vecs);
+  conv=this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
+  loop++;
   }//opt-loop
   //this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 
 template <class TInputImage, class TRealType>
-void antsSCCANObject<TInputImage, TRealType>
+TRealType antsSCCANObject<TInputImage, TRealType>
 ::ComputeSPCAEigenvalues(unsigned int n_vecs)
 {
   //   we have   variates  P = X  ,  Q = X^T  ,    X \approx \sum_i d_i q_i^T p_i
@@ -759,7 +756,7 @@ void antsSCCANObject<TInputImage, TRealType>
     //    std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
   std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
-  return; 
+  return avgdifffromevec/(TRealType)n_vecs; 
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
