@@ -701,34 +701,27 @@ TRealType antsSCCANObject<TInputImage, TRealType>
              frac=((RealType)maxloop-(RealType)loop-(RealType)1)/(RealType)maxloop;
     if ( frac < 0 ) frac=0;
     RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
-    //    if ( loop < 10 ) { fnp=1; }
-    if ( this->m_FractionNonZeroP  < 0 ) fnp*=(-1);
-    //    if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) 
-    
     if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
 
+fnp=this->m_FractionNonZeroP;
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
-    VectorType pveck=this->m_MatrixP*ptemp;      
-    pveck=this->m_MatrixP.transpose()*pveck;
-    //    if ( loop > 2 ) {
-    //   this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-    //  this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-    // }
-    //    bool rethresh=true;
+    VectorType pveck=this->m_MatrixP.transpose()*(this->m_MatrixP*ptemp);      
+    RealType hkkm1=pveck.two_norm();
+    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
-      RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);\
+      RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);
       pveck=pveck-qj*hjk;
-      //      VectorType temp=this->m_MatrixP*qj;
-      //      RealType hjk=inner_product(temp,this->m_MatrixP*pveck)/inner_product(temp,temp);
-      //      for (unsigned int i=0; i<pveck.size(); i++)  pveck(i)=pveck(i)-hjk*qj(i); 
+      //      VectorType temp=this->m_MatrixP.transpose()*(this->m_MatrixP*qj);
+      //      RealType hjk=inner_product(temp,pveck)/inner_product(temp,temp);
+      // pveck=pveck-temp*hjk;
     }
     if ( loop > 2 ) {
       this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
       this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
-    RealType hkkm1=pveck.two_norm();
+    hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
@@ -745,14 +738,19 @@ void antsSCCANObject<TInputImage, TRealType>
 ::ComputeSPCAEigenvalues(unsigned int n_vecs)
 {
   //   we have   variates  P = X  ,  Q = X^T  ,    X \approx \sum_i d_i q_i^T p_i
+  double avgdifffromevec=0;
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
-    //    VectorType m=this->m_MatrixP.transpose()*(this->m_MatrixP*u);
-    VectorType m=(this->m_MatrixP*u);
+    VectorType m=this->m_MatrixP.transpose()*(this->m_MatrixP*u);
+    //    VectorType m=(this->m_MatrixP*u);
     this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
+    VectorType diff=u*this->m_CanonicalCorrelations[i]-m;
+    double d=diff.two_norm()/(double)diff.size();
+    avgdifffromevec+=d;
+    //    std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
-  
+  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
   return; 
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);
