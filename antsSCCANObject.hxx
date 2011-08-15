@@ -696,20 +696,17 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
 // Arnoldi Iteration
-  for ( unsigned int loop=0; loop<maxloop; loop++) {
-    RealType frac=((RealType)maxloop-(RealType)loop-(RealType)10)/(RealType)maxloop;
-             frac=((RealType)maxloop-(RealType)loop-(RealType)1)/(RealType)maxloop;
-    if ( frac < 0 ) frac=0;
-    RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
-    if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
-    fnp=this->m_FractionNonZeroP;
-
+  RealType conv=1;
+  unsigned int loop=0;
+  while ( loop < maxloop && conv > 1.e-3 ) {
+  RealType fnp=this->m_FractionNonZeroP;
 
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
-    //    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),0);
-    // for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) > 0 ) indicator(j,j)=1; 
-    MatrixType pmod=this->m_MatrixP;//*indicator; 
+    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
+    // don't use the indicator function if you are not even close to the solution 
+    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicator(j,j)=0; 
+    MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
@@ -717,9 +714,6 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       VectorType qj=this->m_VariatesP.get_column(j);
       RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);
       pveck=pveck-qj*hjk;
-      //      VectorType temp=this->m_MatrixP.transpose()*(this->m_MatrixP*qj);
-      //      RealType hjk=inner_product(temp,pveck)/inner_product(temp,temp);
-      // pveck=pveck-temp*hjk;
     }
     if ( loop > 2 ) {
       this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
@@ -729,16 +723,17 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
-  this->ComputeSPCAEigenvalues(n_vecs);
+  conv=this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
-  std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
+  std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations << " Sparseness: " << fnp  << " convergence-criterion: " << conv << std::endl;
+  loop++;
   }//opt-loop
   //this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 
 template <class TInputImage, class TRealType>
-void antsSCCANObject<TInputImage, TRealType>
+TRealType antsSCCANObject<TInputImage, TRealType>
 ::ComputeSPCAEigenvalues(unsigned int n_vecs)
 {
   //   we have   variates  P = X  ,  Q = X^T  ,    X \approx \sum_i d_i q_i^T p_i
@@ -746,8 +741,8 @@ void antsSCCANObject<TInputImage, TRealType>
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
-    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),0);
-    for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) > 0 ) indicator(j,j)=1; 
+    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
+    for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) < 1.e-9 ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType m=pmod.transpose()*(pmod*u);
     //    VectorType m=(this->m_MatrixP*u);
@@ -757,8 +752,8 @@ void antsSCCANObject<TInputImage, TRealType>
     avgdifffromevec+=d;
     //    std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
-  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
-  return; 
+  //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
+  return avgdifffromevec/(TRealType)n_vecs; 
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
