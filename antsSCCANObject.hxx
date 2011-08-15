@@ -708,7 +708,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType ptemp=this->m_VariatesP.get_column(k);
     vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
     // don't use the indicator function if you are not even close to the solution 
-    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicator(j,j)=0; 
+    if (loop > 500 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
