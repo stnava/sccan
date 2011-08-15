@@ -702,13 +702,14 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( frac < 0 ) frac=0;
     RealType fnp=fabs(this->m_FractionNonZeroP)+(1.0-this->m_FractionNonZeroP)*frac;
     // we want to initialize with something close to the solution 
-    if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
+    //    if ( loop < maxloop/2 ) { fnp=1; } else fnp=this->m_FractionNonZeroP;
+  fnp=this->m_FractionNonZeroP;
 
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
     // don't use the indicator function if you are not even close to the solution 
-    if (loop > 500 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicator(j,j)=0; 
+    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
