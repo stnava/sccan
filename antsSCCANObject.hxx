@@ -714,9 +714,6 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       VectorType qj=this->m_VariatesP.get_column(j);
       RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);
       pveck=pveck-qj*hjk;
-      //      VectorType temp=this->m_MatrixP.transpose()*(this->m_MatrixP*qj);
-      //      RealType hjk=inner_product(temp,pveck)/inner_product(temp,temp);
-      // pveck=pveck-temp*hjk;
     }
     if ( loop > 2 ) {
       this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
@@ -728,7 +725,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_VariatesQ=this->m_VariatesP;
   conv=this->ComputeSPCAEigenvalues(n_vecs);
   this->SortResults(n_vecs);  
-  std::cout <<" Loop " << loop << " Evals : " << this->m_CanonicalCorrelations << " sparp " << fnp  << std::endl;
+  std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations << " Sparseness: " << fnp  << " convergence-criterion: " << conv << std::endl;
   loop++;
   }//opt-loop
   //this->RunDiagnostics(n_vecs);
@@ -755,7 +752,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     avgdifffromevec+=d;
     //    std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
-  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
+  //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
   return avgdifffromevec/(TRealType)n_vecs; 
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);
