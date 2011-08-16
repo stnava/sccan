@@ -862,9 +862,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->NormalizeWeightsByCovariance(k); 
     this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
   }
-  if ( loop > 1 ) this->SortResults(n_vecs);  
+  if ( loop == 10 ) this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
   } // outer loop 
+  this->SortResults(n_vecs);  
   this->RunDiagnostics(n_vecs);
   if ( n_vecs > 1 ) return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
   else return fabs(this->m_CanonicalCorrelations[0]);

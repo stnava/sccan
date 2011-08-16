@@ -656,9 +656,11 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   /** we refer to the two view matrices as P and Q */
   std::string pmatname=std::string(option->GetParameter( 0 ));
   vMatrix p;
+  // std::cout <<" read-p "<< std::endl;
   bool p_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
   std::string qmatname=std::string(option->GetParameter( 1 ));
   vMatrix q;
+  // std::cout <<" read-q "<< std::endl;
   bool q_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(qmatname,q);
   CompareMatrixSizes<Scalar>( p,q );
 

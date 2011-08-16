@@ -59,81 +59,19 @@ nvoxy<-nvoxy*2
 
 # write out the simulated data
 #
-DIR<-"/Users/brianavants/Data/PSCCA_simulation/"
-pre<-paste(DIR,"Z",sep='')
-oname<-paste(pre,".mhd",sep='')
-fn<-paste(pre,".raw",sep='')
-mhd<-paste("ObjectType = Image
-NDims = 2
-BinaryData = True
-BinaryDataByteOrderMSB = False
-CompressedData = False
-TransformMatrix = 1 0 0 1
-Offset = 0 0
-CenterOfRotation = 0 0
-ElementSpacing = 1 1
-DimSize = ",nsub,ncol(Z),"
-AnatomicalOrientation = ??
-ElementType = MET_FLOAT
-ElementDataFile = ",fn)
-# print(oname)
-write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
-writeBin(c(as.real(Z)),fn,size=4,endian = .Platform$endian)
+write.csv(X,"X.csv",row.names =F)
+write.csv(Y,"Y.csv",row.names =F)
+write.csv(Z,"Z.csv",row.names =F)
 
-pre<-paste(DIR,"X",sep='')
-oname<-paste(pre,".mhd",sep='')
-fn<-paste(pre,".raw",sep='')
-mhd<-paste("ObjectType = Image
-NDims = 2
-BinaryData = True
-BinaryDataByteOrderMSB = False
-CompressedData = False
-TransformMatrix = 1 0 0 1
-Offset = 0 0
-CenterOfRotation = 0 0
-ElementSpacing = 1 1
-DimSize = ",nsub,nvoxx,"
-AnatomicalOrientation = ??
-ElementType = MET_FLOAT
-ElementDataFile = ",fn)
-# print(oname)
-write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
-writeBin(c(as.real(X)),fn,size=4,endian = .Platform$endian)
-
-
-pre<-paste(DIR,"Y",sep='')
-oname<-paste(pre,".mhd",sep='')
-fn<-paste(pre,".raw",sep='')
-mhd<-paste("ObjectType = Image
-NDims = 2
-BinaryData = True
-BinaryDataByteOrderMSB = False
-CompressedData = False
-TransformMatrix = 1 0 0 1
-Offset = 0 0
-CenterOfRotation = 0 0
-ElementSpacing = 1 1
-DimSize = ",nsub,nvoxy,"
-AnatomicalOrientation = ??
-ElementType = MET_FLOAT
-ElementDataFile = ",fn)
-# print(oname)
-write.table(mhd,oname,row.names=F,col.names=F,sep=" ",quote=FALSE) 
-writeBin(c(as.real(Y)),fn,size=4,endian = .Platform$endian)
-
-
-exe<-"for N in X Y Z ; do StackSlices ${N}mask.nii.gz 0 -1 -1 $N.mhd ; ThresholdImage 2 ${N}mask.nii.gz  ${N}mask.nii.gz  -9.e9 9.e9 ; SmoothImage 2 ${N}.mhd 0 ${N}.mhd ;  done "
-bb<-try(system(exe, intern = TRUE, ignore.stderr = TRUE))
-
-exe1<-paste(CCA," --scca two-view[X.mhd,Y.mhd,Xmask.nii.gz,Ymask.nii.gz,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100   " )
-exe2<-paste(CCA," --scca partial[X.mhd,Y.mhd,Z.mhd,Xmask.nii.gz,Ymask.nii.gz,Zmask.nii.gz,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz -p 0  --partial-scca-option PminusRQminusR -n 4 ")
+exe1<-paste(CCA," --scca two-view[X.csv,Y.csv,na,na,",sparseness,",",sparseness,"]   -o TEST1.nii.gz -p 100 -i 50   " )
+exe2<-paste(CCA," --scca partial[X.csv,Y.csv,Z.csv,na,na,na,",sparseness,",",sparseness,", -1]   -o TEST2.nii.gz  -e 0 -n 5 -i 50 -r 0 -p 20  --partial-scca-option PQminusR")
 
 # print(exe1)
  print(exe2,quote=F)
+q()
 # bb1<-try(system(exe1, intern = TRUE, ignore.stderr = TRUE))
 bb2<-try(system(exe2, intern = TRUE, ignore.stderr = TRUE))
 print(bb2)
-q()
 
 pv1<-unlist(strsplit(bb1[110], " ", fixed = TRUE))
 pv2<-unlist(strsplit(bb2[132], " ", fixed = TRUE))
