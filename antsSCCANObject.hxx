@@ -816,8 +816,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   if ( this->m_FractionNonZeroQ  < 0 ) fnq*=(-1);
   if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
   if ( fabs(fnq) < fabs(this->m_FractionNonZeroQ) ) fnq=this->m_FractionNonZeroQ;
-  fnp=this->m_FractionNonZeroP;
-  fnq=this->m_FractionNonZeroQ;
+  if ( this->m_MatrixP.cols() == 1 || this->m_MatrixQ.cols() == 1  ) {
+    fnp=this->m_FractionNonZeroP;
+    fnq=this->m_FractionNonZeroQ;
+  }
 // Arnoldi Iteration
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
