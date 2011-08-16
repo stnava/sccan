@@ -282,7 +282,7 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
     reader->SetStringDelimiterCharacter( '"' );
     reader->HasColumnHeadersOn();
     reader->HasRowHeadersOff();
-    reader->UseStringDelimiterCharacterOff();
+    reader->UseStringDelimiterCharacterOn();
     try
     {
       reader->Update();

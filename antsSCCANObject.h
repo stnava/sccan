@@ -109,7 +109,8 @@ public:
   MatrixType VNLPseudoInverse( MatrixType ,  bool take_sqrt=false );
   MatrixType EigenPseudoInverse( MatrixType p_in , bool take_sqrt=false ){
     eMatrix p=mVtoE(p_in);
-    typedef Eigen::FullPivHouseholderQR<eMatrix> svdobj2;
+    //typedef Eigen::FullPivHouseholderQR<eMatrix> svdobj2;
+    typedef Eigen::JacobiSVD<eMatrix> svdobj2;
     svdobj pSVD(p);
     eMatrix pinvMat;
     pSVD.pinv(pinvMat,take_sqrt);
@@ -117,6 +118,28 @@ public:
     // svdobj qSVD(Cqq);
     // eMatrix CqqInv;
     //  qSVD.pinv(CqqInv);
+    /** might need to add code below to eigen 
+
+    void pinv( MatrixType& pinvmat, bool takesqrt )
+    {
+      eigen_assert(m_isInitialized && "JacobiSVD is not initialized.");
+      double  pinvtoler=1.e-6;
+      SingularValuesType m_singularValues_inv=m_singularValues;
+
+      for ( long i=0; i<m_workMatrix.cols(); ++i)
+	{
+	  if ( m_singularValues(i) > pinvtoler ) { // FIXME -- check tolerances against matlab pinv
+            double s= m_singularValues(i);
+	    if ( takesqrt ) s=sqrt(s);
+	    m_singularValues_inv(i)=1.0/s;
+	  }
+	  else m_singularValues_inv(i)=0;
+	}
+      pinvmat= (m_matrixV*m_singularValues_inv.asDiagonal()*m_matrixU.transpose());
+    }
+
+    */
+
   }
 
 
@@ -226,11 +249,16 @@ public:
   }
 
   MatrixType WhitenMatrix(MatrixType p, RealType regularization=1.e-2 ) {
-    double reg=1.e-8;
+    double reg=1.e-9; 
     if ( p.rows() < p.cols() ) reg=regularization;
     MatrixType cov=this->CovarianceMatrix(p,reg);
     MatrixType invcov=this->PseudoInverse( cov, true );
-    //    std::cout << invcov*cov << std::endl; exit(0);
+    bool debug=false;
+    if (debug) {
+    std::cout << " cov " << std::endl;    std::cout << cov << std::endl;
+    std::cout << " invcov " << std::endl;    std::cout << invcov << std::endl; 
+    std::cout << " id? " << std::endl;    std::cout << cov*invcov << std::endl;
+    }
     if ( p.rows() < p.columns() ) return (invcov*p);
     else return p*invcov;
   }

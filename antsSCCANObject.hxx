@@ -223,7 +223,7 @@ template <class TInputImage, class TRealType>
 typename antsSCCANObject<TInputImage, TRealType>::MatrixType
 antsSCCANObject<TInputImage, TRealType>
 ::VNLPseudoInverse( typename antsSCCANObject<TInputImage, TRealType>::MatrixType rin , bool take_sqrt ) {
-  double pinvTolerance=1.e-5; // this->m_PinvTolerance;
+  double pinvTolerance=1.e-9; // this->m_PinvTolerance;
       MatrixType dd=rin;
       unsigned int ss=dd.rows();
       if ( dd.rows() > dd.columns() ) ss=dd.columns();
@@ -237,7 +237,13 @@ antsSCCANObject<TInputImage, TRealType>
 	  }
 	  else eig.W(j,j)=0; 
 	} 
-  return ( eig.recompose() ).transpose();
+      /** there is a scaling problem with the pseudoinverse --- this is a cheap fix!!
+          it is based on the theoretical frobenious norm of the inverse matrix */
+  MatrixType pinv=( eig.recompose() ).transpose();
+  double a=sqrt((double)dd.rows());
+  double b=(pinv*dd).frobenius_norm();
+  pinv=pinv*a/b;
+  return pinv;
 }
 
 template <class TInputImage, class TRealType>
@@ -305,7 +311,7 @@ antsSCCANObject<TInputImage, TRealType>
 //  std::cout << " post minv " << tminv << " post maxv " << tmaxv << " allow-neg? " <<  allow_negative_weights << std::endl;
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
 //  std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
-  if ( v_in.two_norm() > 0 ) v_in=v_in/v_in.two_norm();
+  if ( v_in.two_norm() > 1.e-6 ) v_in=v_in/v_in.two_norm();
 
 
   return;
@@ -332,7 +338,7 @@ antsSCCANObject<TInputImage, TRealType>
   }
   this->ReSoftThreshold( wpnew , penalty1 , !keep_pos );
   norm=wpnew.two_norm();
-  if ( norm > 0 ) wpnew=wpnew/(norm);
+  if ( norm > 1.e-6 ) wpnew=wpnew/(norm);
   return wpnew;
 }
 
@@ -709,7 +715,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
+    if ( hkkm1 > 1.e-6 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
       RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);
@@ -720,7 +726,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     }
     hkkm1=pveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
+    if ( hkkm1 > 1.e-6 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
   conv=this->ComputeSPCAEigenvalues(n_vecs);
@@ -791,6 +797,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )  
       this->m_MatrixQ=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
   }
+
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
@@ -808,24 +815,36 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   if ( this->m_FractionNonZeroQ  < 0 ) fnq*=(-1);
   if ( fabs(fnp) < fabs(this->m_FractionNonZeroP) ) fnp=this->m_FractionNonZeroP;
   if ( fabs(fnq) < fabs(this->m_FractionNonZeroQ) ) fnq=this->m_FractionNonZeroQ;
+  fnp=this->m_FractionNonZeroP;
+  fnq=this->m_FractionNonZeroQ;
 // Arnoldi Iteration
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     VectorType qtemp=this->m_VariatesQ.get_column(k);
-    VectorType pveck=this->m_MatrixQ*qtemp;      
-    VectorType qveck=this->m_MatrixP*ptemp;     
-    pveck=this->m_MatrixP.transpose()*pveck;
-    qveck=this->m_MatrixQ.transpose()*qveck;
+    vnl_diag_matrix<TRealType> indicatorp(this->m_MatrixP.cols(),1);
+    vnl_diag_matrix<TRealType> indicatorq(this->m_MatrixQ.cols(),1);
+    if (loop > 5 ) {
+      for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < 1.e-9 ) indicatorp(j,j)=0; 
+      for ( unsigned int j=0; j< qtemp.size(); j++) if ( fabs(qtemp(j)) < 1.e-9 ) indicatorq(j,j)=0; 
+    }
+    MatrixType pmod=this->m_MatrixP*indicatorp; 
+    MatrixType qmod=this->m_MatrixQ*indicatorq; 
+    VectorType pveck=qmod*qtemp;      
+    VectorType qveck=pmod*ptemp;     
+    pveck=pmod.transpose()*pveck;
+    qveck=qmod.transpose()*qveck;
     if ( k > 0 )
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
-      RealType hjk=inner_product(this->m_MatrixP*qj,this->m_MatrixP*pveck)/
-                   inner_product(this->m_MatrixP*qj,this->m_MatrixP*qj);
-      for (unsigned int i=0; i<pveck.size(); i++) pveck(i)=pveck(i)-hjk*qj(i); 
+      VectorType pmqj=pmod*qj;
+      RealType hjk=inner_product(pmqj,pmod*pveck)/
+                   inner_product(pmqj,pmqj);
+      pveck=pveck-hjk*qj; 
       qj=this->m_VariatesQ.get_column(j); 
-      hjk=inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qveck)/
-          inner_product(this->m_MatrixQ*qj,this->m_MatrixQ*qj);
-      for (unsigned int i=0; i<qveck.size(); i++) qveck(i)=qveck(i)-hjk*qj(i); 
+      pmqj=qmod*qj;
+               hjk=inner_product(pmqj,qmod*qveck)/
+                   inner_product(pmqj,pmqj);
+      qveck=qveck-hjk*qj; 
     }
     this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
     this->ReSoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
@@ -834,22 +853,21 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       this->ClusterThresholdVariate( qveck , this->m_MaskImageQ, this->m_MinClusterSizeQ );
     }
     RealType hkkm1=pveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
+    if ( hkkm1 > 1.e-6 ) this->m_VariatesP.set_column(k,pveck/hkkm1);
              hkkm1=qveck.two_norm();
-    if ( hkkm1 > 0 ) this->m_VariatesQ.set_column(k,qveck/hkkm1);
+    if ( hkkm1 > 1.e-6 ) this->m_VariatesQ.set_column(k,qveck/hkkm1);
     this->NormalizeWeightsByCovariance(k); 
     this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
   }
-  this->SortResults(n_vecs);  
+  if ( loop > 1 ) this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
-//  std::cout << this->m_VariatesQ.get_column(1) << std::endl;
-//  if ( loop % 20 == 0 && loop > 0 )  this->RunDiagnostics(n_vecs);
   } // outer loop 
   this->RunDiagnostics(n_vecs);
-  if ( n_vecs > 1 ) 
-  return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
-  return fabs(this->m_CanonicalCorrelations[0]);
-/*
+  if ( n_vecs > 1 ) return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
+  else return fabs(this->m_CanonicalCorrelations[0]);
+
+
+/* **************************************************************************************************
 
 // now deal with covariates --- this could work but needs to be fixed. 
     for ( unsigned int j=0; j< this->m_MatrixR.cols(); j++) {
@@ -1001,13 +1019,13 @@ void antsSCCANObject<TInputImage, TRealType>
   RealType normP=0;
   if ( this->m_MatrixRp.size() > 0 ) normP=inner_product( w , (this->m_MatrixP-this->m_MatrixRp*this->m_MatrixP)*this->m_WeightsP ); 
   else normP=inner_product(w,w);
-  if (normP>0) this->m_WeightsP=this->m_WeightsP/sqrt(normP);
+  if (normP>1.e-6) this->m_WeightsP=this->m_WeightsP/sqrt(normP);
 
   w=this->m_MatrixQ*this->m_WeightsQ;
   RealType normQ=0;
   if ( this->m_MatrixRq.size() > 0 ) normQ=inner_product( w , (this->m_MatrixQ-this->m_MatrixRq*this->m_MatrixQ)*this->m_WeightsQ ); 
   else normQ=inner_product(w,w);
-  if (normQ>0) this->m_WeightsQ=this->m_WeightsQ/sqrt(normQ);
+  if (normQ>1.e-6) this->m_WeightsQ=this->m_WeightsQ/sqrt(normQ);
   }
 }
 
