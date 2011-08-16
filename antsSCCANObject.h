@@ -426,6 +426,7 @@ private:
   SCCANFormulationType            m_SCCANFormulation;
   RealType m_PinvTolerance;
   RealType m_PercentVarianceForPseudoInverse;
+  RealType m_Epsilon; /** used to prevent div by zero */
 
   VectorType m_WeightsP;
   MatrixType m_MatrixP;
