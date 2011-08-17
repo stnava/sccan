@@ -180,9 +180,9 @@ antsSCCANObject<TInputImage, TRealType>
   vnl_random randgen(time(0));
   for (unsigned long i=0; i < p.columns(); i++)
     { 
-//      w_p(i)+=randgen.normal();
+      //      w_p(i)+=randgen.normal();
 //      w_p(i)=randgen.drand32();//1.0/p.rows();//
-      w_p(i)=1.0/p.rows()+randgen.normal()*this->m_Epsilon;
+      w_p(i)=1.0/p.rows();//+randgen.normal()*this->m_Epsilon;
 //1.0+fabs(randgen.drand32())*1.e-3; 
     }
   }
@@ -702,36 +702,36 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
 
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
-// Arnoldi Iteration
+// Arnoldi Iteration SVD/SPCA
   RealType conv=1;
   unsigned int loop=0;
-  while ( loop < maxloop && conv > 1.e-3 ) {
+  while ( loop < maxloop && conv > 1.e-4 ) {
   RealType fnp=this->m_FractionNonZeroP;
 
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
-    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
+    //    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
     // don't use the indicator function if you are not even close to the solution 
-    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < this->m_Epsilon ) indicator(j,j)=0; 
-    MatrixType pmod=this->m_MatrixP*indicator; 
+    //    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < this->m_Epsilon ) indicator(j,j)=0; 
+    MatrixType pmod=this->m_MatrixP;//*indicator; 
     VectorType pveck=pmod.transpose()*(pmod*ptemp);      
     RealType hkkm1=pveck.two_norm();
-    if ( hkkm1 > this->m_Epsilon ) this->m_VariatesP.set_column(k,pveck/hkkm1);
+    if ( hkkm1 > this->m_Epsilon ) pveck=pveck/hkkm1;
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
-      RealType hjk=inner_product(qj,pveck)/inner_product(qj,qj);
+      RealType ip=inner_product(qj,qj);
+      if (ip < this->m_Epsilon) ip=1; 
+      RealType hjk=inner_product(qj,pveck)/ip;
       pveck=pveck-qj*hjk;
     }
-    if ( loop > 2 ) {
-      this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-    }
+    this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+    if (loop>1)this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     hkkm1=pveck.two_norm();
     if ( hkkm1 > this->m_Epsilon ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
   conv=this->ComputeSPCAEigenvalues(n_vecs);
-  this->SortResults(n_vecs);  
+  if (loop>0) this->SortResults(n_vecs);  
   std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations << " Sparseness: " << fnp  << " convergence-criterion: " << conv << std::endl;
   loop++;
   }//opt-loop
@@ -761,6 +761,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   }
   //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
   return avgdifffromevec/(TRealType)n_vecs; 
+  /*****************************************/
   MatrixType ptemp(this->m_MatrixP);
   VectorType d_i(n_vecs,0);
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
@@ -820,18 +821,18 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     fnp=this->m_FractionNonZeroP;
     fnq=this->m_FractionNonZeroQ;
   }
-// Arnoldi Iteration
+// Arnoldi Iteration SCCA 
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     VectorType qtemp=this->m_VariatesQ.get_column(k);
-    vnl_diag_matrix<TRealType> indicatorp(this->m_MatrixP.cols(),1);
-    vnl_diag_matrix<TRealType> indicatorq(this->m_MatrixQ.cols(),1);
-    if (loop > 5 ) {
+    /*    vnl_diag_matrix<TRealType> indicatorp(this->m_MatrixP.cols(),1);
+        vnl_diag_matrix<TRealType> indicatorq(this->m_MatrixQ.cols(),1);
+    if (loop > 50000 ) {
       for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < this->m_Epsilon ) indicatorp(j,j)=0; 
       for ( unsigned int j=0; j< qtemp.size(); j++) if ( fabs(qtemp(j)) < this->m_Epsilon ) indicatorq(j,j)=0; 
-    }
-    MatrixType pmod=this->m_MatrixP*indicatorp; 
-    MatrixType qmod=this->m_MatrixQ*indicatorq; 
+      }*/
+    MatrixType pmod=this->m_MatrixP;//*indicatorp; 
+    MatrixType qmod=this->m_MatrixQ;//*indicatorq; 
     VectorType pveck=qmod*qtemp;      
     VectorType qveck=pmod*ptemp;     
     pveck=pmod.transpose()*pveck;
@@ -840,12 +841,16 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
       VectorType pmqj=pmod*qj;
-      RealType hjk=inner_product(pmqj,pmod*pveck)/
-                   inner_product(pmqj,pmqj);
+      RealType ip=inner_product(pmqj,pmqj);
+      if (ip < this->m_Epsilon) ip=1;
+      RealType hjk=inner_product(pmqj,pmod*pveck)/ip;
+                  
       pveck=pveck-hjk*qj; 
       qj=this->m_VariatesQ.get_column(j); 
       pmqj=qmod*qj;
-               hjk=inner_product(pmqj,qmod*qveck)/
+      ip=inner_product(pmqj,pmqj);
+      if (ip < this->m_Epsilon) ip=1;
+      hjk=inner_product(pmqj,qmod*qveck)/ip;
                    inner_product(pmqj,pmqj);
       qveck=qveck-hjk*qj; 
     }
@@ -862,7 +867,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     this->NormalizeWeightsByCovariance(k); 
     this->m_CanonicalCorrelations[k]=this->PearsonCorr(  this->m_MatrixP*this->m_VariatesP.get_column(k)   , this->m_MatrixQ*this->m_VariatesQ.get_column(k)  ); 
   }
-  if ( loop == 10 ) this->SortResults(n_vecs);  
+  if ( loop > 0 ) this->SortResults(n_vecs);  
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
   } // outer loop 
   this->SortResults(n_vecs);  

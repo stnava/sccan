@@ -567,6 +567,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   std::string pmatname=std::string(option->GetParameter( 0 ));
   vMatrix p;
   bool p_is_csv=ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+  if ( robustify > 0 ) {
+    p=sccanobj->RankifyMatrixColumns(p);
+  }
   
   typename ImageType::Pointer mask1=NULL;
   typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
