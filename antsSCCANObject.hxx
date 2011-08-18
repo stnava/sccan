@@ -21,6 +21,7 @@
 #include "itkConnectedComponentImageFilter.h"
 #include "itkRelabelComponentImageFilter.h"
 #include <vnl/vnl_random.h>
+#include <vnl/vnl_trace.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_generalized_eigensystem.h>
 #include "antsSCCANObject.h"
@@ -743,22 +744,34 @@ template <class TInputImage, class TRealType>
 TRealType antsSCCANObject<TInputImage, TRealType>
 ::ComputeSPCAEigenvalues(unsigned int n_vecs)
 {
-  //   we have   variates  P = X  ,  Q = X^T  ,    X \approx \sum_i d_i q_i^T p_i
+  //   we have   variates  P = X  ,  Q = X^T  ,    Cov \approx \sum_i eval_i E_i^t E_i 
+  //   where E_i - eigenvector,  eval_i eigenvalue 
   double avgdifffromevec=0;
+  MatrixType covmat=this->m_MatrixP.transpose()*this->m_MatrixP; 
+  double trace=vnl_trace<double>(covmat); 
+  double evalsum=0;
+  // we estimate variance explained by  \sum_i eigenvalue_i / trace(A) 
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
     vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
     for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) < this->m_Epsilon ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
-    VectorType m=pmod.transpose()*(pmod*u);
-    //    VectorType m=(this->m_MatrixP*u);
-    this->m_CanonicalCorrelations[i]=m.two_norm()/u.two_norm();
-    VectorType diff=u*this->m_CanonicalCorrelations[i]-m;
+    VectorType proj=(pmod*u);
+    VectorType proj2=(this->m_MatrixP*u);
+    VectorType m=pmod.transpose()*proj;
+    double eigenvalue_i=m.two_norm()/u.two_norm();
+    evalsum+=eigenvalue_i;
+    VectorType diff=u*eigenvalue_i-m;
+    /** this is a good metric of the difference from the eigenvalue 
+     *  because, over iterations, we minimize \|  u*eigenvalue_i-m \|^2  
+     */
     double d=diff.two_norm()/(double)diff.size();
     avgdifffromevec+=d;
-    //    std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
+    this->m_CanonicalCorrelations[i]=eigenvalue_i;
+    //  std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
+  std::cout <<" variance explained: " << evalsum / trace << std::endl;
   //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
   return avgdifffromevec/(TRealType)n_vecs; 
   /*****************************************/
@@ -776,7 +789,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     std::cout <<" hypod " << hypod << " a " << a << " b " << b << " a/b " << a/b << " " << std::endl;
     ptemp=ptemp+m*a;
   }
-
+  return 0;
 
 }
 
