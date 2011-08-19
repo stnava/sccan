@@ -855,21 +855,22 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     VectorType qveck=pmod*ptemp;     
     pveck=pmod.transpose()*pveck;
     qveck=qmod.transpose()*qveck;
+    //    this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+    //    this->ReSoftThreshold( qveck , fnq , !this->m_KeepPositiveQ );
     if ( k > 0 )
     for ( unsigned int j=0; j< k; j++) {
       VectorType qj=this->m_VariatesP.get_column(j);
-      VectorType pmqj=pmod*qj;
+      VectorType pmqj=qj; // pmqj=pmod*qj;
       RealType ip=inner_product(pmqj,pmqj);
       if (ip < this->m_Epsilon) ip=1;
-      RealType hjk=inner_product(pmqj,pmod*pveck)/ip;
-                  
+      RealType hjk=inner_product(pmqj,pveck)/ip;
       pveck=pveck-hjk*qj; 
+
       qj=this->m_VariatesQ.get_column(j); 
-      pmqj=qmod*qj;
+      pmqj=qj;      //      pmqj=qmod*qj;
       ip=inner_product(pmqj,pmqj);
       if (ip < this->m_Epsilon) ip=1;
-      hjk=inner_product(pmqj,qmod*qveck)/ip;
-                   inner_product(pmqj,pmqj);
+      hjk=inner_product(pmqj,qveck)/ip;
       qveck=qveck-hjk*qj; 
     }
     this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
