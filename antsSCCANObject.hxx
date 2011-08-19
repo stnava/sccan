@@ -261,7 +261,7 @@ antsSCCANObject<TInputImage, TRealType>
 //  std::cout << " pre minv " << minv << " pre maxv " << maxv << std::endl;
   if ( fabs(v_in.min_value()) > maxv ) maxv=fabs(v_in.min_value());
   minv=0;
-  RealType lambg=1.e-3;
+  RealType lambg=this->m_Epsilon;
   RealType frac=0;
   unsigned int its=0,ct=0;
   RealType soft_thresh=lambg;
@@ -658,7 +658,8 @@ void antsSCCANObject<TInputImage, TRealType>
     RealType val=fabs(this->m_CanonicalCorrelations[j]);
     evals[j]=val;
     oevals[j]=val;
-  }  sort (evals.begin(), evals.end(), my_sccan_sort_object); 
+  }  
+  sort (evals.begin(), evals.end(), my_sccan_sort_object); 
   std::vector<int> sorted_indices(n_vecs,-1);
   for (unsigned int i=0; i<evals.size(); i++) {
   for (unsigned int j=0; j<evals.size(); j++) {
@@ -696,7 +697,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
       this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
   }
-
+  MatrixType covmat=this->m_MatrixP*this->m_MatrixP.transpose(); 
+  double trace=vnl_trace<double>(covmat); 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   for (unsigned int kk=0;kk<n_vecs; kk++) {
     this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
@@ -706,7 +708,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 // Arnoldi Iteration SVD/SPCA
   RealType conv=1;
   unsigned int loop=0;
-  while ( loop < maxloop && conv > 1.e-4 ) {
+  while ( loop < maxloop && conv > 1.e-4 || loop < 5 ) {
   RealType fnp=this->m_FractionNonZeroP;
 
   for ( unsigned int k=0; k<n_vecs; k++) {
@@ -731,26 +733,26 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     if ( hkkm1 > this->m_Epsilon ) this->m_VariatesP.set_column(k,pveck/hkkm1);
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
-  conv=this->ComputeSPCAEigenvalues(n_vecs);
+  if ( loop > 0 ) conv=this->ComputeSPCAEigenvalues(n_vecs,trace);
   if (loop>0) this->SortResults(n_vecs);  
   std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations << " Sparseness: " << fnp  << " convergence-criterion: " << conv << std::endl;
+  //  this->RunDiagnostics(n_vecs);
   loop++;
   }//opt-loop
-  //this->RunDiagnostics(n_vecs);
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 
 template <class TInputImage, class TRealType>
 TRealType antsSCCANObject<TInputImage, TRealType>
-::ComputeSPCAEigenvalues(unsigned int n_vecs)
+::ComputeSPCAEigenvalues(unsigned int n_vecs, TRealType trace)
 {
   //   we have   variates  P = X  ,  Q = X^T  ,    Cov \approx \sum_i eval_i E_i^t E_i 
   //   where E_i - eigenvector,  eval_i eigenvalue 
+  unsigned long mind=this->m_MatrixP.rows();
+  if ( mind > this->m_MatrixP.cols() ) mind=this->m_MatrixP.cols();
   double avgdifffromevec=0;
-  MatrixType covmat=this->m_MatrixP.transpose()*this->m_MatrixP; 
-  double trace=vnl_trace<double>(covmat); 
   double evalsum=0;
-  // we estimate variance explained by  \sum_i eigenvalue_i / trace(A) 
+  // we estimate variance explained by  \sum_i eigenvalue_i / trace(A) ...
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
@@ -758,20 +760,23 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) < this->m_Epsilon ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
     VectorType proj=(pmod*u);
-    VectorType proj2=(this->m_MatrixP*u);
     VectorType m=pmod.transpose()*proj;
-    double eigenvalue_i=m.two_norm()/u.two_norm();
-    evalsum+=eigenvalue_i;
+    double eigenvalue_i=1.e-5;
+    double unorm=u.two_norm();
+    if (unorm > this->m_Epsilon) eigenvalue_i=m.two_norm()/unorm;
+    if ( i < mind-1 ) evalsum+=eigenvalue_i;
     VectorType diff=u*eigenvalue_i-m;
     /** this is a good metric of the difference from the eigenvalue 
      *  because, over iterations, we minimize \|  u*eigenvalue_i-m \|^2  
      */
     double d=diff.two_norm()/(double)diff.size();
+    if ( d > 1 ) { eigenvalue_i=0; d=1 ; }
     avgdifffromevec+=d;
     this->m_CanonicalCorrelations[i]=eigenvalue_i;
-    //  std::cout << " diff from evec " << i <<" is "<<d<< std::endl;
   }
-  std::cout <<" variance explained: " << evalsum / trace << std::endl;
+  double vex=evalsum / trace;  
+  if ( vex > 1 ) vex=0;  
+  std::cout <<" variance explained: " << vex << std::endl;
   //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
   return avgdifffromevec/(TRealType)n_vecs; 
   /*****************************************/
