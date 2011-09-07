@@ -24,6 +24,35 @@
 #include "itkCSVNumericObjectFileWriter.h"
 #include "itkCSVArray2DDataObject.h"
 #include "itkCSVArray2DFileReader.h"
+#include "itkExtractImageFilter.h"
+
+
+
+template <class TImageType> 
+bool SCCANReadImage(itk::SmartPointer<TImageType> &target, const char *file)
+{
+  if ( std::string(file).length() < 3 ) { std::cout << " bad file name " << std::string(file) << std::endl ;    target=NULL;  return false;  }
+ // Read the image files begin
+    typedef TImageType ImageType;
+    typedef itk::ImageFileReader< ImageType >      FileSourceType;
+    typedef typename ImageType::PixelType PixType;
+    typename FileSourceType::Pointer reffilter = FileSourceType::New();
+    reffilter->SetFileName( file );
+    try
+    {
+      reffilter->Update();
+    }
+    catch( itk::ExceptionObject & e )
+    {
+      std::cout << "Exception caught during reference file reading " << std::endl;
+      std::cout << e << " file " << file << std::endl;
+      target=NULL;
+      return false;
+    }
+   target=reffilter->GetOutput();
+   return true;
+}
+
 
 template <class TComp>
 double vnl_pearson_corr( vnl_vector<TComp> v1, vnl_vector<TComp> v2 )
@@ -445,6 +474,106 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
   return ;
 }
 
+
+template < class PixelType>
+int
+ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::string outname  )
+{
+  const unsigned int ImageDimension=4;
+  typedef itk::Vector<PixelType,ImageDimension>         VectorType;
+  typedef itk::Image<VectorType,ImageDimension>     FieldType;
+  typedef itk::Image<PixelType,ImageDimension> ImageType;
+  typedef itk::Image<PixelType,ImageDimension-1> OutImageType;
+  typedef typename OutImageType::IndexType OutIndexType;
+  typedef itk::ImageFileReader<ImageType> readertype;
+  typedef itk::ImageFileWriter<ImageType> writertype;
+  typedef typename ImageType::IndexType IndexType;
+  typedef typename ImageType::SizeType SizeType;
+  typedef typename ImageType::SpacingType SpacingType;
+  typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
+
+  typedef double Scalar;
+  std::string ext = itksys::SystemTools::GetFilenameExtension( outname );
+  if  (strcmp(ext.c_str(),".csv") != 0 ) {
+    std::cout << " must use .csv as output file extension "<<std::endl;
+    return EXIT_FAILURE;
+  }
+  typename ImageType::Pointer image1=NULL;
+  typename OutImageType::Pointer mask=NULL;
+  if (imagefn.length() > 3)   SCCANReadImage<ImageType>(image1, imagefn.c_str());
+  else return 1;
+  if (maskfn.length() > 3)   SCCANReadImage<OutImageType>(mask, maskfn.c_str());
+  else return 1;
+  unsigned int timedims=image1->GetLargestPossibleRegion().GetSize()[ImageDimension-1];
+  unsigned long voxct=0;
+  typedef itk::ExtractImageFilter<ImageType,OutImageType> ExtractFilterType;
+  typedef itk::ImageRegionIteratorWithIndex<OutImageType> SliceIt;
+  SliceIt mIter( mask,mask->GetLargestPossibleRegion() );
+  for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
+    if (mIter.Get() >= 0.5) voxct++;
+
+
+  typename ImageType::RegionType extractRegion = image1->GetLargestPossibleRegion();
+  extractRegion.SetSize(ImageDimension-1, 0);
+  unsigned int sub_vol=0;
+  extractRegion.SetIndex(ImageDimension-1, sub_vol );
+  typename ExtractFilterType::Pointer extractFilter = ExtractFilterType::New();
+  extractFilter->SetInput( image1 );
+  //    extractFilter->SetDirectionCollapseToIdentity();
+  extractFilter->SetDirectionCollapseToSubmatrix();
+  extractFilter->SetExtractionRegion( extractRegion );
+  extractFilter->Update();
+  typename OutImageType::Pointer outimage=extractFilter->GetOutput();
+  outimage->FillBuffer(0);
+
+  typedef itk::ImageRegionIteratorWithIndex<ImageType> ImageIt;
+  typedef itk::ImageRegionIteratorWithIndex<OutImageType> SliceIt;
+
+  typedef vnl_vector<Scalar>      timeVectorType;
+  timeVectorType mSample(timedims,0);
+  typedef itk::Array2D<double> MatrixType;
+  std::vector<std::string> ColumnHeaders;
+  MatrixType matrix(timedims,voxct);
+  matrix.Fill(0);
+  SliceIt vfIter2( outimage, outimage->GetLargestPossibleRegion() );
+  voxct=0;
+  for(  vfIter2.GoToBegin(); !vfIter2.IsAtEnd(); ++vfIter2 )
+    {
+      OutIndexType ind=vfIter2.GetIndex();
+      if ( mask->GetPixel(ind) >= 0.5 ) {
+      IndexType tind;
+      // first collect all samples for that location
+      for (unsigned int i=0; i<ImageDimension-1; i++) tind[i]=ind[i];
+      for (unsigned int t=0; t<timedims; t++){
+        tind[ImageDimension-1]=t;
+	Scalar pix=image1->GetPixel(tind);
+        mSample(t)=pix;
+        matrix[t][voxct]=pix;
+      }
+      std::string colname=std::string("V")+sccan_to_string<unsigned int>(voxct);
+      ColumnHeaders.push_back( colname );
+      voxct++;
+      }// check mask
+    }
+
+    typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+    WriterType::Pointer writer = WriterType::New();
+    writer->SetFileName( outname );
+    writer->SetInput( &matrix );
+    writer->SetColumnHeaders( ColumnHeaders );
+    try
+    {
+      writer->Write();
+    }
+    catch (itk::ExceptionObject& exp)
+    {
+      std::cerr << "Exception caught!" << std::endl;
+      std::cerr << exp << std::endl;
+      return EXIT_FAILURE;
+    }
+
+}
+
 //p.d.
 template <unsigned int ImageDimension, class PixelType>
 void ConvertImageVecListToProjection( std::string veclist, std::string imagelist , std::string outname  )
@@ -572,12 +701,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   }
   
   typename ImageType::Pointer mask1=NULL;
-  typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
-  imgreader1->SetFileName( option->GetParameter( 1 ) );
-  if ( !p_is_csv ) {
-  imgreader1->Update();
-  mask1=imgreader1->GetOutput();
-  }
+  p_is_csv=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
@@ -668,20 +792,10 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
   CompareMatrixSizes<Scalar>( p,q );
 
   typename ImageType::Pointer mask1=NULL;
-  if ( !p_is_csv ) {
-  typename imgReaderType::Pointer imgreader1 = imgReaderType::New();
-  imgreader1->SetFileName( option->GetParameter( 2 ) );
-  imgreader1->Update(); 
-  mask1=imgreader1->GetOutput();
-  }
+  p_is_csv=SCCANReadImage<ImageType>(mask1, option->GetParameter( 2 ).c_str() );
 
   typename ImageType::Pointer mask2=NULL;
-  if ( !q_is_csv ) {
-  typename imgReaderType::Pointer imgreader2 = imgReaderType::New();
-  imgreader2->SetFileName( option->GetParameter( 3 ) );
-  imgreader2->Update();
-  mask2=imgreader2->GetOutput();
-  }
+  q_is_csv=SCCANReadImage<ImageType>(mask2, option->GetParameter( 3 ).c_str() );
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 4 ) );
@@ -852,28 +966,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
   CompareMatrixSizes<Scalar>( pin,rin );
 
   typename ImageType::Pointer mask1=NULL;
-  if ( !p_is_csv ) {
-  typename imgReaderType::Pointer imgreader = imgReaderType::New();
-  imgreader->SetFileName( option->GetParameter( 3 ) );
-  imgreader->Update();
-  mask1=imgreader->GetOutput();
-  }
-
+  p_is_csv=SCCANReadImage<ImageType>(mask1, option->GetParameter( 3 ).c_str() );
   typename ImageType::Pointer mask2=NULL;
-  if ( !q_is_csv ) {
-  typename imgReaderType::Pointer imgreader = imgReaderType::New();
-  imgreader->SetFileName( option->GetParameter( 4 ) );
-  imgreader->Update();
-  mask2=imgreader->GetOutput();
-  }
-
+  q_is_csv=SCCANReadImage<ImageType>(mask2, option->GetParameter( 4 ).c_str() );
   typename ImageType::Pointer mask3=NULL;
-  if ( !r_is_csv ) {
-  typename imgReaderType::Pointer imgreader = imgReaderType::New();
-  imgreader->SetFileName( option->GetParameter( 5 ) );
-  imgreader->Update();
-  mask3=imgreader->GetOutput();
-  }
+  r_is_csv=SCCANReadImage<ImageType>(mask3, option->GetParameter( 5 ).c_str() );
 
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 6 ) );
@@ -1229,11 +1326,6 @@ int sccan( itk::ants::CommandLineParser *parser )
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOption =
     parser->GetOption( "imageset-to-matrix" );
-
-	//p.d.
-  itk::ants::CommandLineParser::OptionType::Pointer matrixProjectionOption =
-    parser->GetOption( "imageset-to-projections" );
-
   if( matrixOption && matrixOption->GetNumberOfValues() > 0 )
     {
       std::string outname =  outputOption->GetValue( 0 );
@@ -1244,7 +1336,23 @@ int sccan( itk::ants::CommandLineParser *parser )
       return EXIT_SUCCESS;
     }
 
+  //  operations on individual matrices
+  itk::ants::CommandLineParser::OptionType::Pointer matrixOptionTimeSeries =
+    parser->GetOption( "timeseriesimage-to-matrix" );
+  if( matrixOptionTimeSeries && matrixOption->GetNumberOfValues() > 0 )
+    {
+      std::string outname=outputOption->GetValue( 0 );
+      std::string imagefn=matrixOption->GetParameter( 0 );
+      std::string maskfn=matrixOption->GetParameter( 1 );
+      typedef itk::Image<double,2> MyImageType;
+      ConvertTimeSeriesImageToMatrix<double>( imagefn,  maskfn  , outname );
+      return EXIT_SUCCESS;
+    }
+
+
 	//p.d.
+    itk::ants::CommandLineParser::OptionType::Pointer matrixProjectionOption =
+      parser->GetOption( "imageset-to-projections" );
     if( matrixProjectionOption && matrixProjectionOption->GetNumberOfValues() > 0 )
     {
 
@@ -1432,6 +1540,17 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "imageset-to-matrix" );
   option->SetUsageOption( 0, "[list.txt,mask.nii.gz]" );
+  option->SetDescription( description );
+  parser->AddOption( option );
+  }
+
+  {
+  std::string description =
+    std::string( "takes a timeseries (4D) image " ) +
+    std::string( "and converts it to a 2D matrix / image csv format depending on the filetype used to define the output." );
+  OptionType::Pointer option = OptionType::New();
+  option->SetLongName( "timeseriesimage-to-matrix" );
+  option->SetUsageOption( 0, "[four_d_image.nii.gz,three_d_mask.nii.gz]" );
   option->SetDescription( description );
   parser->AddOption( option );
   }

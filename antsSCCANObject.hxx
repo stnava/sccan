@@ -137,14 +137,22 @@ antsSCCANObject<TInputImage, TRealType>
       histogram[i]=0;
     }
   for(  vfIter.GoToBegin(); !vfIter.IsAtEnd(); ++vfIter ) {
-    if (vfIter.Get() > 0 )
+    float vox=vfIter.Get();
+    if (vox > 0 )
     {
-      float vox=vfIter.Get();
       if (vox > 0 ) {
-        histogram[(unsigned long)vfIter.Get()]=histogram[(unsigned long)vfIter.Get()]+1;
+        histogram[(unsigned long)vox]=histogram[(unsigned long)vox]+1;
       }
     }
   }
+
+  // get the largest component's size
+  unsigned long largest_component_size=0;
+  for (int i=0; i<=maximum; i++) 
+    {
+      if ( largest_component_size < histogram[i] ) largest_component_size=histogram[i];
+    }
+
 
 //  now create the output vector 
   // iterate through the image and set the voxels where  countinlabel[(unsigned long)(labelimage->GetPixel(vfIter.GetIndex()) - min)] 
@@ -158,7 +166,8 @@ antsSCCANObject<TInputImage, TRealType>
       unsigned long clustersize=0;
       if ( vox >= 0  ) {
         clustersize=histogram[(unsigned long)(relabel->GetOutput()->GetPixel(mIter.GetIndex()) )];
-        if ( clustersize > minclust ) { keepct++; }
+	if ( clustersize > minclust ) { keepct++; } // get clusters > minclust
+	//	if ( clustersize == largest_component_size ) { keepct++; } // get largest cluster 
 	else { w_p(vecind)=0;  }
 	vecind++;
       }
@@ -890,7 +899,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::cout <<" Loop " << loop << " Corrs : " << this->m_CanonicalCorrelations << " sparp " << fnp << " sparq " << fnq << std::endl;
   } // outer loop 
   this->SortResults(n_vecs);  
-  this->RunDiagnostics(n_vecs);
+  //  this->RunDiagnostics(n_vecs);
   if ( n_vecs > 1 ) return fabs(this->m_CanonicalCorrelations[1])+fabs(this->m_CanonicalCorrelations[0]);
   else return fabs(this->m_CanonicalCorrelations[0]);
 
