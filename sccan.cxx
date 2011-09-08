@@ -47,10 +47,10 @@ bool SCCANReadImage(itk::SmartPointer<TImageType> &target, const char *file)
       std::cout << "Exception caught during reference file reading " << std::endl;
       std::cout << e << " file " << file << std::endl;
       target=NULL;
-      return false;
+      return true;
     }
    target=reffilter->GetOutput();
-   return true;
+   return false;
 }
 
 
@@ -477,7 +477,7 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
 
 template < class PixelType>
 int
-ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::string outname  )
+ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::string outname  , double smoother = 0)
 {
   const unsigned int ImageDimension=4;
   typedef itk::Vector<PixelType,ImageDimension>         VectorType;
@@ -500,10 +500,29 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
   }
   typename ImageType::Pointer image1=NULL;
   typename OutImageType::Pointer mask=NULL;
+  std::cout << " imagefn " << imagefn << std::endl;
   if (imagefn.length() > 3)   SCCANReadImage<ImageType>(image1, imagefn.c_str());
-  else return 1;
+  else {std::cout<< " cannot read image " << imagefn << std::endl; return 1; }
+
+  if ( smoother > 0 ) {
+    typename ImageType::SpacingType spacing=image1->GetSpacing();
+    typename ImageType::SpacingType spacing2=image1->GetSpacing();
+    spacing2[3]=sqrt(spacing[0]*spacing[0]+spacing[1]*spacing[1]+spacing[2]*spacing[2])*10.0;
+    image1->SetSpacing(spacing2);
+    typedef itk::DiscreteGaussianImageFilter<ImageType, ImageType> dgf;
+    typename dgf::Pointer filter = dgf::New();
+    filter->SetVariance(smoother);
+    filter->SetUseImageSpacingOn();
+    filter->SetMaximumError(.01f);
+    filter->SetInput(image1);
+    filter->Update();
+    image1=filter->GetOutput();
+    image1->SetSpacing(spacing);
+  }
+
+
   if (maskfn.length() > 3)   SCCANReadImage<OutImageType>(mask, maskfn.c_str());
-  else return 1;
+  else {std::cout<< " cannot read mask " << maskfn << std::endl; return 1; }
   unsigned int timedims=image1->GetLargestPossibleRegion().GetSize()[ImageDimension-1];
   unsigned long voxct=0;
   typedef itk::ExtractImageFilter<ImageType,OutImageType> ExtractFilterType;
@@ -511,7 +530,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
   SliceIt mIter( mask,mask->GetLargestPossibleRegion() );
   for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
     if (mIter.Get() >= 0.5) voxct++;
-
+  std::cout << " timedims " << timedims << std::endl;
 
   typename ImageType::RegionType extractRegion = image1->GetLargestPossibleRegion();
   extractRegion.SetSize(ImageDimension-1, 0);
@@ -525,6 +544,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
   extractFilter->Update();
   typename OutImageType::Pointer outimage=extractFilter->GetOutput();
   outimage->FillBuffer(0);
+
 
   typedef itk::ImageRegionIteratorWithIndex<ImageType> ImageIt;
   typedef itk::ImageRegionIteratorWithIndex<OutImageType> SliceIt;
@@ -571,6 +591,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
       std::cerr << exp << std::endl;
       return EXIT_FAILURE;
     }
+    std::cout <<" done writing " << std::endl;
 
 }
 
@@ -702,7 +723,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   
   typename ImageType::Pointer mask1=NULL;
   p_is_csv=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
-
+  std::cout << " p_is_csv " << p_is_csv << std::endl;
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
   if ( FracNonZero1 < 0 )
@@ -1339,13 +1360,18 @@ int sccan( itk::ants::CommandLineParser *parser )
   //  operations on individual matrices
   itk::ants::CommandLineParser::OptionType::Pointer matrixOptionTimeSeries =
     parser->GetOption( "timeseriesimage-to-matrix" );
-  if( matrixOptionTimeSeries && matrixOption->GetNumberOfValues() > 0 )
+  if( matrixOptionTimeSeries && matrixOptionTimeSeries->GetNumberOfValues() > 0 )
     {
       std::string outname=outputOption->GetValue( 0 );
-      std::string imagefn=matrixOption->GetParameter( 0 );
-      std::string maskfn=matrixOption->GetParameter( 1 );
+      std::string imagefn=matrixOptionTimeSeries->GetParameter( 0 );
+      std::string maskfn=matrixOptionTimeSeries->GetParameter( 1 );
+      double smoother=0;
+      if ( matrixOptionTimeSeries->GetNumberOfParameters() > 2 )
+        smoother=parser->Convert<double>( matrixOptionTimeSeries->GetParameter( 2 ) );
       typedef itk::Image<double,2> MyImageType;
-      ConvertTimeSeriesImageToMatrix<double>( imagefn,  maskfn  , outname );
+      std::cout <<" outname " << outname << " smoothing " << smoother << std::endl;
+      ConvertTimeSeriesImageToMatrix<double>( imagefn,  maskfn  , outname , smoother );
+      std::cout <<" outname done " << outname << std::endl;
       return EXIT_SUCCESS;
     }
 
@@ -1547,10 +1573,10 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
   {
   std::string description =
     std::string( "takes a timeseries (4D) image " ) +
-    std::string( "and converts it to a 2D matrix / image csv format depending on the filetype used to define the output." );
+    std::string( "and converts it to a 2D matrix csv format as output." );
   OptionType::Pointer option = OptionType::New();
   option->SetLongName( "timeseriesimage-to-matrix" );
-  option->SetUsageOption( 0, "[four_d_image.nii.gz,three_d_mask.nii.gz]" );
+  option->SetUsageOption( 0, "[four_d_image.nii.gz,three_d_mask.nii.gz, optional-smoothing-param-in-spacing-units-default-zero ]" );
   option->SetDescription( description );
   parser->AddOption( option );
   }
