@@ -47,10 +47,10 @@ bool SCCANReadImage(itk::SmartPointer<TImageType> &target, const char *file)
       std::cout << "Exception caught during reference file reading " << std::endl;
       std::cout << e << " file " << file << std::endl;
       target=NULL;
-      return true;
+      return false;
     }
    target=reffilter->GetOutput();
-   return false;
+   return true;
 }
 
 
@@ -158,6 +158,7 @@ void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_
   myfile << std::endl;
   myfile.close();
   if ( have_mask ) {
+    std::cout << " have_mask " << have_mask << std::endl;
   for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
     post2=post+sccan_to_string<unsigned int>(vars);
     vnl_vector<TComp> temp=varmat.get_column(vars);
@@ -864,6 +865,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
+      std::cout << " have_p_mask " << have_p_mask << std::endl;
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask );
       post=std::string("View2vec");
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesQ() , mask2 , sccanobj->GetMatrixQ() , have_q_mask );
