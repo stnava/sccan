@@ -740,6 +740,32 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
     std::cout << " nuis_img " << nuis_img << std::endl;
     ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
     CompareMatrixSizes<Scalar>( p,r );
+    itk::ants::CommandLineParser::OptionType::Pointer partialccaOpt =
+      parser->GetOption( "partial-scca-option" );
+    std::string partialccaoption=std::string("PQ");
+    if( partialccaOpt )
+    {
+      //  enum SCCANFormulationType{ PQ , PminusRQ ,  PQminusR ,  PminusRQminusR , PQR  };
+      if ( partialccaOpt->GetNumberOfValues() > 0 )
+        partialccaoption=parser->Convert<std::string>( partialccaOpt->GetValue() );
+      std::cout <<" Partial SCCA option " << partialccaoption << std::endl;
+      if( !partialccaoption.compare( std::string( "PQ" ) ) )
+      {
+        sccanobj->SetSCCANFormulation(  SCCANType::PQ );
+      }
+      else if( !partialccaoption.compare( std::string( "PminusRQ" ) ) )
+      {
+        sccanobj->SetSCCANFormulation(  SCCANType::PminusRQ );
+      }
+      else if( !partialccaoption.compare( std::string( "PQminusR" ) ) )
+      {
+        sccanobj->SetSCCANFormulation(  SCCANType::PQminusR );
+      }
+      else if( !partialccaoption.compare( std::string( "PminusRQminusR" ) ) )
+      {
+        sccanobj->SetSCCANFormulation(  SCCANType::PminusRQminusR );
+      }
+    }
   }
   }
   else std::cout << " No nuisance parameters." << std::endl;

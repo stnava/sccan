@@ -701,10 +701,13 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::cout <<" arnoldi sparse svd " << std::endl;
   this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);  
   this->m_MatrixQ=this->m_MatrixP;
+  std::cout << " this->m_OriginalMatrixR.size() " << this->m_OriginalMatrixR.size() << std::endl;
   if ( this->m_OriginalMatrixR.size() > 0 ) {
     this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
-    if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  
+    if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  {
+      std::cout <<" Subtracting nuisance matrix from P matrix " << std::endl;
       this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+    }
   }
   MatrixType covmat=this->m_MatrixP*this->m_MatrixP.transpose(); 
   double trace=vnl_trace<double>(covmat); 
