@@ -99,6 +99,7 @@ template <class TInputImage, class TRealType>
 antsSCCANObject<TInputImage, TRealType>
 ::ClusterThresholdVariate(  typename antsSCCANObject<TInputImage, TRealType>::VectorType& w_p   , typename TInputImage::Pointer mask , unsigned int minclust ) 
 {
+  //  std::cout <<" Minclust " << minclust << std::endl;
   if ( minclust <= 1 ) return w_p; 
   typedef unsigned long ULPixelType;
   typedef itk::Image<ULPixelType, ImageDimension> labelimagetype;
@@ -174,7 +175,7 @@ antsSCCANObject<TInputImage, TRealType>
     }
   }
   this->m_KeptClusterSize=histogram[1];
-//  std::cout << " Cluster Threshold Kept % of sparseness " <<  ( (float)keepct/(float)w_p.size() ) / this->m_FractionNonZeroP   << " kept clust size " << keepct << std::endl;
+  //  std::cout << " Cluster Threshold Kept % of sparseness " <<  ( (float)keepct/(float)w_p.size() ) / this->m_FractionNonZeroP   << " kept clust size " << keepct << std::endl;
   return w_p;
 }
 
@@ -765,18 +766,22 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   double avgdifffromevec=0;
   double evalsum=0;
   // we estimate variance explained by  \sum_i eigenvalue_i / trace(A) ...
+  double vex=0;  
   for ( unsigned int i=0; i < n_vecs ; i++ ) 
   {
     VectorType  u=this->m_VariatesP.get_column(i);
     vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
     for ( unsigned int j=0; j< u.size(); j++) if ( fabs(u(j)) < this->m_Epsilon ) indicator(j,j)=0; 
     MatrixType pmod=this->m_MatrixP*indicator; 
+    MatrixType sub_covmat=pmod*pmod.transpose(); 
+    double sub_trace=vnl_trace<double>(sub_covmat); 
     VectorType proj=(pmod*u);
     VectorType m=pmod.transpose()*proj;
     double eigenvalue_i=1.e-5;
     double unorm=u.two_norm();
     if (unorm > this->m_Epsilon) eigenvalue_i=m.two_norm()/unorm;
     if ( i < mind-1 ) evalsum+=eigenvalue_i;
+    vex+=eigenvalue_i/sub_trace;
     VectorType diff=u*eigenvalue_i-m;
     /** this is a good metric of the difference from the eigenvalue 
      *  because, over iterations, we minimize \|  u*eigenvalue_i-m \|^2  
@@ -786,7 +791,6 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     avgdifffromevec+=d;
     this->m_CanonicalCorrelations[i]=eigenvalue_i;
   }
-  double vex=evalsum / trace;  
   if ( vex > 1 ) vex=0;  
   std::cout <<" variance explained: " << vex << std::endl;
   //  std::cout <<" eval diff " <<   avgdifffromevec/n_vecs << std::endl;
