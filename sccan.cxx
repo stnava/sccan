@@ -598,7 +598,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
 
 //p.d.
 template <unsigned int ImageDimension, class PixelType>
-void ConvertImageVecListToProjection( std::string veclist, std::string imagelist , std::string outname  )
+void ConvertImageVecListToProjection( std::string veclist, std::string imagelist , std::string outname , bool average  )
 {
 	//typedef itk::Image<PixelType,ImageDimension> ImageType;
 	typedef itk::Image<PixelType,ImageDimension> ImageType;
@@ -664,7 +664,7 @@ void ConvertImageVecListToProjection( std::string veclist, std::string imagelist
 	for (unsigned int j=0; j< image_fn_list.size(); j++)
 	{
 		for (unsigned int k=0; k< vec_fn_list.size(); k++) {
-			double proj=0,dotSum=0;
+		  double proj=0,dotSum=0,dotCounter=0,dotTotal=0;
 			typename ReaderType::Pointer reader1 = ReaderType::New();
 			reader1->SetFileName( image_fn_list[j] );
 			reader1->Update();
@@ -678,7 +678,9 @@ void ConvertImageVecListToProjection( std::string veclist, std::string imagelist
 			{
 				proj=mIter.Get()*mIter2.Get();
 				dotSum+=proj;
+				if ( mIter2.Get() > 0 ) { dotCounter=dotCounter+1; dotTotal+=mIter.Get(); }
 			}
+			if ( average && dotCounter > 0 ) dotSum=dotTotal/dotCounter;
 			if (k==vec_fn_list.size()-1)
 				myfile << dotSum;
 			else
@@ -1409,8 +1411,10 @@ int sccan( itk::ants::CommandLineParser *parser )
 		std::string outFilename =  outputOption->GetValue( 0 );
 		std::string vecList=matrixProjectionOption->GetParameter( 0 );
 		std::string imageList=matrixProjectionOption->GetParameter( 1 );
+		bool average=parser->Convert<bool>( matrixProjectionOption->GetParameter( 2 ) );
 		//std::cout <<"here" << outFilename << " " << vecList << " " <<imageList << std::endl;
-		ConvertImageVecListToProjection<ImageDimension,double>(vecList,imageList,outFilename );
+		if ( average ) std::cout << " doing average instead of dot product " << std::endl;
+		ConvertImageVecListToProjection<ImageDimension,double>(vecList,imageList,outFilename , average );
 		return EXIT_SUCCESS;
     }
 
@@ -1612,7 +1616,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
     std::string( "and writes them to a  csv file --- basically computing X*Y (matrices)." );
     OptionType::Pointer option = OptionType::New();
     option->SetLongName( "imageset-to-projections" );
-    option->SetUsageOption( 0, "[list_projections.txt,list_images.txt]" );
+    option->SetUsageOption( 0, "[list_projections.txt,list_images.txt, bool do-average-not-real-projection ]" );
     option->SetDescription( description );
     parser->AddOption( option );
   }
