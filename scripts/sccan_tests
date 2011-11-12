@@ -22,8 +22,8 @@ params=" -e 0 -n 2 -i 20 -r 0 -p 0  " # most common parameters
 t1=`${PATHTOSCCAN}/sccan --scca two-view[ ${PATHTODATA}myview1.csv , ${PATHTODATA}myview_mismatch.csv , na , na , 0.5 , 0.5 ] -o ${OUT}.nii.gz $params `
 test1=$?
 t2=`${PATHTOSCCAN}/sccan --sparse-svd [ ${PATHTODATA}myview3.csv , na , -0.15 ] -o ${OUT}.nii.gz -n 15 -i 500 `
-#${PATHTOSCCAN}/sccan --sparse-svd [ ${PATHTODATA}myview2.csv , na , 0.15 ] -o ${OUT}.nii.gz -n 28 -i 111
-#exit
+# ${PATHTOSCCAN}/sccan --sparse-svd [ ${PATHTODATA}myview2.csv , na , 0.15 ] -o ${OUT}.nii.gz -n 28 -i 111
+# exit
 test2=$?
 paramsb=" -e 0 -n 5 -i 50 -r 0 -p 0  --partial-scca-option PQminusR " # most common parameters 
 t3=`${PATHTOSCCAN}/sccan --scca partial[ ${PATHTODATA}myview2.csv , ${PATHTODATA}myview3.csv , ${PATHTODATA}myview4.csv , na , na , na , -0.4 , -0.9 , 1] -o ${OUT}.nii.gz $paramsb `
@@ -31,6 +31,8 @@ t3=`${PATHTOSCCAN}/sccan --scca partial[ ${PATHTODATA}myview2.csv , ${PATHTODATA
 # exit
 test3=$?
 t4=`${PATHTOSCCAN}/sccan --sparse-svd [ ${PATHTODATA}myview1.csv , na , 0.5 ] -o ${OUT}.nii.gz `
+# ${PATHTOSCCAN}/sccan --sparse-svd [ ${PATHTODATA}myview1.csv , na , -1] -o ${OUT}.nii.gz -n 25 -i 1000 
+# exit
 test4=$?
 t5a=`${PATHTOSCCAN}/sccan --scca partial[ ${PATHTODATA}myview2.csv , ${PATHTODATA}myview3.csv , ${PATHTODATA}myview4.csv , na , na , na , -0.05 , 0.1 , 1] -o ${OUT}.nii.gz $paramsb`
 t5b=`${PATHTOSCCAN}/sccan --scca partial[ ${PATHTODATA}myview2.csv , ${PATHTODATA}myview3.csv , ${PATHTODATA}myview4.csv , na , na , na , -0.05 ,  0.1 , 1] -o ${OUT}.nii.gz $paramsb`

@@ -230,6 +230,7 @@ public:
   RealType RunSCCAN3();
  
   void ReSoftThreshold( VectorType& v_in, RealType fractional_goal , bool allow_negative_weights );
+  void ConstantProbabilityThreshold( VectorType& v_in, RealType probability_goal , bool allow_negative_weights );
   VectorType InitializeV( MatrixType p );
   MatrixType NormalizeMatrix(MatrixType p);
   /** needed for partial scca */
@@ -463,6 +464,7 @@ private:
   unsigned int m_MinClusterSizeP;
   unsigned int m_MinClusterSizeQ;
   unsigned int m_KeptClusterSize;
+  VectorType m_ClusterSizes;
 
 };
 

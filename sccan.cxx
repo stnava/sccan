@@ -678,7 +678,7 @@ void ConvertImageVecListToProjection( std::string veclist, std::string imagelist
 			{
 				proj=mIter.Get()*mIter2.Get();
 				dotSum+=proj;
-				if ( mIter2.Get() > 0 ) { dotCounter=dotCounter+1; dotTotal+=mIter.Get(); }
+				if ( mIter2.Get() > 0 ) { dotCounter+=mIter2.Get(); dotTotal+=mIter.Get()*mIter2.Get(); }
 			}
 			if ( average && dotCounter > 0 ) dotSum=dotTotal/dotCounter;
 			if (k==vec_fn_list.size()-1)
