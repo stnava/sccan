@@ -813,7 +813,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   double lastconv=0;
   while ( loop < maxloop && fabs(conv-lastconv) > 1.e-6 || loop < 5 ) {
   RealType fnp=this->m_FractionNonZeroP;
-
+  if ( loop < 10 ) fnp=-1;
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     //    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
@@ -832,10 +832,10 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       RealType hjk=inner_product(qj,pveck)/ip;
       pveck=pveck-qj*hjk;
     }
-    //  x_i is sparse 
-    //    if ( this->m_KeepPositiveP ) 
-    this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );
-    //else this->ReSoftThreshold( pveck , fnp , this->m_KeepPositiveP );
+    //  x_i is sparse  
+    if ( this->m_KeepPositiveP ) 
+      this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );
+    else this->ReSoftThreshold( pveck , fnp , this->m_KeepPositiveP );
     this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
     this->m_ClusterSizes[k]=this->m_KeptClusterSize;
     double pveckabssum=0;
