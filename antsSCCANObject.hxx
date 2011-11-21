@@ -813,7 +813,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   double lastconv=0;
   while ( loop < maxloop && fabs(conv-lastconv) > 1.e-6 || loop < 5 ) {
   RealType fnp=this->m_FractionNonZeroP;
-  if ( loop < 10 ) fnp=-1;
+  //  if ( loop < 10 && ! this->m_KeepPositiveP ) fnp=-1;
   for ( unsigned int k=0; k<n_vecs; k++) {
     VectorType ptemp=this->m_VariatesP.get_column(k);
     //    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
