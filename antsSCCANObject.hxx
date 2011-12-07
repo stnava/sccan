@@ -765,7 +765,7 @@ void antsSCCANObject<TInputImage, TRealType>
     }
   }}
   //  for (unsigned int i=0; i<evals.size(); i++) {
-  //   std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<" oev "<<oevals[i]<< std::endl;
+  //  std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<" oev "<<oevals[i]<< std::endl;
   // }
   //std::cout<<"sort-c"<<std::endl;
   VectorType newcorrs(n_vecs,0);
@@ -784,7 +784,7 @@ void antsSCCANObject<TInputImage, TRealType>
     this->m_VariatesP.set_column(i,varp.get_column( i ));
     if (  this->m_VariatesQ.columns() > i ) this->m_VariatesQ.set_column(i,varq.get_column( i ));
   }
-  std::cout<<"sort-f"<<std::endl;
+  //  std::cout<<"sort-f"<<std::endl;
   this->m_CanonicalCorrelations=newcorrs;
 }
 
@@ -844,26 +844,34 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       pveck=pveck-qj*hjk;
     }
     //  x_i is sparse  
-    if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );  else
-    this->ReSoftThreshold( pveck , fnp , this->m_KeepPositiveP );
-    this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
-    this->m_ClusterSizes[k]=this->m_KeptClusterSize;
+    if ( loop > 2 ){
+      if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );  else
+      this->ReSoftThreshold( pveck , fnp , this->m_KeepPositiveP );
+      VectorType pveck_temp(pveck);
+      this->ClusterThresholdVariate( pveck_temp , this->m_MaskImageP, this->m_MinClusterSizeP );
+      if ( pveck_temp.two_norm() > 0 ) pveck=pveck_temp;
+    }
     double pveckabssum=0;
-    for (unsigned int pp=0;pp<pveck.size();pp++) pveckabssum+=fabs(pveck(pp));
+    for (unsigned int pp=0;pp<pveck.size();pp++) 
+      {
+      double v=fabs(pveck(pp));
+      pveckabssum+=v;
+      if ( v > 0) this->m_KeptClusterSize++;
+      }
     if ( pveckabssum > 0 ) pveck=pveck/pveckabssum;
+    else { pveck[0]=1.e-4;  }
+    this->m_ClusterSizes[k]=this->m_KeptClusterSize;
     this->m_VariatesP.set_column(k,pveck);
-    if (debug) std::cout<<"kloopdone"<<k<<std::endl;
+    //    if (debug) 
+    // std::cout<<"kloopdone"<<k<<" pveckabssum " << pveckabssum << std::endl;
   } //kloop 
   this->m_VariatesQ=this->m_VariatesP;
   lastconv=conv;
-  if ( loop > 1 )
-  {
-    if (debug) std::cout<<" get evecs "<<std::endl;
-    conv=this->ComputeSPCAEigenvalues(n_vecs,trace);
-    if (debug) std::cout<<" sort "<<std::endl;
-    this->SortResults(n_vecs);  
-    if (debug) std::cout<<" sort-done "<<std::endl;
-  }
+  if (debug) std::cout<<" get evecs "<<std::endl;
+  conv=this->ComputeSPCAEigenvalues(n_vecs,trace);
+  if (debug) std::cout<<" sort "<<std::endl;
+  this->SortResults(n_vecs);  
+  if (debug) std::cout<<" sort-done "<<std::endl;
   std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations/trace << " Sparseness: " << fnp  << " convergence-criterion: " << fabs(conv-lastconv) << " vex " << conv << std::endl;
   //  this->RunDiagnostics(n_vecs);
   loop++;
