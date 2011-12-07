@@ -856,7 +856,6 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       {
       double v=fabs(pveck(pp));
       pveckabssum+=v;
-      if ( v > 0) this->m_KeptClusterSize++;
       }
     if ( pveckabssum > 0 ) pveck=pveck/pveckabssum;
     else { pveck[0]=1.e-4;  }
