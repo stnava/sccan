@@ -129,7 +129,22 @@ inline std::string sccan_to_string (const T& t)
 {
   std::stringstream ss;
   ss << t;
-  return ss.str();
+  std::string stringout=ss.str();
+  if ( t < 100 )
+    {
+      std::stringstream ss0;
+      ss0 << 0;
+      std::string extend=ss0.str();
+      stringout=std::string(stringout+extend);
+    }
+  if ( t < 10 )
+    {
+      std::stringstream ss0;
+      ss0 << 0;
+      std::string extend=ss0.str();
+      stringout=std::string(stringout+extend);
+    }
+  return stringout;
 }
 
 template <class TImage,class TComp>

@@ -31,8 +31,9 @@ for ( x in c(1:neiganats) )
     evec<-( as.numeric(eiganatMatrix[x+1,]) > 0 )
     loclabs<-labels*(evec)
     for ( y in c(1:length(ulabs)) ) volmatrix[y,x]<-sum(loclabs==ulabs[y])
-    volmatrix[,x]<-volmatrix[,x]/sum(volmatrix[,x])
-  }
+    if ( sum(volmatrix[,x]) > 0 )
+      volmatrix[,x]<-volmatrix[,x]/sum(volmatrix[,x])
+}
 
 # now print out the results 
 formattedoutput<-rep("",neiganats)
@@ -42,10 +43,9 @@ for ( x in c(1:neiganats) )
     anatlist<-""
     for ( y in c(1:length(ulabs)) )
       {
+        if ( !is.na(volmatrix[y,x]) )
         if ( volmatrix[y,x] > 0 )
-          {
-            anatlist<-c(anatlist,as.character(labList[y,2]))
-          }
+          anatlist<-c(anatlist,as.character(labList[y,2]))
       }
     anatlist<-toString(anatlist)
     anatlist<-gsub(",","",anatlist)
