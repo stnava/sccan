@@ -28,7 +28,7 @@ for ( x in c(1:length(ulabs)) ) alllabelvols[x]<-sum(labels==ulabs[x])
 volmatrix<-matrix(NA,length(ulabs),neiganats)
 for ( x in c(1:neiganats) ) 
   {
-    evec<-( as.numeric(eiganatMatrix[x+1,]) > 0 )
+    evec<-( abs(as.numeric(eiganatMatrix[x+1,])) > 0 )
     loclabs<-labels*(evec)
     for ( y in c(1:length(ulabs)) ) volmatrix[y,x]<-sum(loclabs==ulabs[y])
     if ( sum(volmatrix[,x]) > 0 )
@@ -51,6 +51,7 @@ for ( x in c(1:neiganats) )
     anatlist<-gsub(",","",anatlist)
     anatlist<-paste(preout,anatlist,sep='')
     anatlist<-gsub(" ",",",anatlist)
+    print(as.character(anatlist))
     formattedoutput[x]<-as.character(anatlist)
   }
 
