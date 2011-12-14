@@ -37,15 +37,20 @@ for ( x in c(1:neiganats) )
 
 # now print out the results 
 formattedoutput<-rep("",neiganats)
+biganat<-rep("",neiganats)
 for ( x in c(1:neiganats) ) 
   {
     preout<-paste("eigenanatomy",x-1,sep='')
     anatlist<-""
+    biggestanat<-""
+    mx<-max(volmatrix[,x])
     for ( y in c(1:length(ulabs)) )
       {
         if ( !is.na(volmatrix[y,x]) )
         if ( volmatrix[y,x] > 0 )
           anatlist<-c(anatlist,as.character(labList[y,2]))
+        if ( volmatrix[y,x] == mx )
+          biganat[x]<-as.character(labList[y,2])
       }
     anatlist<-toString(anatlist)
     anatlist<-gsub(",","",anatlist)
@@ -55,8 +60,8 @@ for ( x in c(1:neiganats) )
     formattedoutput[x]<-as.character(anatlist)
   }
 
-df<-data.frame(formattedoutput,t(volmatrix))
-colnames(df)<-c("AllAnat",as.character(paste("Ratio_",labList[,2],sep='')))
+df<-data.frame(biganat,formattedoutput,t(volmatrix))
+colnames(df)<-c("MainAnatomy","AllAnat",as.character(paste("Ratio_",labList[,2],sep='')))
 write.csv(df,outname)
 q()
 

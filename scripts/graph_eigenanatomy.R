@@ -24,10 +24,10 @@ eigenanatDesriptor<-read.csv(eigenanatDesriptorFN) # the text names and numbers 
 a<-eigenanatDesriptor
 eigenanatProj<-read.csv(eigenanatProjFN) # the text names and numbers of each region 
 neig<-ncol(eigenanatProj)
-forheatmap<-matrix(0,neig,neig)
 for ( y in c(1:neig) )
   {
   vy<-eigenanatProj[,y]
+  forheatmap<-matrix(0,neig,neig)
   for ( z in c(1:neig) )
   {
     vz<-eigenanatProj[,z]
@@ -40,29 +40,29 @@ for ( y in c(1:neig) )
       }
     }
   }
-  }
-thresh<-(max(forheatmap))*0.9
-adjmat<-as.matrix( forheatmap > thresh , nrow=neig,ncol=neig)
-g1<-graph.adjacency( adjmat,mode=c("undirected")) #  mode=c("directed", "undirected", "max","min", "upper", "lower", "plus"))
+  thresh<-0.25 # (max(forheatmap))*0.9
+  adjmat<-as.matrix( forheatmap > thresh , nrow=neig,ncol=neig)
+  g1<-graph.adjacency( adjmat,mode=c("undirected")) #  mode=c("directed", "undirected", "max","min", "upper", "lower", "plus"))
                                         
-heatmap(forheatmap,Rowv=NA,Colv=NA,scale="none") # ,labRow=a$ROIName,labCol=a$ROIName)
- coords <- layout.fruchterman.reingold(g1, dim=2)
-# q()
-                                        # from ImageMath ROIStatistics 
-# coords[,1]<-as.numeric(a$comX)
-# coords[,2]<-as.numeric(a$comY)
-# coords[,3]<-as.numeric(a$comZ)
+#heatmap(forheatmap,Rowv=NA,Colv=NA,scale="none") # ,labRow=a$ROIName,labCol=a$ROIName)
+  if ( y == 1 ){
+    coords <- layout.fruchterman.reingold(g1, dim=3)
+   # from ImageMath ROIStatistics 
+   coords[,3]<-as.numeric(a$comX)
+   coords[,1]<-as.numeric(a$comY)
+   coords[,2]<-as.numeric(a$comZ)
+  }
 # coords<-as.matrix(read.csv('NirepManualGraphCoordsAxial.csv'))[,2:3]
 # plot(g1,layout=coords) # instead use Cairo
 # a$ROINumber
  colors<-rep("red",neig)
  colors[1:neig/2]="green"
-#pdf('temp.pdf')
-# plot(ntwk)
-# dev.off()
-  png(outname)
-  plot(g1,vertex.color=colors)
+  outfn<-paste(outname,y,"cnx.png",sep='')
+  print(paste("write",outfn))
+  png(outfn)
+  plot(g1,vertex.color=colors,vertex.label=a$ROINumber,layout=coords)
   dev.off()
+}
 
 q()
 
