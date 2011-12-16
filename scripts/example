@@ -1,13 +1,16 @@
-
-sccan --imageset-to-matrix [list.txt,$mask ] -o stats/thick.mhd
+ls *nii.gz > list.txt
+mkdir temp
+mask=mask.nii.gz
+if [ -s $mask ] ; then 
+sccan --imageset-to-matrix [list.txt,$mask ] -o temp/thick.mhd
 fi
 echo eigenanatomy
- sccan --sparse-svd [stats/thick.mhd,$mask,-0.02] -o SPCA.nii.gz --PClusterThresh 2000 -i 20 -n 20 
+sccan --sparse-svd [temp/thick.mhd,$mask,-0.02] -o SPCA.nii.gz --PClusterThresh 2000 -i 20 -n 20 
 # first label the eigenanatomy
  ls template/NIHPDtemplate_labels_low.nii > projlist.txt 
  ls SPCA*nii.gz >> projlist.txt 
- sccan --imageset-to-matrix [projlist.txt, $mask ] -o stats/labels.csv
- Rscript ~/code/sccan/scripts/label_eigenanatomy.R template/label_names.csv stats/labels.csv EigenAnatDescriptors.csv
+ sccan --imageset-to-matrix [projlist.txt, $mask ] -o temp/labels.csv
+ Rscript ~/code/sccan/scripts/label_eigenanatomy.R template/label_names.csv temp/labels.csv EigenAnatDescriptors.csv
 # now render eigenanatomy
  gunzip SPCA*nii.gz
  ls SPCA*nii > projlist.txt 

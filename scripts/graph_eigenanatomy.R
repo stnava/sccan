@@ -28,6 +28,7 @@ for ( y in c(1:neig) )
   {
   vy<-eigenanatProj[,y]
   forheatmap<-matrix(0,neig,neig)
+  ewt<-0
   for ( z in c(1:neig) )
   {
     vz<-eigenanatProj[,z]
@@ -37,13 +38,17 @@ for ( y in c(1:neig) )
     if ( y != z )
       {
         forheatmap[y,z]<-corval
+        ewt<-c(ewt,corval)
       }
     }
   }
+  ewt<-ewt[2:length(ewt)]
   thresh<-0.25 # (max(forheatmap))*0.9
+  ewt<-ewt[ ewt > thresh ] 
+#  print('edge weight ') ; print(ewt)
   adjmat<-as.matrix( forheatmap > thresh , nrow=neig,ncol=neig)
   g1<-graph.adjacency( adjmat,mode=c("undirected")) #  mode=c("directed", "undirected", "max","min", "upper", "lower", "plus"))
-                                        
+  g1 <- set.edge.attribute(g1 , "weights", value=ewt*10)
 #heatmap(forheatmap,Rowv=NA,Colv=NA,scale="none") # ,labRow=a$ROIName,labCol=a$ROIName)
   if ( y == 1 ){
     coords <- layout.fruchterman.reingold(g1, dim=3)
@@ -60,10 +65,11 @@ for ( y in c(1:neig) )
   outfn<-paste(outname,y,"cnx.png",sep='')
   print(paste("write",outfn))
   png(outfn)
-  plot(g1,vertex.color=colors,vertex.label=a$ROINumber,layout=coords)
+  #
+  plot(g1,vertex.color=colors,vertex.label=a$ROINumber,layout=coords,edge.width=E(g1)$weights)
   dev.off()
 }
-
+warnings()
 q()
 
 
