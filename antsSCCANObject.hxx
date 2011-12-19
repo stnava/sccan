@@ -773,11 +773,11 @@ void antsSCCANObject<TInputImage, TRealType>
   MatrixType varq(this->m_MatrixQ.cols(),n_vecs,0);
   //std::cout<<"sort-d"<<std::endl;
   for (unsigned int i=0; i<n_vecs; i++) {
-    if ( sorted_indices[i] > 0 ) {
+//    if ( sorted_indices[i] > 0 ) {
       varp.set_column(i,this->m_VariatesP.get_column( sorted_indices[i] ));
       if ( varq.columns() > i ) varq.set_column(i,this->m_VariatesQ.get_column( sorted_indices[i] ));
       newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
-    }
+//    }
   }
   //  std::cout<<"sort-e"<<std::endl;
   for (unsigned int i=0; i<n_vecs; i++) {
