@@ -1043,7 +1043,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 
 //Prior Constrained PCA
 	template <unsigned int ImageDimension, class PixelType>
-	int SVD_One_View_Prior( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20 )
+	int SVD_One_View_Prior( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20, bool basic_svd = false  )
 	{
 		std::cout << " sparse-svd-prior "<< std::endl; // note: 2 (in options) is for svd implementation
 		itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -1807,9 +1807,6 @@ int sccan( itk::ants::CommandLineParser *parser )
 
 
 
-    //p.d.
-    itk::ants::CommandLineParser::OptionType::Pointer matrixProjectionOption =
-      parser->GetOption( "imageset-to-projections" );
     if( matrixProjectionOption && matrixProjectionOption->GetNumberOfValues() > 0 )
     {
 
@@ -1869,9 +1866,6 @@ int sccan( itk::ants::CommandLineParser *parser )
 	
 
   std::cout <<" scca-max-iterations " << iterct << " you will assess significance with " << permct << " permutations." << std::endl;
-  //  operations on pairs of matrices
-  itk::ants::CommandLineParser::OptionType::Pointer matrixPairOption =
-    parser->GetOption( "scca" );
   if( matrixPairOption && matrixPairOption->GetNumberOfValues() > 0 )
     {
       if( matrixPairOption && matrixPairOption->GetNumberOfParameters() < 2 )
