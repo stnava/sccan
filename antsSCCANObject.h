@@ -206,6 +206,12 @@ public:
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
   void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
   
+ //Prior Constrained PCA
+	
+	void SetMatrixPriorROI(  MatrixType matrix ) { this->m_OriginalMatrixPriorROI.set_size(matrix.rows(),matrix.cols());  this->m_MatrixPriorROI.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixPriorROI.update(matrix); this->m_MatrixPriorROI.update(matrix); }
+	
+	
+	
   itkSetMacro( FractionNonZeroQ, RealType );
   itkSetMacro( KeepPositiveQ, bool );
   itkGetMacro( KeepPositiveQ, bool );
@@ -221,9 +227,14 @@ public:
   MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
   MatrixType GetMatrixQ(  ) { return this->m_MatrixQ; }
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
+	//Prior Constrained PCA
+  MatrixType GetMatrixPriorROI(  ) { return this->m_MatrixPriorROI; }
+	
   MatrixType GetOriginalMatrixP(  ) { return this->m_OriginalMatrixP; }
   MatrixType GetOriginalMatrixQ(  ) { return this->m_OriginalMatrixQ; }
   MatrixType GetOriginalMatrixR(  ) { return this->m_OriginalMatrixR; }
+	//Prior Constrained PCA
+ MatrixType GetOriginalMatrixPriorROI(  ) { return this->m_OriginalMatrixPriorROI; }	
 
   RealType RunSCCAN2multiple( unsigned int n_vecs );
   RealType RunSCCAN2( );
@@ -313,6 +324,8 @@ public:
   RealType SparsePartialCCA(unsigned int nvecs);
   RealType SparsePartialArnoldiCCA(unsigned int nvecs);
   RealType SparseArnoldiSVD(unsigned int nvecs);
+  //Prior Constrained
+  RealType SparseArnoldiSVDPriorConstrained(unsigned int nvecs);	
   RealType ComputeSPCAEigenvalues(unsigned int, RealType);
 
 protected:
@@ -413,6 +426,8 @@ private:
 
   bool m_Debug;
   MatrixType m_OriginalMatrixP;
+
+  MatrixType m_OriginalMatrixPriorROI;	
   MatrixType m_OriginalMatrixQ;
   MatrixType m_OriginalMatrixR;
 
@@ -429,6 +444,12 @@ private:
   RealType m_PercentVarianceForPseudoInverse;
   RealType m_Epsilon; /** used to prevent div by zero */
 
+	
+ //Prior constrained PCA --Refer to notation in the paper	
+  MatrixType m_MatrixPriorROI;	
+  MatrixType m_Ip;
+  MatrixType m_Ik;	
+	
   VectorType m_WeightsP;
   MatrixType m_MatrixP;
   ImagePointer m_MaskImageP;

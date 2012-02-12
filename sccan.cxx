@@ -861,11 +861,130 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
   }
-  
+	typename ImageType::Pointer mask1=NULL;
+	bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
+	/** the penalties define the fraction of non-zero values for each view */
+	double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
+	if ( FracNonZero1 < 0 )
+    {
+		FracNonZero1=fabs(FracNonZero1);
+		sccanobj->SetKeepPositiveP(false);
+    }
+	
+	/** read the nuisance matrix image */
+	vMatrix r;
+	if ( option->GetNumberOfParameters() > 4 ) {
+		std::string nuis_img=option->GetParameter( 4 );
+		if ( nuis_img.length() > 4 ) {
+			std::cout << " nuis_img " << nuis_img << std::endl;
+			ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
+			CompareMatrixSizes<Scalar>( p,r );
+			itk::ants::CommandLineParser::OptionType::Pointer partialccaOpt =
+			parser->GetOption( "partial-scca-option" );
+			std::string partialccaoption=std::string("PQ");
+			if( partialccaOpt )
+			{
+				//  enum SCCANFormulationType{ PQ , PminusRQ ,  PQminusR ,  PminusRQminusR , PQR  };
+				if ( partialccaOpt->GetNumberOfValues() > 0 )
+					partialccaoption=parser->Convert<std::string>( partialccaOpt->GetValue() );
+				std::cout <<" Partial SCCA option " << partialccaoption << std::endl;
+				if( !partialccaoption.compare( std::string( "PQ" ) ) )
+				{
+					sccanobj->SetSCCANFormulation(  SCCANType::PQ );
+				}
+				else if( !partialccaoption.compare( std::string( "PminusRQ" ) ) )
+				{
+					sccanobj->SetSCCANFormulation(  SCCANType::PminusRQ );
+				}
+				else if( !partialccaoption.compare( std::string( "PQminusR" ) ) )
+				{
+					sccanobj->SetSCCANFormulation(  SCCANType::PQminusR );
+				}
+				else if( !partialccaoption.compare( std::string( "PminusRQminusR" ) ) )
+				{
+					sccanobj->SetSCCANFormulation(  SCCANType::PminusRQminusR );
+				}
+			}
+		}
+	}
+	else std::cout << " No nuisance parameters." << std::endl;
+	
+	sccanobj->SetFractionNonZeroP(FracNonZero1);
+	sccanobj->SetMinClusterSizeP( p_cluster_thresh );
+	if ( robustify > 0 ) {
+		p=sccanobj->RankifyMatrixColumns(p);
+	}
+	sccanobj->SetMatrixP( p );
+	sccanobj->SetMatrixR( r );
+	sccanobj->SetMaskImageP( mask1 );
+	double truecorr=0;
+	truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+	vVector w_p=sccanobj->GetVariateP(0);
+	std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl;
+	
+	if( outputOption )
+    {
+		std::string filename =  outputOption->GetValue( 0 );
+		std::cout << " write " << filename << std::endl;
+		std::string::size_type pos = filename.rfind( "." );
+		std::string filepre = std::string( filename, 0, pos );
+		std::string extension = std::string( filename, pos, filename.length()-1);
+		if (extension==std::string(".gz")){
+			pos = filepre.rfind( "." );
+			extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+			filepre = std::string( filepre, 0, pos );
+		}
+		std::string post=std::string("View1vec");      
+		WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask );
+    }
+	
+	return EXIT_SUCCESS;
+}
+
+
+//Prior Constrained PCA
+	template <unsigned int ImageDimension, class PixelType>
+	int SVD_One_View_Prior( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20 )
+	{
+		std::cout << " sparse-svd-prior "<< std::endl; // note: 2 (in options) is for svd implementation
+		itk::ants::CommandLineParser::OptionType::Pointer outputOption =
+		parser->GetOption( "output" );
+		if( !outputOption || outputOption->GetNumberOfValues() == 0 )
+		{
+			std::cerr << "Warning:  no output option set." << std::endl;
+		}
+		itk::ants::CommandLineParser::OptionType::Pointer option =
+		parser->GetOption( "sparse-svd-prior" );
+		typedef itk::Image<PixelType, ImageDimension> ImageType;
+		typedef double  Scalar;
+		typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
+		typedef itk::Image<Scalar,2> MatrixImageType;
+		typedef itk::ImageFileReader<ImageType> imgReaderType;
+		typename SCCANType::Pointer sccanobj=SCCANType::New();
+		sccanobj->SetMaximumNumberOfIterations(iterct);
+		typedef typename SCCANType::MatrixType         vMatrix;
+		typedef typename SCCANType::VectorType         vVector;
+		typedef typename SCCANType::DiagonalMatrixType dMatrix;
+		/** read the matrix images */
+		/** we refer to the two view matrices as P and Q */
+		std::string pmatname=std::string(option->GetParameter( 0 ));
+		
+		std::string priorROImatname=std::string(option->GetParameter( 2 ));
+		vMatrix p;
+		ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
+
+		vMatrix priorROIMat;		
+		ReadMatrixFromCSVorImageSet<Scalar>(priorROImatname,priorROIMat);
+		if ( robustify > 0 ) {
+			p=sccanobj->RankifyMatrixColumns(p);
+		}
+		
+	
+	
   typename ImageType::Pointer mask1=NULL;
   bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
   /** the penalties define the fraction of non-zero values for each view */
-  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 3 ) );
   if ( FracNonZero1 < 0 )
     {
       FracNonZero1=fabs(FracNonZero1);
@@ -874,9 +993,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 
   /** read the nuisance matrix image */
   vMatrix r;
-  if ( option->GetNumberOfParameters() > 3 ) {
-  std::string nuis_img=option->GetParameter( 3 );
-  if ( nuis_img.length() > 3 ) {
+  if ( option->GetNumberOfParameters() > 4 ) {
+  std::string nuis_img=option->GetParameter( 4 );
+  if ( nuis_img.length() > 4 ) {
     std::cout << " nuis_img " << nuis_img << std::endl;
     ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
     CompareMatrixSizes<Scalar>( p,r );
@@ -918,8 +1037,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixR( r );
   sccanobj->SetMaskImageP( mask1 );
+  sccanobj->SetMatrixPriorROI( priorROIMat);	
   double truecorr=0;
-  truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+  truecorr=sccanobj->SparseArnoldiSVDPriorConstrained(n_evec);
   vVector w_p=sccanobj->GetVariateP(0);
   std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl;
 
@@ -940,7 +1060,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
     }
 
   return EXIT_SUCCESS;
-}
+	  }
 
 
 
@@ -1578,6 +1698,13 @@ int sccan( itk::ants::CommandLineParser *parser )
       SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
       return EXIT_SUCCESS;
     }
+	
+	itk::ants::CommandLineParser::OptionType::Pointer svdOptionPrior = parser->GetOption( "sparse-svd-prior" );
+    if( svdOptionPrior && svdOptionPrior->GetNumberOfValues() > 0 )
+    {
+		SVD_One_View_Prior<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
+		return EXIT_SUCCESS;
+    }
 
   std::cout <<" scca-max-iterations " << iterct << " you will assess significance with " << permct << " permutations." << std::endl;
   //  operations on pairs of matrices
@@ -1810,7 +1937,18 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
     option->SetDescription( description );
     parser->AddOption( option );
   }
-
+	
+//Prior constrained PCA
+	{
+		std::string description =
+		std::string( "a sparse svd implementation with prior (ROI) constrained eigenvectors--- will report correlation of eigenvector with original data columns averaged over columns with non-zero weights." );
+		OptionType::Pointer option = OptionType::New();
+		option->SetLongName( "sparse-svd-prior" );
+		option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,priorROIImage,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+		option->SetDescription( description );
+		parser->AddOption( option );
+	}	
+	
 
 
 }
