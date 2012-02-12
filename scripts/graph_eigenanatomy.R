@@ -65,7 +65,6 @@ for ( y in c(1:neig) )
   outfn<-paste(outname,y,"cnx.png",sep='')
   print(paste("write",outfn))
   png(outfn)
-  #
   plot(g1,vertex.color=colors,vertex.label=a$ROINumber,layout=coords,edge.width=E(g1)$weights)
   dev.off()
 }

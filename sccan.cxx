@@ -28,7 +28,7 @@
 
 
 
-template <class TImageType> 
+template <class TImageType>
 bool SCCANReadImage(itk::SmartPointer<TImageType> &target, const char *file)
 {
   if ( std::string(file).length() < 3 ) { std::cout << " bad file name " << std::string(file) << std::endl ;    target=NULL;  return false;  }
@@ -80,8 +80,8 @@ void WriteVectorToSpatialImage( std::string filename , std::string post , vnl_ve
       if ( pos != std::string::npos ){
         extension = std::string( filename, pos, filename.length()-1);
         if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
         }
       }
@@ -99,20 +99,20 @@ void WriteVectorToSpatialImage( std::string filename , std::string post , vnl_ve
       typedef itk::ImageRegionIteratorWithIndex<TImage> Iterator;
       Iterator mIter(mask,mask->GetLargestPossibleRegion() );
       for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
-	if (mIter.Get() >= 0.5)
-	  {
-	    TComp val=0;
-	    if ( vecind < w_p.size() ) val=w_p(vecind);
-	    else {
+    if (mIter.Get() >= 0.5)
+      {
+        TComp val=0;
+        if ( vecind < w_p.size() ) val=w_p(vecind);
+        else {
                std::cout << "vecind too large " << vecind << " vs " << w_p.size() << std::endl;
-	       std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
-	       exit(1);
-	    }
-	    //	    std::cout << " val " << val << std::endl;
-	    weights->SetPixel(mIter.GetIndex(),val);
-	    vecind++;
-	  }
-	else mIter.Set(0);
+           std::cout <<" this is likely a mask problem --- exiting! " << std::endl;
+           exit(1);
+        }
+        //        std::cout << " val " << val << std::endl;
+        weights->SetPixel(mIter.GetIndex(),val);
+        vecind++;
+      }
+    else mIter.Set(0);
 
       typedef itk::ImageFileWriter<TImage> WriterType;
       std::string fn1=filepre+post+extension;
@@ -231,11 +231,11 @@ CopyImageToVnlMatrix( typename TImage::Pointer   p_img )
   vMatrix p(pMatSize[0],pMatSize[1]);         // a (size)x(size+1)-matrix of int's
   for ( long j=0; j<p.columns(); ++j) {  // loop over columns
     for ( long i=0; i<p.rows(); ++i) { // loop over rows
-	typename TImage::IndexType ind;
-	ind[0]=i;
-	ind[1]=j;
-	TComp val=p_img->GetPixel(ind);
-	p(i,j) = val;  // to access matrix coefficients,
+    typename TImage::IndexType ind;
+    ind[0]=i;
+    ind[1]=j;
+    TComp val=p_img->GetPixel(ind);
+    p(i,j) = val;  // to access matrix coefficients,
       }
   }
   return p;
@@ -286,7 +286,7 @@ PermuteMatrix( vnl_matrix<TComp> q , bool doperm=true)
     {
       unsigned long perm=permvec[i];
       if ( doperm )
-	q_perm.set_row(i,q.get_row(perm));
+    q_perm.set_row(i,q.get_row(perm));
       else q_perm.set_row(i,q.get_row(i));
     }
   return q_perm;
@@ -333,7 +333,7 @@ CompareMatrixSizes(  vnl_matrix<RealType> & p ,  vnl_matrix<RealType> & q )
 }
 
 template <class PixelType>
-void 
+void
 ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
 {
   typedef PixelType Scalar;
@@ -400,21 +400,21 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
     std::ifstream inputStreamA( imagelist.c_str(), std::ios::in );
     if ( !inputStreamA.is_open() )
       {
-	std::cout << "Can't open image list file: " << imagelist << std::endl;
-	return ;
+    std::cout << "Can't open image list file: " << imagelist << std::endl;
+    return ;
       }
-	while ( !inputStreamA.eof() )
-	  {
-	    inputStreamA.getline( lineBuffer, maxChar, '\n' );
-      	    if ( sscanf( lineBuffer, "%s ",filenm) != 1 ){
-	      continue;
-	    }
-	    else {
-	      image_fn_list.push_back(std::string(filenm));
-	      filecount++;
-	    }
-	  }
-	inputStreamA.close();
+    while ( !inputStreamA.eof() )
+      {
+        inputStreamA.getline( lineBuffer, maxChar, '\n' );
+              if ( sscanf( lineBuffer, "%s ",filenm) != 1 ){
+          continue;
+        }
+        else {
+          image_fn_list.push_back(std::string(filenm));
+          filecount++;
+        }
+      }
+    inputStreamA.close();
   }
 
       /** declare the output matrix image */
@@ -445,11 +445,11 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
         {
           yy=tvoxct;
           matrix[xx][yy]=reader2->GetOutput()->GetPixel(mIter.GetIndex());
-	  if ( j == 0 )
-	    {
- 	    std::string colname=std::string("V")+sccan_to_string<unsigned long>(tvoxct);
+      if ( j == 0 )
+        {
+         std::string colname=std::string("V")+sccan_to_string<unsigned long>(tvoxct);
             ColumnHeaders.push_back( colname );
-	    }
+        }
           tvoxct++;
         }
       }
@@ -486,25 +486,25 @@ ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::strin
       matimage->SetOrigin( morg );
       matimage->Allocate();
       for (unsigned int j=0; j< image_fn_list.size(); j++)
-	{
-	  typename ReaderType::Pointer reader2 = ReaderType::New();
-	  reader2->SetFileName( image_fn_list[j] );
-	  reader2->Update();
-	  unsigned long xx=0,yy=0,tvoxct=0;
-	  xx=j;
-	  typename MatrixImageType::IndexType mind;
-	  for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
-	    {
-	      if (mIter.Get() >= 0.5)
-		{
-		  yy=tvoxct;
-		  mind[0]=xx;
-		  mind[1]=yy;
-		  matimage->SetPixel(mind,reader2->GetOutput()->GetPixel(mIter.GetIndex()));
-		  tvoxct++;
-		}
-	    }
-	}
+    {
+      typename ReaderType::Pointer reader2 = ReaderType::New();
+      reader2->SetFileName( image_fn_list[j] );
+      reader2->Update();
+      unsigned long xx=0,yy=0,tvoxct=0;
+      xx=j;
+      typename MatrixImageType::IndexType mind;
+      for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
+        {
+          if (mIter.Get() >= 0.5)
+        {
+          yy=tvoxct;
+          mind[0]=xx;
+          mind[1]=yy;
+          matimage->SetPixel(mind,reader2->GetOutput()->GetPixel(mIter.GetIndex()));
+          tvoxct++;
+        }
+        }
+    }
 
       typedef itk::ImageFileWriter<MatrixImageType> WriterType;
       typename WriterType::Pointer writer = WriterType::New();
@@ -549,7 +549,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
   if ( space_smoother > 0 ) {
     typename ImageType::SpacingType spacing=image1->GetSpacing();
     typename ImageType::SpacingType spacing2=image1->GetSpacing();
-    // basically, don't do any dim-4 smoothing 
+    // basically, don't do any dim-4 smoothing
     spacing2[3]=sqrt(spacing[0]*spacing[0]+spacing[1]*spacing[1]+spacing[2]*spacing[2])*1.e6;
     image1->SetSpacing(spacing2);
     typedef itk::DiscreteGaussianImageFilter<ImageType, ImageType> dgf;
@@ -566,9 +566,9 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
   if ( time_smoother > 0 ) {
     typename ImageType::SpacingType spacing=image1->GetSpacing();
     typename ImageType::SpacingType spacing2=image1->GetSpacing();
-    // basically, don't do any dim-4 smoothing 
+    // basically, don't do any dim-4 smoothing
     double bigspace=sqrt(spacing[0]*spacing[0]+spacing[1]*spacing[1]+spacing[2]*spacing[2])*1.e6;
-    // basically no spatial smoothing 
+    // basically no spatial smoothing
     spacing2.Fill(bigspace);
     spacing2[3]=1;
     image1->SetSpacing(spacing2);
@@ -628,7 +628,7 @@ ConvertTimeSeriesImageToMatrix( std::string imagefn, std::string maskfn , std::s
       for (unsigned int i=0; i<ImageDimension-1; i++) tind[i]=ind[i];
       for (unsigned int t=0; t<timedims; t++){
         tind[ImageDimension-1]=t;
-	Scalar pix=image1->GetPixel(tind);
+    Scalar pix=image1->GetPixel(tind);
         mSample(t)=pix;
         matrix[t][voxct]=pix;
       }
@@ -683,41 +683,41 @@ ConvertCSVVectorToImage( std::string csvfn, std::string maskfn , std::string out
   vMatrix p;
   p.fill(0);
   ReadMatrixFromCSVorImageSet<Scalar>(csvfn,p);
-  if ( mct != p.rows() && mct != p.cols() ) 
+  if ( mct != p.rows() && mct != p.cols() )
   {
     std::cout << " csv-vec rows " << p.rows() << " cols " << p.cols() << " mask non zero elements " << mct <<  std::endl;
     exit(1);
-  }  
+  }
 
-  if ( mct == p.rows() ) 
+  if ( mct == p.rows() )
   {
-    if ( rowOrCol > p.cols()-1 ) 
+    if ( rowOrCol > p.cols()-1 )
       {
-	std::cout <<" You are trying to select the " << rowOrCol << "th column but there are only " << p.cols() << " columns " <<std::endl;
-	exit(1);
+    std::cout <<" You are trying to select the " << rowOrCol << "th column but there are only " << p.cols() << " columns " <<std::endl;
+    exit(1);
       }
   mct=0;
   for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
   {
-    if (mIter.Get() >= 0.5) 
+    if (mIter.Get() >= 0.5)
     {
       PixelType val = p(mct,rowOrCol);
       outimage->SetPixel(mIter.GetIndex(),val);
       mct++;
     }
   }
-  }  
-  else if ( mct == p.cols()  ) // map the cols to the vector 
+  }
+  else if ( mct == p.cols()  ) // map the cols to the vector
   {
-    if ( rowOrCol > p.rows()-1 ) 
+    if ( rowOrCol > p.rows()-1 )
       {
-	std::cout <<" You are trying to select the " << rowOrCol << "th row but there are only " << p.rows() << " rows " <<std::endl;
-	exit(1);
+    std::cout <<" You are trying to select the " << rowOrCol << "th row but there are only " << p.rows() << " rows " <<std::endl;
+    exit(1);
       }
   mct=0;
   for(  mIter.GoToBegin(); !mIter.IsAtEnd(); ++mIter )
   {
-    if (mIter.Get() >= 0.5) 
+    if (mIter.Get() >= 0.5)
     {
       PixelType val = p(rowOrCol,mct);
       outimage->SetPixel(mIter.GetIndex(),val);
@@ -738,103 +738,104 @@ ConvertCSVVectorToImage( std::string csvfn, std::string maskfn , std::string out
 template <unsigned int ImageDimension, class PixelType>
 void ConvertImageVecListToProjection( std::string veclist, std::string imagelist , std::string outname , bool average  )
 {
-	//typedef itk::Image<PixelType,ImageDimension> ImageType;
-	typedef itk::Image<PixelType,ImageDimension> ImageType;
-	typedef itk::ImageFileReader<ImageType> ReaderType;
+    //typedef itk::Image<PixelType,ImageDimension> ImageType;
+    typedef itk::Image<PixelType,ImageDimension> ImageType;
+    typedef itk::ImageFileReader<ImageType> ReaderType;
 
-	std::vector<std::string> image_fn_list;
-	std::vector<std::string> vec_fn_list;
+    std::vector<std::string> image_fn_list;
+    std::vector<std::string> vec_fn_list;
 
-	// first, count the number of files
-	const unsigned int maxChar = 512;
-	char lineBuffer[maxChar],lineBufferVec[maxChar];
-	char filenm[maxChar],filenmVec[maxChar];
-	unsigned int filecount=0, filecountVec=0;
-	{
-		std::ifstream inputStreamA( imagelist.c_str(), std::ios::in );
-		if ( !inputStreamA.is_open() )
-		{
-			std::cout << "Can't open image list file: " << imagelist << std::endl;
-			return;
-		}
-		while ( !inputStreamA.eof() )
-		{
-			inputStreamA.getline( lineBuffer, maxChar, '\n' );
-      	    if ( sscanf( lineBuffer, "%s ",filenm) != 1 ){
-				continue;
-			}
-			else {
-				image_fn_list.push_back(std::string(filenm));
-				filecount++;
-			}
-		}
-		inputStreamA.close();
-	}
+    // first, count the number of files
+    const unsigned int maxChar = 512;
+    char lineBuffer[maxChar],lineBufferVec[maxChar];
+    char filenm[maxChar],filenmVec[maxChar];
+    unsigned int filecount=0, filecountVec=0;
+    {
+        std::ifstream inputStreamA( imagelist.c_str(), std::ios::in );
+        if ( !inputStreamA.is_open() )
+        {
+            std::cout << "Can't open image list file: " << imagelist << std::endl;
+            return;
+        }
+        while ( !inputStreamA.eof() )
+        {
+            inputStreamA.getline( lineBuffer, maxChar, '\n' );
+              if ( sscanf( lineBuffer, "%s ",filenm) != 1 ){
+                continue;
+            }
+            else {
+                image_fn_list.push_back(std::string(filenm));
+                filecount++;
+            }
+        }
+        inputStreamA.close();
+    }
 
-	{
-		std::ifstream inputStreamVec( veclist.c_str(), std::ios::in );
-		if ( !inputStreamVec.is_open() )
-		{
-			std::cout << "Can't open Vec list file: " << veclist << std::endl;
-			return;
-		}
-		while ( !inputStreamVec.eof() )
-		{
-			inputStreamVec.getline( lineBufferVec, maxChar, '\n' );
-      	    if ( sscanf( lineBufferVec, "%s ",filenmVec) != 1 ){
-				continue;
-			}
-			else {
-				vec_fn_list.push_back(std::string(filenmVec));
-				filecountVec++;
-			}
-		}
-		inputStreamVec.close();
-	}
-
-
-	std::ofstream myfile;
-	std::string fnmp=outname+std::string(".csv");
-	myfile.open(fnmp.c_str(), std::ios::out );
-	typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
+    {
+        std::ifstream inputStreamVec( veclist.c_str(), std::ios::in );
+        if ( !inputStreamVec.is_open() )
+        {
+            std::cout << "Can't open Vec list file: " << veclist << std::endl;
+            return;
+        }
+        while ( !inputStreamVec.eof() )
+        {
+            inputStreamVec.getline( lineBufferVec, maxChar, '\n' );
+              if ( sscanf( lineBufferVec, "%s ",filenmVec) != 1 ){
+                continue;
+            }
+            else {
+                vec_fn_list.push_back(std::string(filenmVec));
+                filecountVec++;
+            }
+        }
+        inputStreamVec.close();
+    }
 
 
-	for (unsigned int j=0; j< image_fn_list.size(); j++)
-	{
-		for (unsigned int k=0; k< vec_fn_list.size(); k++) {
-		  double proj=0,dotSum=0,dotCounter=0,dotTotal=0;
-			typename ReaderType::Pointer reader1 = ReaderType::New();
-			reader1->SetFileName( image_fn_list[j] );
-			reader1->Update();
-			typename ReaderType::Pointer reader2 = ReaderType::New();
-			reader2->SetFileName( vec_fn_list[k] );
-			reader2->Update();
-			Iterator mIter( reader1->GetOutput(),reader1->GetOutput()->GetLargestPossibleRegion() );
-			Iterator mIter2( reader2->GetOutput(),reader2->GetOutput()->GetLargestPossibleRegion() );
+    std::ofstream myfile;
+    std::string fnmp=outname+std::string(".csv");
+    myfile.open(fnmp.c_str(), std::ios::out );
+    typedef itk::ImageRegionIteratorWithIndex<ImageType> Iterator;
 
-			for(  mIter.GoToBegin(),mIter2.GoToBegin(); !mIter.IsAtEnd(),!mIter2.IsAtEnd(); ++mIter,++mIter2 )
-			{
-				proj=mIter.Get()*mIter2.Get();
-				dotSum+=proj;
-				if ( mIter2.Get() > 0 ) { dotCounter+=mIter2.Get(); dotTotal+=mIter.Get()*mIter2.Get(); }
-			}
-			if ( average && dotCounter > 0 ) dotSum=dotTotal/dotCounter;
-			if (k==vec_fn_list.size()-1)
-				myfile << dotSum;
-			else
-				myfile << dotSum << " , ";
-		}
-		myfile << std::endl;
-	}
-	myfile.close();
+
+    for (unsigned int j=0; j< image_fn_list.size(); j++)
+    {
+        for (unsigned int k=0; k< vec_fn_list.size(); k++) {
+          double proj=0,dotSum=0,dotCounter=0,dotTotal=0;
+            typename ReaderType::Pointer reader1 = ReaderType::New();
+            reader1->SetFileName( image_fn_list[j] );
+            reader1->Update();
+            typename ReaderType::Pointer reader2 = ReaderType::New();
+            reader2->SetFileName( vec_fn_list[k] );
+            reader2->Update();
+            Iterator mIter( reader1->GetOutput(),reader1->GetOutput()->GetLargestPossibleRegion() );
+            Iterator mIter2( reader2->GetOutput(),reader2->GetOutput()->GetLargestPossibleRegion() );
+
+            for(  mIter.GoToBegin(),mIter2.GoToBegin(); !mIter.IsAtEnd(),!mIter2.IsAtEnd(); ++mIter,++mIter2 )
+            {
+                proj=mIter.Get()*mIter2.Get();
+                dotSum+=proj;
+                if ( mIter2.Get() > 0 ) { dotCounter+=mIter2.Get(); dotTotal+=mIter.Get()*mIter2.Get(); }
+            }
+            if ( average && dotCounter > 0 ) dotSum=dotTotal/dotCounter;
+            if (k==vec_fn_list.size()-1)
+                myfile << dotSum;
+            else
+                myfile << dotSum << " , ";
+        }
+        myfile << std::endl;
+    }
+    myfile.close();
 
 }
 
 
 template <unsigned int ImageDimension, class PixelType>
-int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20 )
+int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20 , bool basic_svd = false )
 {
-  std::cout << " sparse-svd "<< std::endl; // note: 2 (in options) is for svd implementation
+  if ( basic_svd ) std::cout << " basic-svd " << std::endl;
+  else std::cout << " sparse-svd "<< std::endl; // note: 2 (in options) is for svd implementation
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
     parser->GetOption( "output" );
   if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -842,7 +843,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
     std::cerr << "Warning:  no output option set." << std::endl;
     }
   itk::ants::CommandLineParser::OptionType::Pointer option =
-    parser->GetOption( "sparse-svd" );
+    parser->GetOption( "svd" );
   typedef itk::Image<PixelType, ImageDimension> ImageType;
   typedef double  Scalar;
   typedef itk::ants::antsSCCANObject<ImageType,Scalar>  SCCANType;
@@ -861,15 +862,15 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   if ( robustify > 0 ) {
     p=sccanobj->RankifyMatrixColumns(p);
   }
-  
+
   typename ImageType::Pointer mask1=NULL;
   bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 2 ) );
   if ( FracNonZero1 < 0 )
     {
-      FracNonZero1=fabs(FracNonZero1);
-      sccanobj->SetKeepPositiveP(false);
+    FracNonZero1=fabs(FracNonZero1);
+    sccanobj->SetKeepPositiveP(false);
     }
 
   /** read the nuisance matrix image */
@@ -919,7 +920,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   sccanobj->SetMatrixR( r );
   sccanobj->SetMaskImageP( mask1 );
   double truecorr=0;
-  truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+  if ( basic_svd )  truecorr=sccanobj->BasicSVD(n_evec);
+  else truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+  //  truecorr=sccanobj->SparseArnoldiSVDGreedy(n_evec);
   vVector w_p=sccanobj->GetVariateP(0);
   std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl;
 
@@ -931,12 +934,31 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
       if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string post=std::string("View1vec");      
+      std::string post=std::string("View1vec");
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask );
+
+      /** write the eigevalues to the csv file */
+      std::string fnmp=filepre+std::string("_eigenvalues.csv");
+      std::vector<std::string> ColumnHeaders;
+      std::string colname=std::string("Eigenvalue");
+      ColumnHeaders.push_back( colname );
+      typedef itk::CSVNumericObjectFileWriter<double> CWriterType;
+      CWriterType::Pointer cwriter = CWriterType::New();
+      cwriter->SetFileName( fnmp.c_str() );
+      cwriter->SetColumnHeaders(ColumnHeaders);
+      vnl_matrix<double> evals;
+      evals.set_size(sccanobj->GetCanonicalCorrelations().size(),1);
+      for ( unsigned int i=0; i<sccanobj->GetCanonicalCorrelations().size(); i++) 
+	{
+	double evil=sccanobj->GetCanonicalCorrelations()(i);
+	evals(i,0)=evil;
+	}
+      cwriter->SetInput( &evals );
+      cwriter->Write();
     }
 
   return EXIT_SUCCESS;
@@ -1026,8 +1048,8 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
       if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
@@ -1056,15 +1078,15 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       vVector w_p_perm=sccanobj->GetVariateP(0);
       vVector w_q_perm=sccanobj->GetVariateQ(0);
       for (unsigned long j=0; j<w_p.size(); j++)
-	if ( w_p_perm(j) > w_p(j))
-	  {
-	    w_p_signif_ct(j)=w_p_signif_ct(j)++;
-	  }
+    if ( w_p_perm(j) > w_p(j))
+      {
+        w_p_signif_ct(j)=w_p_signif_ct(j)++;
+      }
       for (unsigned long j=0; j<w_q.size(); j++)
-	if ( w_q_perm(j) > w_q(j) )
-	  {
-	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
-	  }
+    if ( w_q_perm(j) > w_q(j) )
+      {
+        w_q_signif_ct(j)=w_q_signif_ct(j)++;
+      }
       // end solve cca permutation
       std::cout << permcorr << " p-value " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl;
     }
@@ -1093,8 +1115,8 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
       if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1pval");
@@ -1108,7 +1130,7 @@ int SCCA_vnl( itk::ants::CommandLineParser *parser, unsigned int permct , unsign
 
 template <unsigned int ImageDimension, class PixelType>
 int mSCCA_vnl( itk::ants::CommandLineParser *parser,
-	       unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  , unsigned int iterct = 20 )
+           unsigned int permct , bool run_partial_scca = false , unsigned int n_e_vecs = 3 , unsigned int newimp = 0 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100 , unsigned int q_cluster_thresh = 1  , unsigned int iterct = 20 )
 {
   std::cout <<" Entering MSCCA --- computing " << n_e_vecs << " canonical variates by default. " << std::endl;
   itk::ants::CommandLineParser::OptionType::Pointer outputOption =
@@ -1260,8 +1282,8 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
       if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
@@ -1315,15 +1337,15 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       vVector w_p_perm=sccanobjPerm->GetVariateP(0);
       vVector w_q_perm=sccanobjPerm->GetVariateQ(0);
       for (unsigned long j=0; j<p.cols(); j++)
-	if ( w_p_perm(j) > sccanobjCovar->GetVariateP(0)(j))
-	  {
-	    w_p_signif_ct(j)=w_p_signif_ct(j)++;
-	  }
+    if ( w_p_perm(j) > sccanobjCovar->GetVariateP(0)(j))
+      {
+        w_p_signif_ct(j)=w_p_signif_ct(j)++;
+      }
       for (unsigned long j=0; j<q.cols(); j++)
-	if ( w_q_perm(j) >  sccanobjCovar->GetVariateQ(0)(j) )
-	  {
-	    w_q_signif_ct(j)=w_q_signif_ct(j)++;
-	  }
+    if ( w_q_perm(j) >  sccanobjCovar->GetVariateQ(0)(j) )
+      {
+        w_q_signif_ct(j)=w_q_signif_ct(j)++;
+      }
       // end solve cca permutation
       */
       std::cout << permcorr << " p-value " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl;
@@ -1380,11 +1402,11 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       std::string filepre = std::string( filename, 0, pos );
       std::string extension = std::string( filename, pos, filename.length()-1);
       if (extension==std::string(".gz")){
-	  pos = filepre.rfind( "." );
-	  extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+      pos = filepre.rfind( "." );
+      extension = std::string( filepre, pos, filepre.length()-1 )+extension;
           filepre = std::string( filepre, 0, pos );
       }
-      std::string post=std::string("View1vec");      
+      std::string post=std::string("View1vec");
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1, sccanobj->GetMatrixP() , have_p_mask);
       post=std::string("View2vec");
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post,  sccanobj->GetVariatesQ(), mask2,  sccanobj->GetMatrixQ(), have_q_mask );
@@ -1413,16 +1435,16 @@ int mSCCA_vnl( itk::ants::CommandLineParser *parser,
       vVector w_r_perm=sccanobj->GetRWeights();
 
       for (unsigned long j=0; j<w_r.size(); j++)
-	if ( w_r_perm(j) > w_r(j))
-	  {
-	    w_r_signif_ct(j)=w_r_signif_ct(j)++;
-	  }
+    if ( w_r_perm(j) > w_r(j))
+      {
+        w_r_signif_ct(j)=w_r_signif_ct(j)++;
+      }
       //      std::cout << " only testing correlation with biserial predictions " << std::endl;
       // end solve cca permutation
       std::cout << permcorr << " p-value " <<  (double)perm_exceed_ct/(pct+1) << " ct " << pct << " true " << truecorr << std::endl;
       for (unsigned long j=0; j<w_r.size(); j++) {
-	if ( w_r(j) > 0)
-	std::cout << " r entry " << j << " signif " <<  (double)w_r_signif_ct(j)/(double)(pct+1) << std::endl;
+    if ( w_r(j) > 0)
+    std::cout << " r entry " << j << " signif " <<  (double)w_r_signif_ct(j)/(double)(pct+1) << std::endl;
       }
 
     }
@@ -1462,7 +1484,7 @@ int sccan( itk::ants::CommandLineParser *parser )
   permoption = parser->GetOption( "iterations" );
   if( permoption && permoption->GetNumberOfValues() > 0 )
     iterct=parser->Convert<unsigned int>( permoption->GetValue() );
-  if (iterct < 20 ) iterct=20;
+  //  if (iterct < 20 ) iterct=20;
 
   unsigned int evec_ct=1;
   itk::ants::CommandLineParser::OptionType::Pointer evec_option =
@@ -1556,26 +1578,37 @@ int sccan( itk::ants::CommandLineParser *parser )
 
 
 
-	//p.d.
+    //p.d.
     itk::ants::CommandLineParser::OptionType::Pointer matrixProjectionOption =
       parser->GetOption( "imageset-to-projections" );
     if( matrixProjectionOption && matrixProjectionOption->GetNumberOfValues() > 0 )
     {
 
-		std::string outFilename =  outputOption->GetValue( 0 );
-		std::string vecList=matrixProjectionOption->GetParameter( 0 );
-		std::string imageList=matrixProjectionOption->GetParameter( 1 );
-		bool average=parser->Convert<bool>( matrixProjectionOption->GetParameter( 2 ) );
-		//std::cout <<"here" << outFilename << " " << vecList << " " <<imageList << std::endl;
-		if ( average ) std::cout << " doing average instead of dot product " << std::endl;
-		ConvertImageVecListToProjection<ImageDimension,double>(vecList,imageList,outFilename , average );
-		return EXIT_SUCCESS;
+        std::string outFilename =  outputOption->GetValue( 0 );
+        std::string vecList=matrixProjectionOption->GetParameter( 0 );
+        std::string imageList=matrixProjectionOption->GetParameter( 1 );
+        bool average=parser->Convert<bool>( matrixProjectionOption->GetParameter( 2 ) );
+        //std::cout <<"here" << outFilename << " " << vecList << " " <<imageList << std::endl;
+        if ( average ) std::cout << " doing average instead of dot product " << std::endl;
+        ConvertImageVecListToProjection<ImageDimension,double>(vecList,imageList,outFilename , average );
+        return EXIT_SUCCESS;
     }
 
-    itk::ants::CommandLineParser::OptionType::Pointer svdOption = parser->GetOption( "sparse-svd" );
+    itk::ants::CommandLineParser::OptionType::Pointer svdOption = parser->GetOption( "svd" );
     if( svdOption && svdOption->GetNumberOfValues() > 0 )
     {
+      std::string initializationStrategy = svdOption->GetValue();
+      if (  !initializationStrategy.compare( std::string( "sparse" ) )  )
+      {
       SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
+      return EXIT_SUCCESS;
+      }
+      if (  !initializationStrategy.compare( std::string( "classic" ) )  )
+      {
+      SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct, true);
+      return EXIT_SUCCESS;
+      }
+      SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct, true );
       return EXIT_SUCCESS;
     }
 
@@ -1805,8 +1838,9 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
     std::string description =
     std::string( "a sparse svd implementation --- will report correlation of eigenvector with original data columns averaged over columns with non-zero weights." );
     OptionType::Pointer option = OptionType::New();
-    option->SetLongName( "sparse-svd" );
-    option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+    option->SetLongName( "svd" );
+    option->SetUsageOption( 0, "sparse[matrix-view1.mhd,mask1,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+    option->SetUsageOption( 1, "classic[matrix-view1.mhd,mask1,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
     option->SetDescription( description );
     parser->AddOption( option );
   }
