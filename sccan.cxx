@@ -1599,15 +1599,20 @@ int sccan( itk::ants::CommandLineParser *parser )
     {
       std::string initializationStrategy = svdOption->GetValue();
       if (  !initializationStrategy.compare( std::string( "sparse" ) )  )
-      {
-      SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
-      return EXIT_SUCCESS;
-      }
+        {
+        SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
+        return EXIT_SUCCESS;
+        }
       if (  !initializationStrategy.compare( std::string( "classic" ) )  )
-      {
-      SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct, true);
-      return EXIT_SUCCESS;
-      }
+        {
+        SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct, true);
+        return EXIT_SUCCESS;
+        }
+      if (  !initializationStrategy.compare( std::string( "prior" ) )  )
+        {
+        std::cout <<" not implemented yet " << std::endl;
+        return EXIT_SUCCESS;
+        }
       SVD_One_View<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct, true );
       return EXIT_SUCCESS;
     }
@@ -1841,6 +1846,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
     option->SetLongName( "svd" );
     option->SetUsageOption( 0, "sparse[matrix-view1.mhd,mask1,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
     option->SetUsageOption( 1, "classic[matrix-view1.mhd,mask1,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+    option->SetUsageOption( 2, "prior[....]" );
     option->SetDescription( description );
     parser->AddOption( option );
   }
