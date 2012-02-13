@@ -320,6 +320,7 @@ public:
   RealType SparseArnoldiSVD_z(unsigned int nvecs);
   RealType ComputeSPCAEigenvalues(unsigned int, RealType);
   RealType BasicSVD(unsigned int nvecs);
+  RealType rSVD(unsigned int nvecs);
 
   MatrixType GetCovMatEigenvectors( MatrixType p );
 
@@ -450,6 +451,7 @@ private:
   bool       m_KeepPositiveQ;
 
 
+  VectorType  m_Eigenvalues;
   VectorType  m_CanonicalCorrelations;
   VariateType m_SparseVariatesP;
   VariateType m_VariatesP;
