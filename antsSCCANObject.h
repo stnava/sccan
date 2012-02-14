@@ -195,6 +195,7 @@ public:
   RealType RunSCCAN2( );
   RealType RunSCCAN3();
 
+  RealType SparseConjGrad( VectorType& , VectorType , RealType  );
   void ReSoftThreshold( VectorType& v_in, RealType fractional_goal , bool allow_negative_weights );
   void ConstantProbabilityThreshold( VectorType& v_in, RealType probability_goal , bool allow_negative_weights );
   VectorType InitializeV( MatrixType p , bool random = false);
@@ -237,10 +238,26 @@ public:
     else return p*invcov;
   }
 
-  MatrixType ProjectionMatrix(MatrixType b) {
-    b=this->NormalizeMatrix(b);
-    b=this->WhitenMatrix(b);
-    return b*b.transpose();
+  MatrixType ProjectionMatrix(MatrixType b) 
+    {
+    double pinvTolerance=this->m_PinvTolerance;
+    MatrixType dd=this->NormalizeMatrix(b);
+    MatrixType cov=dd*dd.transpose();
+    cov.set_identity();
+    TRealType regularization=1.e-3;
+    cov=cov*regularization+dd*dd.transpose();
+    vnl_svd<RealType> eig(cov,pinvTolerance);
+    vnl_diag_matrix<TRealType> indicator(cov.cols(),0);
+    for (unsigned int i=0; i<cov.rows(); i++) 
+      {
+      double eval = eig.W(i,i);
+      if ( eval > 1.e-9 ) indicator(i,i)=1/eval;
+      }
+    return eig.V()*(indicator*eig.V());
+
+    //    b=this->NormalizeMatrix(b);
+    //    b=this->WhitenMatrix(b);
+    //return //b*b.transpose();
   }
 
   VectorType TrueCCAPowerUpdate(RealType penaltyP, MatrixType p , VectorType w_q , MatrixType q, bool keep_pos, bool factorOutR);
@@ -320,7 +337,7 @@ public:
   RealType SparseArnoldiSVD_z(unsigned int nvecs);
   RealType ComputeSPCAEigenvalues(unsigned int, RealType);
   RealType BasicSVD(unsigned int nvecs);
-  RealType rSVD(unsigned int nvecs);
+  RealType CGSPCA(unsigned int nvecs);
 
   MatrixType GetCovMatEigenvectors( MatrixType p );
 
@@ -329,6 +346,20 @@ protected:
   void SortResults(unsigned int n_vecs);
 // for pscca
   void UpdatePandQbyR( );
+
+  void SparsifyP( VectorType& x_k1  , bool keeppos )
+  {
+    RealType fnp = this->m_FractionNonZeroP;
+    if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( x_k1 , fnp , keeppos );  else
+      this->ReSoftThreshold( x_k1 , fnp , keeppos );
+    this->ClusterThresholdVariate( x_k1 , this->m_MaskImageP, this->m_MinClusterSizeP );
+  }
+
+  void SparsifyP( VectorType& x_k1 , VectorType& refvec  )
+  {
+    if ( x_k1.size() != refvec.size() ) { std::cout <<" sizes dont match " << std::endl; exit(1); }
+    for (unsigned int i=0; i < x_k1.size(); i++) if ( refvec(i) == 0 ) x_k1(i)=0;
+  }
 
   MatrixType  DeleteCol( MatrixType p_in , unsigned int col)
   {

@@ -194,7 +194,7 @@ antsSCCANObject<TInputImage, TRealType>
     for (unsigned long i=0; i < p.columns(); i++)
       {
       if ( random ) w_p(i)=randgen.normal(); //      w_p(i)=randgen.drand32();
-      w_p(i)=1.0;
+      else w_p(i)=1.0;
       }
     }
   w_p=w_p/p.columns();
@@ -322,7 +322,7 @@ antsSCCANObject<TInputImage, TRealType>
   double tmaxv=v_in.max_value();
   //  std::cout << " post minv " << tminv << " post maxv " << tmaxv <<  std::endl;
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
-  //  std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << std::endl;
+  // std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << std::endl;
   //  if ( v_in.two_norm() > this->m_Epsilon ) v_in=v_in/v_in.two_norm();
   //  std::cout << v_in <<std::endl;
   return;
@@ -335,6 +335,8 @@ antsSCCANObject<TInputImage, TRealType>
 ::ConstantProbabilityThreshold( typename antsSCCANObject<TInputImage, TRealType>::VectorType&
  v_in, TRealType probability_goal , bool keep_positive )
 {
+  bool debug = false;
+  v_in = v_in / v_in.two_norm();
   VectorType v_out(v_in);
   RealType minv=v_in.min_value();
   RealType maxv=v_in.max_value();
@@ -346,13 +348,15 @@ antsSCCANObject<TInputImage, TRealType>
   RealType probability=0;
   RealType probability_sum=0;
   RealType soft_thresh=lambg;
-
+  unsigned int nzct = 0;
   for ( unsigned int i=0; i<v_in.size(); i++) {
     if ( keep_positive && v_in(i) < 0 ) v_in(i)=0;
     v_out(i)=v_in(i);
     probability_sum+=fabs(v_out(i));
+    if ( fabs( v_in( i ) ) > 0 ) nzct++;
   }
-  //  std::cout <<" prob sum " << probability_sum << std::endl;
+  if ( debug ) std::cout <<" prob sum " << probability_sum << std::endl;
+  if ( true ) std::cout <<" nzct " << nzct << std::endl;
   RealType minthresh=0,minfdiff=1;
   unsigned int maxits=1000;
   for ( its=0; its<maxits; its++)
@@ -374,7 +378,7 @@ antsSCCANObject<TInputImage, TRealType>
     }
     }
     probability/=probability_sum;
-    //    std::cout << " cur " << probability << " goal "  << probability_goal << " st " << soft_thresh << " th " << minthresh << std::endl;
+    if ( debug ) std::cout << " cur " << probability << " goal "  << probability_goal << " st " << soft_thresh << " th " << minthresh << std::endl;
     if ( fabs(probability - probability_goal) < minfdiff ) {
       minthresh=soft_thresh;
       minfdiff= fabs(probability - probability_goal) ;
@@ -399,13 +403,10 @@ antsSCCANObject<TInputImage, TRealType>
     probability+=fabs(v_in(i));
       }
   }
-//  tminv=v_in.min_value();
-//  tmaxv=v_in.max_value();
-//  std::cout << " post minv " << tminv << " post maxv " << tmaxv << " allow-neg? " <<  allow_negative_weights << std::endl;
-//  std::cout << " frac non-zero " << frac << " wanted " << fractional_goal << " allow-neg " << allow_negative_weights << std::endl;
+  if ( debug ) std::cout << " frac non-zero " << probability << " wanted " <<  probability_goal << " Keep+ " << keep_positive << std::endl;
   frac=(float)(v_in.size()-ct)/(float)v_in.size();
   if ( frac < 1 ) std::cout <<" const prob "<< probability/probability_sum << " sparseness " << frac << std::endl;
-  if ( v_in.two_norm() > this->m_Epsilon ) v_in=v_in/v_in.sum();
+  //  if ( v_in.two_norm() > this->m_Epsilon ) v_in=v_in/v_in.sum();
 
   return;
 }
@@ -953,19 +954,23 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     }
   this->m_ClusterSizes.set_size(n_vecs);
   this->m_ClusterSizes.fill(0);
-  double trace=0;
-  for ( unsigned int i = 0 ; i < this->m_MatrixP.cols(); i++ ) trace+=inner_product(this->m_MatrixP.get_column(i),this->m_MatrixP.get_column(i));
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
-  MatrixType init=this->GetCovMatEigenvectors( this->m_MatrixP ) ;
-  for (unsigned int kk=0;kk<n_vecs; kk++) 
+  MatrixType bmatrix = this->GetCovMatEigenvectors( this->m_MatrixP ) ;
+  MatrixType bmatrix_big;
+  bmatrix_big.set_size( this->m_MatrixP.cols(), n_vecs );
+  double trace=0; 
+  for ( unsigned int kk = 0; kk < n_vecs; kk++ ) 
     {
-    this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
-    if ( kk < init.columns() )
+    this->m_VariatesP.set_column( kk, this->InitializeV( this->m_MatrixP ) );
+    if ( kk < bmatrix.columns() )
       {
-      VectorType initv = init.get_column( kk ) * this->m_MatrixP;
-      this->m_VariatesP.set_column(kk,initv);
+      VectorType initv = bmatrix.get_column( kk ) * this->m_MatrixP;
+      this->m_VariatesP.set_column( kk, initv );
+      bmatrix_big.set_column( kk, initv * this->m_Eigenvalues[kk] );
       }
+    trace += this->m_Eigenvalues[kk];
     }
+
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
 // Arnoldi Iteration SVD/SPCA
   unsigned int loop=0;
@@ -998,6 +1003,17 @@ TRealType antsSCCANObject<TInputImage, TRealType>
         this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
         pveck=pveck/pveck.two_norm();
         }
+      /********************************
+      unsigned int bcolind = 0;
+      RealType maxcorr = 0;
+      for ( unsigned int cc = 0 ; cc < bmatrix_big.cols(); cc ++ )
+	{
+	RealType corr = fabs( this->PearsonCorr( this->m_MatrixP * pveck , bmatrix.get_column( cc ) ) );
+	if (  corr > maxcorr ) bcolind = cc;
+	}
+      VectorType b = bmatrix_big.get_column( bcolind ) ;
+      RealType cgerr = this->SparseConjGrad( pveck , b , 1.e-3 );
+      ********************************/
       /** Update the solution */
       this->m_VariatesP.set_column(k,pveck);
     } //kloop
@@ -1006,7 +1022,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
     vexlist.push_back(   vex    );
     this->SortResults(n_vecs);
-    convcrit=( this->ComputeEnergySlope(vexlist, 8) );
+    convcrit=( this->ComputeEnergySlope(vexlist, 6) );
     std::cout <<"Iteration: " << loop << " Eigenval_0: " << this->m_CanonicalCorrelations[0] << " Eigenval_N: " << this->m_CanonicalCorrelations[n_vecs-1] << " Sparseness: " << fnp  << " convergence-criterion: " << convcrit <<  " vex " << vex << std::endl;
     loop++;
     if (debug) std::cout<<"wloopdone"<<std::endl;
@@ -1144,7 +1160,67 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 
 template <class TInputImage, class TRealType>
 TRealType antsSCCANObject<TInputImage, TRealType>
-::rSVD(unsigned int n_vecs )
+::SparseConjGrad( typename antsSCCANObject<TInputImage, TRealType>::VectorType& x_k , 
+		  typename antsSCCANObject<TInputImage, TRealType>::VectorType  b , TRealType convcrit = 1.e-3 )
+{
+  bool keeppos = false;
+  bool debug = false;
+    RealType fnp = this->m_FractionNonZeroP;
+    MatrixType A = this->m_MatrixP;
+ // minimize the following error :    \| A^T*A * sparse_vec_i -    pca_vec_i * \lambda_i  \|  +  sparseness_penalty
+    VectorType r_k = A.transpose() * ( A * x_k ) ; 
+    r_k = b - r_k;
+    VectorType p_k = r_k ;
+    double approxerr = 1.e9;
+    unsigned int ct = 0;
+    VectorType bestsol = x_k;
+    RealType minerr = 1.e12, deltaminerr = 1 , lasterr = minerr;
+    while (  deltaminerr > 0 && approxerr > convcrit && ct < 10 ) 
+      {
+      RealType alpha_denom = inner_product( p_k ,  A.transpose() * ( A * p_k ) );
+      RealType iprk = inner_product( r_k , r_k );
+      if ( debug ) std::cout << " iprk " << iprk << std::endl;
+      RealType alpha_k = iprk / alpha_denom;
+      if ( debug ) std::cout << " alpha_k " << alpha_k << std::endl;
+      VectorType x_k1  = x_k + alpha_k * p_k; // this adds the scaled residual to the current solution 
+      this->SparsifyP( x_k1 , keeppos ); /*******sparse******/
+
+      if ( debug ) std::cout <<" x_k1 " << x_k1.two_norm() << std::endl;
+      VectorType r_k1;
+      /** a 2nd alternative , useful for sparse case */
+      if (  false  ) r_k1 = ( b - A.transpose() * (A * x_k1 )  );
+      /** Below update works cleanly and smoothly , if not sparse */
+      else r_k1 = r_k - ( A.transpose() * ( A * p_k ) ) * alpha_k ;
+      lasterr = approxerr; 
+      approxerr = r_k1.two_norm();
+      deltaminerr = ( lasterr - approxerr );
+      if ( approxerr < minerr ) { minerr = approxerr ; bestsol=( x_k1 ); }
+      if ( false ) this->SparsifyP( r_k1 , x_k1 );/*******sparse******/
+      if ( false ) std::cout << " r_k1 " << approxerr <<  " derr " << deltaminerr << std::endl;
+
+      // measures the change in the residual 
+      RealType   beta_k = inner_product( r_k1 , r_k1 ) /  inner_product( r_k , r_k );
+      if ( debug ) std::cout <<" beta_k " << beta_k << std::endl;
+      VectorType p_k1  = r_k1 + beta_k * p_k;
+      if ( false )  this->SparsifyP( p_k1 , x_k1 );/*******sparse******/
+
+      if ( debug ) std::cout <<" p_k1 " << p_k1.two_norm() << std::endl;
+      r_k = r_k1;
+      p_k = p_k1;
+      x_k = x_k1;
+      //      if ( approxerr < 1.e-2 ) 
+      //      x_k = x_k +  this->InitializeV( this->m_MatrixP , true );
+      ct++;
+    }
+    x_k = bestsol;
+    RealType Ferr = ( A.transpose() * (A * x_k) - b ).two_norm();
+    std::cout<< "FinalErr " << Ferr << std::endl;
+    return approxerr;
+}
+
+template <class TInputImage, class TRealType>
+TRealType antsSCCANObject<TInputImage, TRealType>
+::CGSPCA(unsigned int n_vecs )
 {
   /** Based on Golub CONJUGATE  G R A D I E N T   A N D  LANCZOS  HISTORY 
    *  http://www.matematicas.unam.mx/gfgf/cg2010/HISTORY-conjugategradient.pdf
@@ -1181,67 +1257,20 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   unsigned int bcolind = 0;
   for (  unsigned int colind = 0; colind < n_vecs; colind++ ) 
     {
-      //    bcolind = colind;
     if ( colind == 0 ) std::cout << " FIXME! messing with bcol to zero " << std::endl;
     RealType eigval = this->m_Eigenvalues[ bcolind ];
     RealType fnp = this->m_FractionNonZeroP;
     VectorType x_k = this->InitializeV( this->m_MatrixP , true );
-    if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( x_k , fnp , this->m_KeepPositiveP );  else
-      this->ReSoftThreshold( x_k , fnp , !this->m_KeepPositiveP );
-    this->ClusterThresholdVariate( x_k , this->m_MaskImageP, this->m_MinClusterSizeP );
-
-    MatrixType A = this->m_MatrixP;
-    // minimize the following error :    \| A^T*A * sparse_vec_i -    pca_vec_i * \lambda_i  \| 
-    VectorType r_k = A.transpose() * ( A * x_k ) ; 
     VectorType b = bmatrix_big.get_column( bcolind ) ;
-    r_k = b - r_k;
-    VectorType p_k = r_k ;
-    double approxerr = 1.e9;
-    unsigned int ct = 0;
-    while ( approxerr > 1.e-3 && ct < 100 ) 
-      {
-      RealType alpha_denom = inner_product( p_k ,  A.transpose() * ( A * p_k ) );
-      RealType iprk = inner_product( r_k , r_k );
-      if ( debug ) std::cout << " iprk " << iprk << std::endl;
-      RealType alpha_k = iprk / alpha_denom;
-      if ( debug ) std::cout << " alpha_k " << alpha_k << std::endl;
-      VectorType x_k1  = x_k + alpha_k * p_k; 
-      if ( debug ) std::cout <<" x_k1 " << x_k1.two_norm() << std::endl;
-      VectorType r_k1 ;
-      /** Below update works cleanly and smoothly */
-      r_k1 = r_k - ( A.transpose() * ( A * p_k ) ) * alpha_k ;
-      approxerr = r_k1.two_norm();
-      if ( true ) std::cout << " r_k1 " << approxerr << " col " << colind << " bcol " << bcolind << std::endl;
-      RealType   beta_k = inner_product( r_k1 , r_k1 ) /  inner_product( r_k , r_k );
-      if ( debug ) std::cout <<" beta_k " << beta_k << std::endl;
-      VectorType p_k1  = r_k1 + beta_k * p_k;
-      if ( debug ) std::cout <<" p_k1 " << p_k1.two_norm() << std::endl;
-      r_k = r_k1;
-      p_k = p_k1;
-      x_k = x_k1;
-      // orthogonalize the target vector against this solution so we can reuse the target vector later 
-      for ( unsigned int j = 0; j < colind; j++ )       //   \forall j \ne i x_j \perp x_i
-        {
-        VectorType qj = this->m_VariatesP.get_column( j );
-        RealType ip = inner_product( qj, qj );
-        if ( ip < this->m_Epsilon ) ip = 1;
-        RealType hjk = inner_product( qj, x_k ) / ip;
-        x_k = x_k - qj * hjk;
-        }
-      x_k=x_k/x_k.two_norm();
-      if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( x_k , fnp , this->m_KeepPositiveP );  else
-        this->ReSoftThreshold( x_k , fnp , !this->m_KeepPositiveP );
-      this->ClusterThresholdVariate( x_k , this->m_MaskImageP, this->m_MinClusterSizeP );
-      x_k=x_k/x_k.two_norm();
-      ct++;
+    /********************************/
+    this->SparseConjGrad( x_k , b , 1.e-1 );
+    /********************************/
+    this->m_VariatesP.set_column( colind, x_k );
+    RealType vex = this->ComputeSPCAEigenvalues( n_vecs, trace );
+    vextothispoint += this->m_CanonicalCorrelations[ colind ];
+    std::cout <<" vex " << vextothispoint / trace  << " true-eval " << eigval << " approx-eval " << this->m_CanonicalCorrelations[ colind ] << " ratio " << this->m_CanonicalCorrelations[ colind ] / eigval << " col " << colind << " bcol " << bcolind <<  std::endl;
+    bcolind++;
     }
-
-  this->m_VariatesP.set_column( colind, x_k );
-  RealType vex = this->ComputeSPCAEigenvalues( n_vecs, trace );
-  vextothispoint += this->m_CanonicalCorrelations[ colind ];
-  if (  this->m_CanonicalCorrelations[ colind ] / eigval < 0.01 ) bcolind++;
-  std::cout <<" vex " << vextothispoint / trace  << " true-eval " << eigval << " approx-eval " << this->m_CanonicalCorrelations[ colind ] << " ratio " << this->m_CanonicalCorrelations[ colind ] / eigval << " col " << colind << " bcol " << bcolind <<  std::endl;
-  }
   std::cout << this->m_CanonicalCorrelations << std::endl;
   return this->m_CanonicalCorrelations[0];
 }
@@ -1272,6 +1301,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       this->m_VariatesP.set_column(kk,initv);
       }
     }
+  this->m_CanonicalCorrelations=this->m_Eigenvalues;
   return this->m_CanonicalCorrelations[0];
 }
 
@@ -1534,13 +1564,23 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_MatrixQ=this->NormalizeMatrix(this->m_OriginalMatrixQ);
   this->m_MatrixR=this->NormalizeMatrix(this->m_OriginalMatrixR);
 
-  if ( this->m_OriginalMatrixR.size() > 0 ) {
+  if ( this->m_OriginalMatrixR.size() > 0 ) 
+    {
+    std::cout << "Partialing-Pre : -P-Norm  " << this->m_MatrixP.frobenius_norm() << " -Q-Norm  " << this->m_MatrixQ.frobenius_norm()<< std::endl;
     this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
     if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )
+      {
+      std::cout <<" Subtract R from P "<<std::endl;
       this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+      std::cout << "Partialing-Post : -P-Norm  " << this->m_MatrixP.frobenius_norm() <<  std::endl;
+      }
     if ( this->m_SCCANFormulation == PQminusR ||  this->m_SCCANFormulation == PminusRQminusR )
+      {
+      std::cout <<" Subtract R from Q "<<std::endl;
       this->m_MatrixQ=this->m_MatrixQ-this->m_MatrixRRt*this->m_MatrixQ;
-  }
+      std::cout << " -Q-Norm  " << this->m_MatrixQ.frobenius_norm()<< std::endl;
+      }
+   }
 
   this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
   this->m_VariatesQ.set_size(this->m_MatrixQ.cols(),n_vecs);
