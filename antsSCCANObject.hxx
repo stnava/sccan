@@ -49,9 +49,11 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_KeepPositiveP=true;
   this->m_KeepPositiveQ=true;
   this->m_KeepPositiveR=true;
+  this->flagForSort=false;	
   this->m_FractionNonZeroP=0.5;
   this->m_FractionNonZeroQ=0.5;
   this->m_FractionNonZeroR=0.5;
+  this->m_priorScale=0.5;
   this->m_ConvergenceThreshold=1.e-6;
   this->m_Epsilon=1.e-12;
 }
@@ -766,11 +768,13 @@ void antsSCCANObject<TInputImage, TRealType>
       oevals[j]=0;
     }
   }}
-  //  for (unsigned int i=0; i<evals.size(); i++) {
-  //    std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<" oev "<<oevals[i]<< std::endl;
-  //  }
+    for (unsigned int i=0; i<evals.size(); i++) {
+      std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<" oev "<<oevals[i]<< std::endl;
+    }
   //std::cout<<"sort-c"<<std::endl;
   VectorType newcorrs(n_vecs,0);
+	
+	MatrixType newROI(this->m_MatrixP.cols(),n_vecs);	
   MatrixType varp(this->m_MatrixP.cols(),n_vecs,0);
   MatrixType varq(this->m_MatrixQ.cols(),n_vecs,0);
   //std::cout<<"sort-d"<<std::endl;
@@ -780,6 +784,11 @@ void antsSCCANObject<TInputImage, TRealType>
       varp.set_column(i,this->m_VariatesP.get_column( sorted_indices[i] ));
       if ( varq.columns() > i ) varq.set_column(i,this->m_VariatesQ.get_column( sorted_indices[i] ));
       newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
+	  if (this->flagForSort==true){
+		  //std::cout<<"Flag is true"<<std::endl;	  
+	  newROI.set_column(i,this->m_MatrixPriorROI.transpose().get_column(sorted_indices[i]));
+	  } 
+	  
    // }
 
   
@@ -790,7 +799,12 @@ void antsSCCANObject<TInputImage, TRealType>
     if (  this->m_VariatesQ.columns() > i ) this->m_VariatesQ.set_column(i,varq.get_column( i ));
   }
   //  std::cout<<"sort-f"<<std::endl;
-  this->m_CanonicalCorrelations=newcorrs;
+
+	if (this->flagForSort==true)
+	this->m_MatrixPriorROI=newROI.transpose();	
+ 
+	
+	this->m_CanonicalCorrelations=newcorrs;
 }
 
 
@@ -1180,137 +1194,165 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   std::cout<<std::endl;
   return fabs(this->m_CanonicalCorrelations[0]);
 }
-
-//Prior constrained PCA below
+	
+	
 	template <class TInputImage, class TRealType>
 	TRealType antsSCCANObject<TInputImage, TRealType>
-	::SparseArnoldiSVDPriorConstrained(unsigned int n_vecs)
+	::SparseArnoldiSVDPriorConstrained(unsigned int n_vecs )
 	{
 		this->m_CanonicalCorrelations.set_size(n_vecs);
-		this->m_CanonicalCorrelations.fill(0); 
-		std::cout <<" arnoldi sparse svd with prior " << std::endl;
-		this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP); 
-		this->m_MatrixPriorROI=this->m_OriginalMatrixPriorROI;
-		
-		
+		this->m_CanonicalCorrelations.fill(0);
+		std::cout <<" arnoldi sparse svd prior" << std::endl;
+		std::vector<RealType> vexlist;
+		this->m_MatrixP=this->NormalizeMatrix(this->m_OriginalMatrixP);
 		this->m_MatrixQ=this->m_MatrixP;
-		std::cout << " this->m_OriginalMatrixR.size() " << this->m_OriginalMatrixR.size() << std::endl;
 		if ( this->m_OriginalMatrixR.size() > 0 ) {
 			this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
-			if ( this->m_SCCANFormulation == PminusRQ ||  this->m_SCCANFormulation == PminusRQminusR )  {
-				std::cout <<" Subtracting nuisance matrix from P matrix " << std::endl;
-				this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
-			}
-		}
+			this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+		}    
+		
+		this->m_MatrixPriorROI=this->m_OriginalMatrixPriorROI;
+		this->m_Ik.set_size(n_vecs,this->m_MatrixP.cols());
+		//this->m_Ip.set_size(this->m_MatrixP.cols(),n_vecs);
+		this->m_Ik.fill(0);
+		
+		
+		
 		this->m_ClusterSizes.set_size(n_vecs);
 		this->m_ClusterSizes.fill(0);
-		
-		
-		this->m_Ik.set_size(this->m_MatrixP.cols(),n_vecs);
-		this->m_Ip.set_size(this->m_MatrixP.cols(),n_vecs);
-		this->m_Ik.fill(0);
-		this->m_Ip.fill(0);
-		
-		//Flatten the matrix into a vec
-		std::cout <<this->m_MatrixPriorROI.rows()<<this->m_MatrixPriorROI.cols();
-		
-		long k=0;
-		for ( long i=0; i<this->m_MatrixPriorROI.rows(); i++){ 
-			for ( long j=0; j<this->m_MatrixPriorROI.cols(); j++){ 
-				//Currently only working with 1 ROI (biggest in face)
-				if (this->m_MatrixPriorROI(i,j)==5){
-					for ( long rows=0; rows<n_vecs; rows++){ 
-						//std::cout << k <<std::endl;	
-					this->m_Ip(k,rows)=1; 
-					}
-				k++;
-				}
-				//std::cout <<"Entry" <<k << std::endl;
-			} 
-		}
-		
-		//std::cout <<" after" << std::endl;
-		MatrixType covmat=this->m_MatrixP*this->m_MatrixP.transpose(); 
-		double trace=vnl_trace<double>(covmat); 
+		double trace=0; 
+		for ( unsigned int i = 0 ; i < this->m_MatrixP.cols(); i++ ) trace+=inner_product(this->m_MatrixP.get_column(i),this->m_MatrixP.get_column(i));
 		this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
-		for (unsigned int kk=0;kk<n_vecs; kk++) {
+		VariateType myGradients;
+		this->m_SparseVariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
+		this->m_SparseVariatesP.fill(0);
+		myGradients.set_size(this->m_MatrixP.cols(),n_vecs);
+		myGradients.fill(0);
+		MatrixType init=this->GetCovMatEigenvectors( this->m_MatrixP ) ;
+		for (unsigned int kk=0;kk<n_vecs; kk++) 
+		{
 			this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
+			if ( kk < init.columns() )
+			{
+				VectorType initv = init.get_column(kk) * this->m_MatrixP;
+				this->m_VariatesP.set_column(kk,initv);
+			}
 		}
 		unsigned int maxloop=this->m_MaximumNumberOfIterations;
-		
-		
-			// Arnoldi Iteration SVD/SPCA for initializing v
-		RealType conv=1;
-		unsigned int loop=0,lambda=0.5;
-		double lastconv=0;
+		// Arnoldi Iteration SVD/SPCA
+		unsigned int loop=0;
 		bool debug=false;
-		
-		
-		while ( loop < maxloop && fabs(conv-lastconv) > 1.e-6 || loop < 5 ) {
-			if (debug) std::cout<<"wloopstart"<<std::endl;
-			RealType fnp= this->m_FractionNonZeroP;
-			//std::cout <<"FNP" <<this->m_FractionNonZeroP<<  std::endl;
-			
-			//  if ( loop < 10 && ! this->m_KeepPositiveP ) fnp=-1;
-			// if ( loop < 10 ) fnp=-1;
-			for ( unsigned int k=0; k<n_vecs; k++) {
-				if (debug) std::cout<<"kloopstart"<<std::endl;
-				VectorType ptemp=this->m_VariatesP.get_column(k);
-				//    vnl_diag_matrix<TRealType> indicator(this->m_MatrixP.cols(),1);
-				// don't use the indicator function if you are not even close to the solution 
-				//    if (loop > 5 ) for ( unsigned int j=0; j< ptemp.size(); j++) if ( fabs(ptemp(j)) < this->m_Epsilon ) indicator(j,j)=0; 
-				MatrixType pmod=this->m_MatrixP;//*indicator; 
-				
-				VectorType pveck=pmod.transpose()*(pmod*ptemp);      
-				//  X^T X x
+		bool condition2=false;
+		double convcrit=1;
+		RealType fnp=1;
+		while ( loop < maxloop && convcrit > 1.e-8 ) {
+			fnp=this->m_FractionNonZeroP;
+			for ( unsigned int k=0; k<n_vecs; k++) 
+			{
+				VectorType ptemp=this->m_SparseVariatesP.get_column(k);
+				ptemp=this->m_VariatesP.get_column(k);
+				if ( fnp < 1 )
+				{
+					if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( ptemp , fnp , this->m_KeepPositiveP );  else
+						this->ReSoftThreshold( ptemp , fnp , !this->m_KeepPositiveP );
+					this->ClusterThresholdVariate( ptemp , this->m_MaskImageP, this->m_MinClusterSizeP );
+					ptemp=ptemp/ptemp.two_norm();
+				}
+				MatrixType pmod=this->m_MatrixP;
+				VectorType pveck  = pmod.transpose() * ( pmod  * ptemp ); // classic 
 				RealType hkkm1=pveck.two_norm();
-				if ( hkkm1 > this->m_Epsilon /* && k == 0 */  ) pveck=pveck/hkkm1;
-				//   \forall j \ne i x_j \perp x_i 
-				for ( unsigned int j=0; j< k; j++) {
+				if ( hkkm1 > this->m_Epsilon  ) pveck=pveck/hkkm1;
+				for ( unsigned int j=0; j< k; j++)       //   \forall j \ne i x_j \perp x_i
+				{
 					VectorType qj=this->m_VariatesP.get_column(j);
 					RealType ip=inner_product(qj,qj);
-					if (ip < this->m_Epsilon) ip=1; 
+					if (ip < this->m_Epsilon) ip=1;
 					RealType hjk=inner_product(qj,pveck)/ip;
 					pveck=pveck-qj*hjk;
 				}
-				//  x_i is sparse  
-				if ( loop > 2 ){
-					if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );  else
-						this->ReSoftThreshold( pveck , fnp , this->m_KeepPositiveP );
-					VectorType pveck_temp(pveck);
-					this->ClusterThresholdVariate( pveck_temp , this->m_MaskImageP, this->m_MinClusterSizeP );
-					if ( pveck_temp.two_norm() > 0 ) pveck=pveck_temp;
+				VectorType pvecknew(pveck);
+				//  x_i is sparse
+				if ( fnp < 1 )
+				{
+					if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pvecknew , fnp , this->m_KeepPositiveP );  else
+						this->ReSoftThreshold( pvecknew , fnp , !this->m_KeepPositiveP );
+					this->ClusterThresholdVariate( pvecknew , this->m_MaskImageP, this->m_MinClusterSizeP );
+					pvecknew=pvecknew/pvecknew.two_norm();
 				}
-				pveck=pveck/pveck.two_norm();
-				this->m_ClusterSizes[k]=this->m_KeptClusterSize;
-				VectorType priorvec=this->m_Ip.get_column(k);
-			    priorvec=priorvec/priorvec.two_norm();
-				pveck=pveck+(priorvec-pveck)*lambda;
-								
-				this->m_VariatesP.set_column(k,pveck);
-				//    if (debug) 
-				// std::cout<<"kloopdone"<<k<<" pveckabssum " << pveckabssum << std::endl;
+				/** this is the difference between the updated & orthogonalized (not sparse) pveck and the sparse pveck */
+				/** put another way - minimize the difference between the sparse solution and the pca solution */ 
+				myGradients.set_column(k,pvecknew-pveck);
+				if ( loop == 0 ) this->m_VariatesP.set_column(k,pvecknew);
 			} //kloop 
+			
+			/** Now update the solution by this gradient */
+			double recuravg= 0.99; //1/(double)(loop+1);
+			double recuravg2=1-recuravg;
+			for ( unsigned int k=0; k<n_vecs; k++) 
+			{
+				VectorType pveck  = myGradients.get_column(k);
+				VectorType newsol = this->m_SparseVariatesP.get_column(k) * recuravg2 + pveck * recuravg;
+				this->m_SparseVariatesP.set_column(k,newsol);
+			}
+			
+			/** Project the solution space to the sub-space */
+			for ( unsigned int k=0; k<n_vecs; k++) 
+			{
+				VectorType ptemp=this->m_SparseVariatesP.get_column(k);
+				if ( fnp < 1 )
+				{
+					if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( ptemp , fnp , this->m_KeepPositiveP );  else
+						this->ReSoftThreshold( ptemp , fnp , !this->m_KeepPositiveP );
+					this->ClusterThresholdVariate( ptemp , this->m_MaskImageP, this->m_MinClusterSizeP );
+					ptemp=ptemp/ptemp.two_norm();
+				}
+				MatrixType pmod=this->m_MatrixP;
+				VectorType pveck  = pmod.transpose() * ( pmod  * ptemp ); // classic 
+				RealType hkkm1=pveck.two_norm();
+				if ( hkkm1 > this->m_Epsilon  ) pveck=pveck/hkkm1;
+				for ( unsigned int j=0; j< k; j++) 
+				{
+					VectorType qj=this->m_VariatesP.get_column(j);
+					RealType ip=inner_product(qj,qj);
+					if (ip < this->m_Epsilon) ip=1;
+					RealType hjk=inner_product(qj,pveck)/ip;
+					pveck=pveck-qj*hjk;
+				}
+				if ( fnp < 1 )
+				{
+					if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );  else
+						this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+					this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
+					pveck=pveck/pveck.two_norm();
+				}
+				VectorType priorvec=this->m_MatrixPriorROI.get_row(k);
+			    priorvec=priorvec/priorvec.two_norm();
+				
+				//std::cout<<this->m_priorScale<<std::endl;
+				pveck=pveck+(priorvec-pveck)*this->m_priorScale;
+				
+				
+				this->m_VariatesP.set_column(k,pveck);
+			} //kloop 
+			
+			
 			this->m_VariatesQ=this->m_VariatesP;
-			lastconv=conv;
 			if (debug) std::cout<<" get evecs "<<std::endl;
-			conv=this->ComputeSPCAEigenvalues(n_vecs,trace);
-			if (debug) std::cout<<" sort "<<std::endl;
-			this->SortResults(n_vecs);  
-			if (debug) std::cout<<" sort-done "<<std::endl;
-			std::cout <<"Iteration: " << loop << " Eigenvals: " << this->m_CanonicalCorrelations/trace << " Sparseness: " << fnp  << " convergence-criterion: " << fabs(conv-lastconv) << " vex " << conv << std::endl;
-			//  this->RunDiagnostics(n_vecs);
+			RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
+			vexlist.push_back(   vex    );
+			this->SortResults( n_vecs );
+			convcrit=( this->ComputeEnergySlope(vexlist, 5) );
+			std::cout <<"Iteration: " << loop << " Eigenval_0: " << this->m_CanonicalCorrelations[0] << " Eigenval_N: " << this->m_CanonicalCorrelations[n_vecs-1] << " Sparseness: " << fnp  << " convergence-criterion: " << convcrit <<  " vex " << vex << std::endl;
 			loop++;
 			if (debug) std::cout<<"wloopdone"<<std::endl;
 		}//opt-loop
-			
-			
-		
-
-		std::cout << " cluster-sizes " << this->m_ClusterSizes << std::endl;
+		//  std::cout << " cluster-sizes " << this->m_ClusterSizes << std::endl;
+		for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
+		std::cout<<std::endl;
 		return fabs(this->m_CanonicalCorrelations[0]);
 	}
 	
+
 	
 	
 template <class TInputImage, class TRealType>

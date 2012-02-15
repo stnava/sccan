@@ -167,7 +167,11 @@ public:
   }
 
   itkSetMacro( FractionNonZeroP, RealType );
-  itkSetMacro( KeepPositiveP, bool );
+	
+  
+	
+	
+  itkSetMacro( KeepPositiveP, bool );	
   itkGetMacro( KeepPositiveP, bool );
   void SetMaskImageP( ImagePointer mask ) { this->m_MaskImageP=mask; }
   void SetMatrixP(  MatrixType matrix ) { this->m_OriginalMatrixP.set_size(matrix.rows(),matrix.cols());  this->m_MatrixP.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixP.update(matrix); this->m_MatrixP.update(matrix); }
@@ -176,7 +180,19 @@ public:
 	
 	void SetMatrixPriorROI(  MatrixType matrix ) { this->m_OriginalMatrixPriorROI.set_size(matrix.rows(),matrix.cols());  this->m_MatrixPriorROI.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixPriorROI.update(matrix); this->m_MatrixPriorROI.update(matrix); }
 	
-  itkSetMacro( FractionNonZeroQ, RealType );
+  
+	//itkSetMacro( priorScale, RealType );
+	//itkGetMacro( priorScale, RealType );
+	RealType GetPriorSscale(){return this->m_priorScale;}
+	
+	
+	void SetPriorScale(RealType priorScale){this->m_priorScale=priorScale;}
+	
+	
+	itkSetMacro( FractionNonZeroQ, RealType );
+ 
+  itkGetMacro( FractionNonZeroQ, RealType );
+	
   itkSetMacro( KeepPositiveQ, bool );
   itkGetMacro( KeepPositiveQ, bool );
 
@@ -193,6 +209,8 @@ public:
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 	//Prior Constrained PCA
   MatrixType GetMatrixPriorROI(  ) { return this->m_MatrixPriorROI; }
+	
+	void SetFlagForSort(){this->flagForSort=true;}	
 	
   MatrixType GetOriginalMatrixP(  ) { return this->m_OriginalMatrixP; }
   MatrixType GetOriginalMatrixQ(  ) { return this->m_OriginalMatrixQ; }
@@ -466,7 +484,10 @@ private:
   MatrixType m_MatrixQ;
   ImagePointer m_MaskImageQ;
   RealType   m_FractionNonZeroQ;
+  RealType   m_priorScale;	
   bool       m_KeepPositiveQ;
+	
+	bool flagForSort;	
 
 
   VectorType  m_CanonicalCorrelations;

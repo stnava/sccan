@@ -1046,6 +1046,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 	int SVD_One_View_Prior( itk::ants::CommandLineParser *parser, unsigned int permct , unsigned int n_evec = 2 , unsigned int robustify=0 , unsigned int p_cluster_thresh = 100, unsigned int iterct = 20, bool basic_svd = false  )
 	{
 		std::cout << " sparse-svd-prior "<< std::endl; // note: 2 (in options) is for svd implementation
+		
+		
+		
 		itk::ants::CommandLineParser::OptionType::Pointer outputOption =
 		parser->GetOption( "output" );
 		if( !outputOption || outputOption->GetNumberOfValues() == 0 )
@@ -1068,12 +1071,26 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		/** we refer to the two view matrices as P and Q */
 		std::string pmatname=std::string(option->GetParameter( 0 ));
 		
-		std::string priorROImatname=std::string(option->GetParameter( 2 ));
+		//std::string priorROImatname=std::string(option->GetParameter( 2 ));
 		vMatrix p;
 		ReadMatrixFromCSVorImageSet<Scalar>(pmatname,p);
-
-		vMatrix priorROIMat;		
-		ReadMatrixFromCSVorImageSet<Scalar>(priorROImatname,priorROIMat);
+		
+		
+		std::string imagelistPrior=option->GetParameter( 2 );
+		std::string maskfnPrior=option->GetParameter( 3 );
+		double priorScale = parser->Convert<double>( option->GetParameter( 4 ) );
+		std::string outname="prior.mhd";
+		vMatrix priorROIMat;
+		ConvertImageListToMatrix<ImageDimension,double>( imagelistPrior,  maskfnPrior  , outname );
+		
+		//std::string filename=std::string("check.nii");
+		//std::string post=std::string("view1");
+		
+		// WriteVariatesToSpatialImage<ImageType,Scalar>( filename,post,  priorROIMat.transpose()  , maskfnPrior ,p, true );
+		
+		
+		
+		ReadMatrixFromCSVorImageSet<Scalar>(outname,priorROIMat);
 		if ( robustify > 0 ) {
 			p=sccanobj->RankifyMatrixColumns(p);
 		}
@@ -1083,7 +1100,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   typename ImageType::Pointer mask1=NULL;
   bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
   /** the penalties define the fraction of non-zero values for each view */
-  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 3 ) );
+  double FracNonZero1 = parser->Convert<double>( option->GetParameter( 5 ) );
   if ( FracNonZero1 < 0 )
     {
     FracNonZero1=fabs(FracNonZero1);
@@ -1092,9 +1109,9 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 
   /** read the nuisance matrix image */
   vMatrix r;
-  if ( option->GetNumberOfParameters() > 4 ) {
-  std::string nuis_img=option->GetParameter( 4 );
-  if ( nuis_img.length() > 4 ) {
+  if ( option->GetNumberOfParameters() > 5 ) {
+  std::string nuis_img=option->GetParameter( 5 );
+  if ( nuis_img.length() > 5 ) {
     std::cout << " nuis_img " << nuis_img << std::endl;
     ReadMatrixFromCSVorImageSet<Scalar>(nuis_img, r);
     CompareMatrixSizes<Scalar>( p,r );
@@ -1136,13 +1153,17 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixR( r );
   sccanobj->SetMaskImageP( mask1 );
-  sccanobj->SetMatrixPriorROI( priorROIMat);	
+  sccanobj->SetPriorScale( priorScale);
+  sccanobj->SetMatrixPriorROI( priorROIMat);
+		
+  sccanobj->SetFlagForSort();		
+		
   double truecorr=0;
 
   truecorr=sccanobj->SparseArnoldiSVDPriorConstrained(n_evec);
 
-  if ( basic_svd )  truecorr=sccanobj->BasicSVD(n_evec);
-  else truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+  //if ( basic_svd )  truecorr=sccanobj->BasicSVD(n_evec);
+ // else truecorr=sccanobj->SparseArnoldiSVD(n_evec);
   //  truecorr=sccanobj->SparseArnoldiSVDGreedy(n_evec);
 
   vVector w_p=sccanobj->GetVariateP(0);
@@ -1161,7 +1182,13 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
           filepre = std::string( filepre, 0, pos );
       }
       std::string post=std::string("View1vec");
+		std::string post1=std::string("check");
+		
+		//std::cout<<sccanobj->GetMatrixPriorROI().cols()<<sccanobj->GetMatrixPriorROI().rows()<<std::endl;
+		
       WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask );
+		
+	// WriteVariatesToSpatialImage<ImageType,Scalar>( filename,post1,  (sccanobj->GetMatrixPriorROI()).transpose()  , mask1 ,sccanobj->GetMatrixP(), have_p_mask );	
 
       /** write the eigevalues to the csv file */
       std::string fnmp=filepre+std::string("_eigenvalues.csv");
@@ -1765,6 +1792,7 @@ int sccan( itk::ants::CommandLineParser *parser )
   if( matrixOption && matrixOption->GetNumberOfValues() > 0 )
     {
       std::string outname =  outputOption->GetValue( 0 );
+	  std::cout <<" outname done " << outname << std::endl;	
       std::string imagelist=matrixOption->GetParameter( 0 );
       std::string maskfn=matrixOption->GetParameter( 1 );
       ConvertImageListToMatrix<ImageDimension,double>( imagelist,  maskfn  , outname );
@@ -1846,7 +1874,9 @@ int sccan( itk::ants::CommandLineParser *parser )
 
 	itk::ants::CommandLineParser::OptionType::Pointer svdOptionPrior = parser->GetOption( "sparse-svd-prior" );
     if( svdOptionPrior && svdOptionPrior->GetNumberOfValues() > 0 )
+		
     {
+				
 		SVD_One_View_Prior<ImageDimension, double>(  parser, permct , evec_ct , robustify , p_cluster_thresh, iterct);
 		return EXIT_SUCCESS;
     }
@@ -2115,7 +2145,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
 		std::string( "a sparse svd implementation with prior (ROI) constrained eigenvectors--- will report correlation of eigenvector with original data columns averaged over columns with non-zero weights." );
 		OptionType::Pointer option = OptionType::New();
 		option->SetLongName( "sparse-svd-prior" );
-		option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,priorROIImage,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+		option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,priorImageList.txt,priorMask.nii,priorScale,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
 		option->SetDescription( description );
 		parser->AddOption( option );
 	}	
