@@ -1020,7 +1020,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 	sccanobj->SetMatrixR( r );
 	sccanobj->SetMaskImageP( mask1 );
 	double truecorr=0;
-	truecorr=sccanobj->SparseArnoldiSVD(n_evec);
+	truecorr=sccanobj->SparseArnoldiSVDGreedy(n_evec);
 	vVector w_p=sccanobj->GetVariateP(0);
 	std::cout << " true-corr " << sccanobj->GetCanonicalCorrelations() << std::endl;
 	
@@ -1168,6 +1168,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   sccanobj->SetFlagForSort();		
 		
   double truecorr=0;
+
 
   truecorr=sccanobj->SparseArnoldiSVDPriorConstrained(n_evec);
 
