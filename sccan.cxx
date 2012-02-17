@@ -372,6 +372,9 @@ ReadMatrixFromCSVorImageSet( std::string matname , vnl_matrix<PixelType> & p )
   return ;
 }
 
+
+
+
 template <unsigned int ImageDimension, class PixelType>
 void
 ConvertImageListToMatrix( std::string imagelist, std::string maskfn , std::string outname  )
@@ -1077,28 +1080,34 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
 		
 		std::string imagelistPrior=option->GetParameter( 2 );
-		std::string maskfnPrior=option->GetParameter( 3 );
 		double priorScale = parser->Convert<double>( option->GetParameter( 4 ) );
 		std::string outname="prior.mhd";
 		vMatrix priorROIMat;
-		ConvertImageListToMatrix<ImageDimension,double>( imagelistPrior,  maskfnPrior  , outname );
+		typename ImageType::Pointer mask1=NULL;
+		bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
 		
-		//std::string filename=std::string("check.nii");
-		//std::string post=std::string("view1");
+		std::string maskPrior=option->GetParameter( 3 );
+
 		
-		// WriteVariatesToSpatialImage<ImageType,Scalar>( filename,post,  priorROIMat.transpose()  , maskfnPrior ,p, true );
-		
+		ConvertImageListToMatrix<ImageDimension,double>( imagelistPrior,  maskPrior  , outname );
 		
 		
 		ReadMatrixFromCSVorImageSet<Scalar>(outname,priorROIMat);
+		
+		//std::string filename=std::string("check.nii");
+		//std::string post=std::string("view2");
+		
+		// WriteVariatesToSpatialImage<ImageType,Scalar>( filename,post,  priorROIMat.transpose()  , mask1 ,p, have_p_mask );
+		
+		
 		if ( robustify > 0 ) {
 			p=sccanobj->RankifyMatrixColumns(p);
 		}
 		
 	
 	
-  typename ImageType::Pointer mask1=NULL;
-  bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
+  
+  
   /** the penalties define the fraction of non-zero values for each view */
   double FracNonZero1 = parser->Convert<double>( option->GetParameter( 5 ) );
   if ( FracNonZero1 < 0 )
