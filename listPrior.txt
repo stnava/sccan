@@ -1,0 +1,7 @@
+prior1.nii
+prior2.nii
+prior3.nii
+prior4.nii
+prior5.nii
+prior6.nii
+prior7.nii
