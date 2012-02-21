@@ -1080,9 +1080,12 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
 		
 		std::string imagelistPrior=option->GetParameter( 2 );
-		double priorScale = parser->Convert<double>( option->GetParameter( 4 ) );
+		std::string priorScaleFile = option->GetParameter( 4 );
+		std::cout<<priorScaleFile<<std::endl;
+		
 		std::string outname="prior.mhd";
 		vMatrix priorROIMat;
+		vMatrix priorScaleMat;
 		typename ImageType::Pointer mask1=NULL;
 		bool have_p_mask=SCCANReadImage<ImageType>(mask1, option->GetParameter( 1 ).c_str() );
 		
@@ -1093,6 +1096,11 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
 		
 		ReadMatrixFromCSVorImageSet<Scalar>(outname,priorROIMat);
+		
+		ReadMatrixFromCSVorImageSet<Scalar>(priorScaleFile,priorScaleMat);
+		
+		//for (int i=0;i<7;i++)
+		//	std::cout<<"Prior Scale "<<priorScaleMat.get_column(i)<<std::endl;
 		
 		//std::string filename=std::string("check.nii");
 		//std::string post=std::string("view2");
@@ -1162,7 +1170,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
   sccanobj->SetMatrixP( p );
   sccanobj->SetMatrixR( r );
   sccanobj->SetMaskImageP( mask1 );
-  sccanobj->SetPriorScale( priorScale);
+  sccanobj->SetPriorScaleMat( priorScaleMat);
   sccanobj->SetMatrixPriorROI( priorROIMat);
 		
   sccanobj->SetFlagForSort();		
@@ -2155,7 +2163,7 @@ void InitializeCommandLineOptions( itk::ants::CommandLineParser *parser )
 		std::string( "a sparse svd implementation with prior (ROI) constrained eigenvectors--- will report correlation of eigenvector with original data columns averaged over columns with non-zero weights." );
 		OptionType::Pointer option = OptionType::New();
 		option->SetLongName( "sparse-svd-prior" );
-		option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,priorImageList.txt,priorMask.nii,priorScale,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
+		option->SetUsageOption( 0, "[matrix-view1.mhd,mask1,priorImageList.txt,priorMask.nii,listPriorScale.csv,FracNonZero1,nuisance-matrix] --- will only use view1 ... unless nuisance matrix is specified." );
 		option->SetDescription( description );
 		parser->AddOption( option );
 	}	

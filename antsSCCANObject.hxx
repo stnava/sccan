@@ -53,7 +53,7 @@ antsSCCANObject<TInputImage, TRealType>::antsSCCANObject( )
   this->m_FractionNonZeroP=0.5;
   this->m_FractionNonZeroQ=0.5;
   this->m_FractionNonZeroR=0.5;
-  this->m_priorScale=0.5;
+  //this->m_priorScaleVec=0.5;
   this->m_ConvergenceThreshold=1.e-6;
   this->m_Epsilon=1.e-12;
 }
@@ -751,6 +751,9 @@ void antsSCCANObject<TInputImage, TRealType>
   std::vector<TRealType> evals(n_vecs,0);
   std::vector<TRealType> oevals(n_vecs,0);
   //std::cout<<"sort-a"<<std::endl;
+	
+	
+  VectorType sortIndices(n_vecs,1);	
   for ( long j=0; j<n_vecs; ++j){
     RealType val=fabs(this->m_CanonicalCorrelations[j]);
     evals[j]=val;
@@ -763,16 +766,19 @@ void antsSCCANObject<TInputImage, TRealType>
   for (unsigned int j=0; j<evals.size(); j++) {
     if ( evals[i] == oevals[j] &&  sorted_indices[i] == -1 ) {
       sorted_indices[i]=j;
+	  sortIndices[i]=j;
       oevals[j]=0;
     }
   }}
-    for (unsigned int i=0; i<evals.size(); i++) {
-      std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<" oev "<<oevals[i]<< std::endl;
-    }
+	
+	
+  //  for (unsigned int i=0; i<evals.size(); i++) {
+    //  std::cout << " sorted " << i << " is " << sorted_indices[i] << " ev " << evals[i] <<"Sort Indices "<<sortIndices[i]<< std::endl;
+    //}
   //std::cout<<"sort-c"<<std::endl;
   VectorType newcorrs(n_vecs,0);
 	
-	MatrixType newROI(this->m_MatrixP.cols(),n_vecs);	
+  MatrixType newROI(this->m_MatrixP.cols(),n_vecs);	
   MatrixType varp(this->m_MatrixP.cols(),n_vecs,0);
   MatrixType varq(this->m_MatrixQ.cols(),n_vecs,0);
   //std::cout<<"sort-d"<<std::endl;
@@ -782,6 +788,9 @@ void antsSCCANObject<TInputImage, TRealType>
       varp.set_column(i,this->m_VariatesP.get_column( sorted_indices[i] ));
       if ( varq.columns() > i ) varq.set_column(i,this->m_VariatesQ.get_column( sorted_indices[i] ));
       newcorrs[i]=(this->m_CanonicalCorrelations[sorted_indices[i]]);
+	  
+	  
+	  
 	  if (this->flagForSort==true){
 		  //std::cout<<"Flag is true"<<std::endl;	  
 	  newROI.set_column(i,this->m_MatrixPriorROI.transpose().get_column(sorted_indices[i]));
@@ -800,7 +809,11 @@ void antsSCCANObject<TInputImage, TRealType>
 
 	if (this->flagForSort==true)
 	this->m_MatrixPriorROI=newROI.transpose();	
- 
+  
+	this->sortedIndicesLoop=sortIndices;
+	//for (unsigned int i=0; i<evals.size(); i++) {
+	//	std::cout<<"Sorted Loop "<<this->sortedIndicesLoop[i]<<std::endl;
+	//}
 	
 	this->m_CanonicalCorrelations=newcorrs;
 }
@@ -1205,7 +1218,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   this->m_MatrixPriorROI=this->m_OriginalMatrixPriorROI;
   this->m_CanonicalCorrelations.set_size( n_vecs );
   this->m_CanonicalCorrelations.fill( 0.0 );
-  std::cout <<" greedy arnoldi sparse svd " << std::endl;
+  std::cout <<" greedy arnoldi sparse svd constrained" << std::endl;
   std::vector<RealType> vexlist;
   this->m_MatrixP = this->NormalizeMatrix( this->m_OriginalMatrixP );
   this->m_MatrixQ = this->m_MatrixP;
@@ -1231,6 +1244,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       }
     }
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
+MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 // Arnoldi Iteration SVD/SPCA
   unsigned int loop=0;
   bool debug=false;
@@ -1249,13 +1263,16 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       if ( hkkm1 > 0 ) pveck=pveck/hkkm1;
 
       VectorType priorvec=this->m_MatrixPriorROI.get_row(k);
+		RealType priorScale=this->m_priorScaleMat.get_column(k)(0);
       //      fnp = priorvec.sum() / priorvec.size();
       std::cout <<" estimated sparsity " << fnp << " for prior " << k << std::endl;
       priorvec=priorvec/priorvec.two_norm();
-      pveck = pveck * ( 1 - this->m_priorScale ) 
-                    + priorvec * this->m_priorScale;
-      if ( this->m_priorScale <= 0 ) 
-	{
+		
+		//std::cout<<priorScale<<std::endl;	
+      pveck = pveck * ( 1 - priorScale ) 
+                    + priorvec * priorScale;
+     // if ( this->m_priorScale <= 0 ) 
+//	{
 	for ( unsigned int j=0; j< k; j++) 
           {
           VectorType qj=this->m_VariatesP.get_column(j);
@@ -1264,7 +1281,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
           RealType hjk=inner_product(qj,pveck)/ip;
           pveck=pveck-qj*hjk;
           }
-	}
+//	}
       /** Project to the feasible sub-space */
       if ( fnp < 1 )
         {
@@ -1281,11 +1298,49 @@ TRealType antsSCCANObject<TInputImage, TRealType>
     RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
     vexlist.push_back(   vex    );
     this->SortResults(n_vecs);
+	m_SortedIndicesAll.set_row(loop,this->sortedIndicesLoop);	
+		
+		
+		//for (int i=0;i<n_vecs;i++){
+		///	std::cout<<"in prior: "<<this->sortedIndicesLoop[i]<<std::endl;
+		//}
+		
     convcrit=( this->ComputeEnergySlope(vexlist, 8) );
     std::cout <<"Iteration: " << loop << " Eigenval_0: " << this->m_CanonicalCorrelations[0] << " Eigenval_N: " << this->m_CanonicalCorrelations[n_vecs-1] << " Sparseness: " << fnp  << " convergence-criterion: " << convcrit <<  " vex " << vex << std::endl;
     loop++;
     if (debug) std::cout<<"wloopdone"<<std::endl;
+		
   }//opt-loop
+		
+
+
+		
+		unsigned int aux_location=0;
+		unsigned int finalLoc[n_vecs];
+		
+		
+		for(unsigned int ii=0;ii<n_vecs;ii++){
+			aux_location=ii;
+			for (unsigned int i=0; i<m_SortedIndicesAll.rows(); i++){
+				VectorType vecSort=m_SortedIndicesAll.get_row(i);
+				for(int j=0;j<vecSort.size();j++){
+					if (vecSort[j]==aux_location){
+					  aux_location=j;
+						break;
+					}
+				}
+			} 
+			finalLoc[ii]=aux_location;	
+		} 
+		
+	//	for (unsigned int i=0; i<maxloop; i++){
+	//		std::cout<<m_SortedIndicesAll.get_row(i)<<std::endl;
+	//	}
+		for (unsigned int i=0; i<n_vecs; i++){
+			std::cout<<"Original Prior Num "<<i <<" Final (Sorted) Prior Num "<<finalLoc[i]<<std::endl;
+		}
+		
+				
   for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
   std::cout<<std::endl;
   return fabs(this->m_CanonicalCorrelations[0]);

@@ -183,10 +183,10 @@ public:
   
 	//itkSetMacro( priorScale, RealType );
 	//itkGetMacro( priorScale, RealType );
-	RealType GetPriorSscale(){return this->m_priorScale;}
+	RealType GetPriorScaleMat(){return this->m_priorScaleMat;}
 	
 	
-	void SetPriorScale(RealType priorScale){this->m_priorScale=priorScale;}
+	void SetPriorScaleMat(MatrixType priorScaleMat){ this->m_priorScaleMat.set_size(priorScaleMat.rows(),priorScaleMat.cols()); this->m_priorScaleMat.update(priorScaleMat);}
 	
 	
 	itkSetMacro( FractionNonZeroQ, RealType );
@@ -470,7 +470,9 @@ private:
 
 	
  //Prior constrained PCA --Refer to notation in the paper	
-  MatrixType m_MatrixPriorROI;	
+  MatrixType m_MatrixPriorROI;
+  MatrixType m_SortedIndicesAll;
+  VectorType sortedIndicesLoop;
   MatrixType m_Ip;
   MatrixType m_Ik;	
 	
@@ -484,7 +486,7 @@ private:
   MatrixType m_MatrixQ;
   ImagePointer m_MaskImageQ;
   RealType   m_FractionNonZeroQ;
-  RealType   m_priorScale;	
+  MatrixType   m_priorScaleMat;	
   bool       m_KeepPositiveQ;
 	
 	bool flagForSort;	
