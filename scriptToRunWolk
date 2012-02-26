@@ -1,0 +1,1 @@
+./sccan --sparse-svd-prior [wolk_data.mhd,wolk_mask.nii,listPriorWolk.txt,wolk_mask.nii,priorScaleListWolk.csv,0.2] -n 2 -o wolk_p2.nii -i 25

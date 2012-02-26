@@ -1,0 +1,72 @@
+\documentclass{llncs}
+\newcommand{\Section}[1]{\vspace{-8pt}\section{\hskip-1em.~~#1}\vspace{-3pt}}
+\newcommand{\SubSection}[1]{\vspace{-3pt}\subsection{\hskip -1em.~~#1}\vspace{-3pt}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\bSigma}{\boldsymbol \Sigma}
+\usepackage{amsmath,amssymb,algorithm,algorithmic}
+\usepackage{times}
+\usepackage{setspace,verbatim}
+\usepackage{epsfig,url}
+
+\begin{document}
+\vspace{-0.1in}
+\title{Data Driven ROI Analysis of Brain Images}
+\author{Anonymous}
+\institute{Anonymous}
+\maketitle              
+%\vspace{-0.1in}
+\begin{abstract}
+ Traditionally clinicians and medical researchers have been using either totally data driven approaches like PCA/ICA or ROI based analysis for exploratory analysis of brain images. However, PCA/ICA based approaches suffer from lack of interpretability of results and on the other hand ROI based approaches are too rigid and wrongly assume that the signal lies totally within a predefined region. In this paper, we propose a novel approach which stands in stark contrast with both these approaches as it borrows strength from both these paradigms and leads to refined definitions of ROIs based on information from data. Our approach, called Prior Constrained PCA ($(PC)^2A$) provides a principled way of incorporating prior information in the form of ROIs while still allowing the data to softly modify the original ROI definitions. Experimental results on face images as well as T-1 brain images show the superiority of our approach compared to ROI and totally data based approaches.    
+
+\end{abstract}
+
+\section{Introduction and Related Work}
+%\vspace{-0.2in}
+\bibliographystyle{IEEEbib}
+\bibliography{./cca}
+
+\end{document}
+
+
+\text{argmax}( \x,\y) :
+~\text{Corr}~( \X \x , \Y \y) - \lambda_\x \| \x \|_1 - \lambda_\y \|  \y  \|_1 , 
+\end{equation} 
+where $\X$ is a matrix with columns containing voxels from one set of
+images of $n$ subjects, 
+and $\Y$ is a matrix with columns containing voxels from the second
+set of images from the same $n$ subjects. 
+Corr computes Pearson correlation and the
+$\lambda$ are inversely related to the sparseness costs, $C$.  %\vspace{-0.2in}
+
+The covariance formulation of SCCA .... 
+
+Let's compute the canonical correlation between two matrices where we
+assume the matrices have been normalized and, as such, CCA computes
+$$ \rho = \frac{ x \X^T \Y y  }{ \sqrt{x  \X^T \X x}\sqrt{x  \Y^T \Y y}  } $$.  Now, we change bases by
+using the whitening transform.  
+Redefine $\x =  ... $ Then, $\X \leftarrow \X \Sigma^{-1/2}_{XX}$ (same for $\Y$) and
+$$ \rho = \frac{ x \X_w^T \Y_w \y  }{ ||x|| || y||} $$.
+$$\rho = \frac{c^T \Sigma^{-1/2}_{XX} \Sigma_{XY}
+  \Sigma^{-1/2}_{YY}}{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
+if matrices are whitened, then $\X \leftarrow \X \Sigma^{-1/2}_{XX}$
+$$ \rho = \frac{c^T \Sigma_{XY}  d }{\sqrt{c^Tc}\sqrt{d^Td}}$$
+
+The partial SCCA formulation will maximize 
+
+
+Generally, SCCA depends upon univariate models to
+factor out the effects of confounding variables.  In this paper we present a
+novel algorithm for computing partial sparse canonical correlation
+analysis (PSCCA) and factor (``partial'') out the effect of unwanted covariates. 
+
+Sparse canonical correlation analysis (SCCA) is a powerful,
+multivariate statistical tool for making unbiased inferences about the
+relationship between different types of measurements taken on the same
+population.
