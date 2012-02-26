@@ -1209,7 +1209,7 @@ TRealType antsSCCANObject<TInputImage, TRealType>
 }
 	
 	
-	template <class TInputImage, class TRealType>
+/*	template <class TInputImage, class TRealType>
 	TRealType antsSCCANObject<TInputImage, TRealType>
 	::SparseArnoldiSVDPriorConstrained(unsigned int n_vecs)
 	{
@@ -1244,7 +1244,9 @@ TRealType antsSCCANObject<TInputImage, TRealType>
       }
     }
   unsigned int maxloop=this->m_MaximumNumberOfIterations;
+	
 MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
+		
 // Arnoldi Iteration SVD/SPCA
   unsigned int loop=0;
   bool debug=false;
@@ -1253,7 +1255,7 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
   this->m_VariatesP = this->m_MatrixPriorROI.transpose();
   while ( loop < maxloop && (convcrit) > 1.e-8 ) 
     {
-    /** Compute the gradient estimate according to standard Arnoldi */ 
+  
     fnp=this->m_FractionNonZeroP;
     for ( unsigned int k=0; k<n_vecs; k++) {
       VectorType pveck=this->m_VariatesP.get_column(k);
@@ -1261,9 +1263,14 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 
       RealType hkkm1=pveck.two_norm();
       if ( hkkm1 > 0 ) pveck=pveck/hkkm1;
-
+		
+       
+		
       VectorType priorvec=this->m_MatrixPriorROI.get_row(k);
+		//std::cout<<"Before Prior SVD"<<m_priorScaleMat.cols()<<m_priorScaleMat.rows()<<std::endl;
+		
 		RealType priorScale=this->m_priorScaleMat.get_column(k)(0);
+		
       //      fnp = priorvec.sum() / priorvec.size();
       std::cout <<" estimated sparsity " << fnp << " for prior " << k << std::endl;
       priorvec=priorvec/priorvec.two_norm();
@@ -1282,7 +1289,7 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
           pveck=pveck-qj*hjk;
           }
 //	}
-      /** Project to the feasible sub-space */
+     
       if ( fnp < 1 )
         {
         if ( this->m_KeepPositiveP ) this->ConstantProbabilityThreshold( pveck , fnp , this->m_KeepPositiveP );  else
@@ -1290,11 +1297,11 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
         this->ClusterThresholdVariate( pveck , this->m_MaskImageP, this->m_MinClusterSizeP );
         pveck=pveck/pveck.two_norm();
         }
-      /** Update the solution */
+    
       this->m_VariatesP.set_column(k,pveck);
     } //kloop
     this->m_VariatesQ=this->m_VariatesP;
-    /** Estimate eigenvalues , then sort */
+   
     RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
     vexlist.push_back(   vex    );
     this->SortResults(n_vecs);
@@ -1344,6 +1351,155 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
   for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
   std::cout<<std::endl;
   return fabs(this->m_CanonicalCorrelations[0]);
+	} */
+	
+	
+	//Brian's version email 2/21
+	template <class TInputImage, class TRealType>
+	TRealType antsSCCANObject<TInputImage, TRealType>
+	::SparseArnoldiSVDPriorConstrained(unsigned int n_vecs)
+	{
+		
+		std::cout<< " prior " << this->m_OriginalMatrixPriorROI.rows() << " c " 
+		                     << this->m_OriginalMatrixPriorROI.cols() << " sortflag "<<this->flagForSort << std::endl;
+		this->m_MatrixPriorROI=this->m_OriginalMatrixPriorROI;
+		n_vecs = this->m_MatrixPriorROI.rows();
+		this->m_CanonicalCorrelations.set_size( n_vecs );
+		this->m_CanonicalCorrelations.fill( 0.0 );
+		std::cout <<" prior constrained sparse svd " << std::endl;
+		std::vector<RealType> vexlist;
+		this->m_MatrixP = this->NormalizeMatrix( this->m_OriginalMatrixP );
+		this->m_MatrixQ = this->m_MatrixP;
+		if ( this->m_OriginalMatrixR.size() > 0 )
+		{
+			this->m_MatrixRRt=this->ProjectionMatrix(this->m_OriginalMatrixR);
+			std::cout <<" Subtracting nuisance matrix from P matrix " << std::endl;
+			this->m_MatrixP=this->m_MatrixP-(this->m_MatrixRRt*this->m_MatrixP);
+		}
+		this->m_ClusterSizes.set_size(n_vecs);
+		this->m_ClusterSizes.fill(0);
+		double trace=0;
+		for ( unsigned int i = 0 ; i < this->m_MatrixP.cols(); i++ )
+			trace+=inner_product(this->m_MatrixP.get_column(i),this->m_MatrixP.get_column(i));
+		this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
+		MatrixType init=this->GetCovMatEigenvectors( this->m_MatrixP ) ;
+		for (unsigned int kk=0;kk<n_vecs; kk++)
+		{
+			this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
+			if ( kk < init.columns() )
+			{
+				VectorType initv = init.get_column( kk ) * this->m_MatrixP;
+				this->m_VariatesP.set_column(kk,initv);
+			}
+		}
+		unsigned int maxloop=this->m_MaximumNumberOfIterations;
+		MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
+		// Arnoldi Iteration SVD/SPCA
+		unsigned int loop=0;
+		bool debug=false;
+		double convcrit=1;
+		RealType fnp=1;
+		this->m_VariatesP = this->m_MatrixPriorROI.transpose();
+		while ( loop < maxloop && (convcrit) > 1.e-8 )
+		{
+			/** Begin standard Arnoldi */
+			/** Compute the gradient estimate according to standard Arnoldi */
+			fnp=this->m_FractionNonZeroP;
+			for ( unsigned int k=0; k<n_vecs; k++) {
+				VectorType pveck=this->m_VariatesP.get_column(k);
+				pveck  = this->m_MatrixP.transpose() * ( this->m_MatrixP  * pveck );
+				RealType hkkm1=pveck.two_norm();
+				if ( hkkm1 > 0 ) pveck=pveck/hkkm1;
+				// orthogonalize
+				bool doorth = true;
+				if ( doorth )
+				{
+					for ( unsigned int j=0; j< k; j++)
+					{
+						VectorType qj=this->m_VariatesP.get_column(j);
+						RealType ip=inner_product(qj,qj);
+						if (ip < this->m_Epsilon) ip=1;
+						RealType hjk=inner_product(qj,pveck)/ip;
+						pveck=pveck-qj*hjk;
+					}
+				}
+				/** End standard Arnoldi */
+				// adjust the pveck by its prior
+				unsigned int minpind = 0;
+				RealType maxp = 0;
+				RealType m_priorScale=this->m_priorScaleMat.get_column(k)(0);
+				VectorType bestprior = this->m_MatrixPriorROI.get_row(k);
+				// RealType mp = bestprior.max_value();
+				for ( unsigned int i = 0; i < pveck.size(); i++)
+				{
+					RealType delt = ( bestprior( i ) - 1 ) ;       // - mp );
+					RealType prob = exp( delt / m_priorScale );
+					pveck( i ) = pveck( i ) * prob;
+				}
+				pveck=pveck/pveck.two_norm();
+				
+				/** Project to the feasible solution sub-space */
+				if ( fnp < 1  )
+				{
+					if ( this->m_KeepPositiveP )
+						this->ConstantProbabilityThreshold( pveck , fnp ,
+														   this->m_KeepPositiveP );  else
+															   this->ReSoftThreshold( pveck , fnp , !this->m_KeepPositiveP );
+					this->ClusterThresholdVariate( pveck , this->m_MaskImageP,
+												  this->m_MinClusterSizeP );
+				}
+				pveck=pveck/pveck.two_norm();
+				
+				/** Update the solution */
+				this->m_VariatesP.set_column(k,pveck);
+			} //kloop
+			this->m_VariatesQ=this->m_VariatesP;
+			/** Estimate eigenvalues , then sort */
+			RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
+			vexlist.push_back(   vex    );
+			this->SortResults(n_vecs);
+			m_SortedIndicesAll.set_row(loop,this->sortedIndicesLoop);	
+			
+			convcrit=( this->ComputeEnergySlope(vexlist, 8) );
+			std::cout <<"Iteration: " << loop << " Eigenval_0: " <<
+			this->m_CanonicalCorrelations[0] << " Eigenval_N: " <<
+			this->m_CanonicalCorrelations[n_vecs-1] <<  " conv-crit: " << convcrit
+			<<  " vex " << vex << std::endl;
+			loop++;
+			if (debug) std::cout<<"wloopdone"<<std::endl;
+		}//opt-loop
+		
+		unsigned int aux_location=0;
+		unsigned int finalLoc[n_vecs];
+		
+		
+		for(unsigned int ii=0;ii<n_vecs;ii++){
+			aux_location=ii;
+			for (unsigned int i=0; i<m_SortedIndicesAll.rows(); i++){
+				VectorType vecSort=m_SortedIndicesAll.get_row(i);
+				for(int j=0;j<vecSort.size();j++){
+					if (vecSort[j]==aux_location){
+						aux_location=j;
+						break;
+					}
+				}
+			} 
+			finalLoc[ii]=aux_location;	
+		} 
+		
+		//	for (unsigned int i=0; i<maxloop; i++){
+		//		std::cout<<m_SortedIndicesAll.get_row(i)<<std::endl;
+		//	}
+		for (unsigned int i=0; i<n_vecs; i++){
+			std::cout<<"Original Prior Num "<<i <<" Final (Sorted) Prior Num "<<finalLoc[i]<<std::endl;
+		}
+		
+		
+		
+		
+		for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
+		std::cout<<std::endl;
+		return fabs(this->m_CanonicalCorrelations[0]);
 	}
 	
 	

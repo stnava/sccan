@@ -1099,7 +1099,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
 		ReadMatrixFromCSVorImageSet<Scalar>(priorScaleFile,priorScaleMat);
 		
-		//for (int i=0;i<7;i++)
+		//for (int i=0;i<29;i++)
 		//	std::cout<<"Prior Scale "<<priorScaleMat.get_column(i)<<std::endl;
 		
 		//std::string filename=std::string("check.nii");
@@ -1177,7 +1177,7 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
   double truecorr=0;
 
-
+  
   truecorr=sccanobj->SparseArnoldiSVDPriorConstrained(n_evec);
 
   //if ( basic_svd )  truecorr=sccanobj->BasicSVD(n_evec);
