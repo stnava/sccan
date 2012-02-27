@@ -13,6 +13,8 @@
 \usepackage{times}
 \usepackage{setspace,verbatim}
 \usepackage{epsfig,url}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+
 
 \begin{document}
 \vspace{-0.1in}
@@ -22,11 +24,58 @@
 \maketitle              
 %\vspace{-0.1in}
 \begin{abstract}
- Traditionally clinicians and medical researchers have been using either totally data driven approaches like PCA/ICA or ROI based analysis for exploratory analysis of brain images. However, PCA/ICA based approaches suffer from lack of interpretability of results and on the other hand ROI based approaches are too rigid and wrongly assume that the signal lies totally within a predefined region. In this paper, we propose a novel approach which stands in stark contrast with both these approaches as it borrows strength from both these paradigms and leads to refined definitions of ROIs based on information from data. Our approach, called Prior Constrained PCA ($(PC)^2A$) provides a principled way of incorporating prior information in the form of ROIs while still allowing the data to softly modify the original ROI definitions. Experimental results on face images as well as T-1 brain images show the superiority of our approach compared to ROI and totally data based approaches.    
+ Traditionally clinicians and medical researchers have been using either totally data driven approaches like PCA/CCA/ICA or ROI based analysis for exploratory analysis of brain images. However, PCA/CCA/ICA based approaches suffer from lack of interpretability of results and on the other hand ROI based approaches are too rigid and wrongly assume that the signal lies totally within a predefined region. In this paper, we propose a novel approach which stands in stark contrast with both these approaches as it borrows strength from both these paradigms and leads to refined definitions of ROIs based on information from data. Our approach, called Prior Constrained PCA ($(PC)^2A$) provides a principled way of incorporating prior information in the form of ROIs while still allowing the data to softly modify the original ROI definitions. Experimental results on face images as well as T-1 brain images show the superiority of our approach compared to ROI and totally data based approaches.    
 
 \end{abstract}
 
 \section{Introduction and Related Work}
+Over the last  few decades there have been significant breakthroughs in medical imaging machinery which has led to an increase in the amount and diversity of data being available e.g. structural and functional modalities, neurocognitive batteries, genetics, and environmental measurements etc. This has lead to a substantial interest in using sophisticated statistical methods to analyze and explore this data. Methods like Principal Component Analysis (PCA), Independent Component Analysis (ICA), Canonical Correlation Analysis (CCA) and their robust and sparse variants have been the workhorse of brain and neuro imaging fields as they provide key insights into the data in a totally data driven way. Particularly they find directions of maximum variance in data or its close variant and show the signal to lie in a small number of succinct regions in brain. 
+
+However, one potential pitfall of these approaches, which has made clinicians and other researchers cautious with their use is the lack of control over the areas they highlight. Since, they work in a totally data driven way the end clinician/researcher has little control over the areas of brain they chose. Clinicians usually have some form of prior knowledge as to which areas may contain the signal they are looking for, for example, someone studying fronto-temporal dementia would expect some or most of the signal to lie in frontal cortex, however if the voxels in frontal cortex don't explain the variance in data these approaches won't highlight them. 
+
+So, this has led the clinicians and researchers to work with totally prior driven approaches e.g. ROI (Region of Interest) analysis, where they chose a pre-defined region manually or based on past study (for instance {\em Brodmann Areas}) and study it exclusively. In other words, they wrongly assume that the entire signal is confined with in that region, i.e. frontal cortex in the above example. Though, it is not a terrible assumption that the signal lies entirely in that confined region however they are missing some important signal from data. Also, the label set might not generalize across population and different datasets as there is lots of variation in people and {\it Brodmann's} definitions might not provide the most general sets of labels.
+
+In this paper we propose an approach which addresses the weaknesses of both the methodologies described above, particularly, the lack of interpretability for statistical methods and wrong assumption of hard label boundaries for ROI based analysis. Our approach, called Prior Constrained PCA ($(PC)^2A$),  takes into account the neuro-anatomical variation in people while creating the ROI labels. This allows us to modify the definitions of labels to capture the variation in dataset while still staying close to the initial ROI definitions. $(PC)^2A$ provides probabilistic labels with ``soft'' boundaries and as we show in the experimental section, these ``soft'' boundaries are more sensitive to the activity in brain.
+
+Our approach provides a principled way of incorporating priors in a totally data driven approach based on PCA. Our optimization objective provides a tradeoff between 1). staying close to the initial ROI definitions and 2). allowing data to lead the exploratory analysis by explaining variance through PCA. A good way to think about this is as ROI definitions forcing us to be {\em conservative} and staying close to the initial definitions e.g. {\it Brodmann's} areas; on the other hand the PCA component gives us {\em liberty} to be more exploratory and just trust the given data. The tradeoff between the two competing paradigms is defined by user tunable parameter, which is chosen via cross validation on a separately held validation set. 
+
+The remaining paper is organized as follows; in next section we provide the details of $(PC)^2A$ and provide an algorithm which implements our approach. In Section 3, we provide experimental results on synthetic and real datasets showing the efficacy of our approach and its superiority to both the alternatives mentioned above.
+
+
+\section{ Prior Constrained Principal Component Analysis: $(PC)^2A$}
+Lets assume that we are given a data matrix ${\bf X}$ where each row represents a patient (total {\bf n} of them) and each column represents a voxel in image (total {\bf p} of them). In practice, we usually have ${\bf p \gg n}$. Also, lets assume that we have a prior matrix {\bf M} whose each row corresponds to a separate prior e.g. different Brodmann areas (total {\bf k} of them) and each column (total {\bf p} of them) contains the probability of a particular voxel belonging to that prior.   
+
+A totally data driven approach like vanilla PCA would ignore the prior matrix {\bf M} completely and just try to find combinations of voxels that explain the most variance. The objective it optimizes is:
+
+\begin{equation}
+{\bf v^*}= \argmax_{{\bf v},{\bf \|v\|}=1} {\bf v}^{\top}{\bf X^{\top}X}{\bf v}
+\end{equation}
+where {$\bf v^*$} are the directions of maximum variance (called eigenvectors) of data matrix {\bf X}. These vectors when plotted on the image highlight regions of image which PCA (i.e. a totally data driven approach) thinks are relevant.
+
+
+\begin{algorithm}[htdp]
+\small \caption{\bf Prior Constrained Principal Component Analysis: $(PC)^2A$}
+\label{partial-mic}
+\begin{algorithmic}[1]
+\STATE Apply the whitening transformation to {\Z} to get $\Z_{w}$.
+\STATE Compute $\X^{\backslash \Z}$ and $\Y^{\backslash \Z}$ and the whitened matrices $\X_{w}$ and $\Y_{w}$. 
+\STATE Select the (fractional) sparsity parameters $\lambda_{\X}$ and $\lambda_{\Y}$
+\STATE Randomly initialize $\bs \psi_{\X}^0$ and $\bs \psi_{\Y}^0$ ($\sim \mathcal{N}(0,1)$) and set $k=0$.
+
+\WHILE {$\Delta$ Corr($\bs X_w \bs \psi_{\X}^{k+1}$, $\bs Y_w \bs \psi_{\Y}^{k+1}$) $<$ $\epsilon$}
+\STATE Compute  $\bs \psi_{\X}^{k+1}= {\X_w}^T {\Y_w} \bs \psi_{\Y}^{k} -  {\X_w}^T  {\Z_w} {\Z_w}^T {\Y_w} \bs \psi_{\Y}^{k}$
+\STATE Soft-Max Sparseness:  $\bs \psi_{\X}^{k+1} \leftarrow (\|\bs \psi_{\X}^{k+1}\|  - max(\bs \psi_{\X}^{k+1})*\lambda_{\X})_+ Sign(\bs \psi_{\X}^{k+1})$
+\STATE Normalize: $\bs \psi_{\X}^{k+1} \leftarrow \frac{\bs \psi_{\X}^{k+1}}{\|\bs \psi_{\X}^{k+1}\|}$\\
+//Repeat Same Procedure for $\bs \psi_{\Y}$ \\
+\STATE Compute  $\bs \psi_{\Y}^{k+1}= {\Y_w}^T {\X_w} \bs \psi_{\X}^{k+1} -  {\Y_w}^T  {\Z_w} {\Z_w}^T {\X_w} \bs \psi_{\X}^{k+1}$
+\STATE Soft-Max Sparseness: $\bs \psi_{\Y}^{k+1} \leftarrow (\|\bs \psi_{\Y}^{k+1}\|  - max(\bs \psi_{\Y}^{k+1})*\lambda_{\Y})_+ Sign(\bs \psi_{\Y}^{k+1})$
+\STATE Normalize: $\bs \psi_{\Y}^{k+1} \leftarrow \frac{\bs \psi_{\Y}^{k+1}}{\|\bs \psi_{\Y}^{k+1}\|}$
+\STATE k $\leftarrow$ k+1
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+
 %\vspace{-0.2in}
 \bibliographystyle{IEEEbib}
 \bibliography{./cca}
