@@ -204,7 +204,10 @@ public:
   void SetMaskImageR( ImagePointer mask ) { this->m_MaskImageR=mask; }
   void SetMatrixR(  MatrixType matrix ) {  this->m_OriginalMatrixR.set_size(matrix.rows(),matrix.cols());  this->m_MatrixR.set_size(matrix.rows(),matrix.cols()); this->m_OriginalMatrixR.update(matrix); this->m_MatrixR.update(matrix); }
 
-  MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
+  void SetSortFinalLocArray(VectorType locArray){this->loc_Array=locArray; }
+  VectorType GetSortFinalLocArray(){return this->loc_Array;}
+	
+	MatrixType GetMatrixP(  ) { return this->m_MatrixP; }
   MatrixType GetMatrixQ(  ) { return this->m_MatrixQ; }
   MatrixType GetMatrixR(  ) { return this->m_MatrixR; }
 	//Prior Constrained PCA
@@ -477,10 +480,14 @@ private:
   MatrixType m_Ik;	
 	
   VectorType m_WeightsP;
+  VectorType loc_Array;
+	
+	
   MatrixType m_MatrixP;
   ImagePointer m_MaskImageP;
   RealType   m_FractionNonZeroP;
   bool       m_KeepPositiveP;
+
 
   VectorType m_WeightsQ;
   MatrixType m_MatrixQ;

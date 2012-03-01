@@ -1203,8 +1203,8 @@ TRealType antsSCCANObject<TInputImage, TRealType>
   if (debug) std::cout<<"wloopdone"<<std::endl;
   }//opt-loop
   //  std::cout << " cluster-sizes " << this->m_ClusterSizes << std::endl;
-  for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
-  std::cout<<std::endl;
+  //for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
+  //std::cout<<std::endl;
   return fabs(this->m_CanonicalCorrelations[0]);
 }
 	
@@ -1383,6 +1383,9 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 			trace+=inner_product(this->m_MatrixP.get_column(i),this->m_MatrixP.get_column(i));
 		this->m_VariatesP.set_size(this->m_MatrixP.cols(),n_vecs);
 		MatrixType init=this->GetCovMatEigenvectors( this->m_MatrixP ) ;
+		
+		
+		
 		for (unsigned int kk=0;kk<n_vecs; kk++)
 		{
 			this->m_VariatesP.set_column(kk,this->InitializeV(this->m_MatrixP));
@@ -1405,9 +1408,46 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 			/** Begin standard Arnoldi */
 			/** Compute the gradient estimate according to standard Arnoldi */
 			fnp=this->m_FractionNonZeroP;
+			
+			
 			for ( unsigned int k=0; k<n_vecs; k++) {
 				VectorType pveck=this->m_VariatesP.get_column(k);
-				pveck  = this->m_MatrixP.transpose() * ( this->m_MatrixP  * pveck );
+				this->m_MatrixP = this->NormalizeMatrix( this->m_OriginalMatrixP );
+				vnl_diag_matrix<RealType> priordiag(  this->m_MatrixP.cols() , 0 );
+
+				// adjust the pveck by its prior
+				RealType m_priorScale=this->m_priorScaleMat.get_column(k)(0);
+				VectorType bestprior = this->m_MatrixPriorROI.get_row(k);
+				
+				
+				
+				
+				for ( unsigned int i = 0; i < this->m_MatrixP.cols(); i++)
+				{
+					RealType delt = ( bestprior( i ) - 1 ) ;       // - mp );
+					
+					RealType prob = exp( delt / m_priorScale );
+					
+					priordiag( i ) = prob;
+				}
+				
+				
+				double countNonZero=0;
+				for (int ii=0;ii<bestprior.size();ii++){
+					
+					if (bestprior(ii) >0.00001)
+						countNonZero++;
+					
+					//std::cout<<bestprior(ii)<<std::endl;	
+				}
+				//std::cout <<" nnz " << countNonZero <<" "<<bestprior.size()<< std::endl;
+				fnp = countNonZero/ bestprior.size();
+				
+				fnp=bestprior.sum()/bestprior.size();;
+				
+				std::cout <<" fnp " << fnp << " for " << k << std::endl;
+//				this->m_MatrixP = this->m_MatrixP * priordiag;
+				pveck  = this->m_MatrixP.transpose() * ( ( this->m_MatrixP * priordiag )  * pveck );
 				RealType hkkm1=pveck.two_norm();
 				if ( hkkm1 > 0 ) pveck=pveck/hkkm1;
 				// orthogonalize
@@ -1424,18 +1464,6 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 					}
 				}
 				/** End standard Arnoldi */
-				// adjust the pveck by its prior
-				unsigned int minpind = 0;
-				RealType maxp = 0;
-				RealType m_priorScale=this->m_priorScaleMat.get_column(k)(0);
-				VectorType bestprior = this->m_MatrixPriorROI.get_row(k);
-				// RealType mp = bestprior.max_value();
-				for ( unsigned int i = 0; i < pveck.size(); i++)
-				{
-					RealType delt = ( bestprior( i ) - 1 ) ;       // - mp );
-					RealType prob = exp( delt / m_priorScale );
-					pveck( i ) = pveck( i ) * prob;
-				}
 				pveck=pveck/pveck.two_norm();
 				
 				/** Project to the feasible solution sub-space */
@@ -1455,23 +1483,23 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 			} //kloop
 			this->m_VariatesQ=this->m_VariatesP;
 			/** Estimate eigenvalues , then sort */
-			RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
-			vexlist.push_back(   vex    );
-			this->SortResults(n_vecs);
-			m_SortedIndicesAll.set_row(loop,this->sortedIndicesLoop);	
+			//RealType vex=this->ComputeSPCAEigenvalues(n_vecs,trace);
+			//vexlist.push_back(   vex    );
+						this->SortResults(n_vecs);
+						m_SortedIndicesAll.set_row(loop,this->sortedIndicesLoop);	
 			
 			convcrit=( this->ComputeEnergySlope(vexlist, 8) );
 			std::cout <<"Iteration: " << loop << " Eigenval_0: " <<
 			this->m_CanonicalCorrelations[0] << " Eigenval_N: " <<
-			this->m_CanonicalCorrelations[n_vecs-1] <<  " conv-crit: " << convcrit
-			<<  " vex " << vex << std::endl;
+			//this->m_CanonicalCorrelations[n_vecs-1] <<  " conv-crit: " << convcrit
+			//<<  " vex " << vex << std::endl;
 			loop++;
 			if (debug) std::cout<<"wloopdone"<<std::endl;
 		}//opt-loop
 		
+		
 		unsigned int aux_location=0;
 		unsigned int finalLoc[n_vecs];
-		
 		
 		for(unsigned int ii=0;ii<n_vecs;ii++){
 			aux_location=ii;
@@ -1486,19 +1514,27 @@ MatrixType	m_SortedIndicesAll(maxloop,n_vecs);
 			} 
 			finalLoc[ii]=aux_location;	
 		} 
-		
 		//	for (unsigned int i=0; i<maxloop; i++){
 		//		std::cout<<m_SortedIndicesAll.get_row(i)<<std::endl;
 		//	}
+		
+		VectorType lArray;
+		
+		lArray.set_size(n_vecs);
+		
+		
 		for (unsigned int i=0; i<n_vecs; i++){
 			std::cout<<"Original Prior Num "<<i <<" Final (Sorted) Prior Num "<<finalLoc[i]<<std::endl;
+			lArray.put(i,finalLoc[i]);
 		}
+				
+		SetSortFinalLocArray(lArray);
 		
 		
 		
 		
-		for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
-		std::cout<<std::endl;
+		//for (unsigned int i=0; i<vexlist.size(); i++) std::cout << vexlist[i] <<",";
+		//std::cout<<std::endl;
 		return fabs(this->m_CanonicalCorrelations[0]);
 	}
 	

@@ -190,11 +190,14 @@ void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_
     std::cout << " have_mask " << have_mask << std::endl;
   for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
     post2=post+sccan_to_string<unsigned int>(vars);
+	  
+	 // std::cout<<"in have mask"<<std::endl;  
     vnl_vector<TComp> temp=varmat.get_column(vars);
     WriteVectorToSpatialImage<TImage,TComp>( filename, post2, temp , mask);
   }
   }
   else {
+	// std::cout<<"else have mask"<<std::endl;  
     std::vector<std::string> ColumnHeaders;
     // write out the array2D object
     std::string fnmp=filepre+std::string("ViewVecs")+std::string(".csv");
@@ -220,6 +223,135 @@ void WriteVariatesToSpatialImage( std::string filename , std::string post , vnl_
     }
   }
 }
+
+
+
+template <class TImage,class TComp>
+void WriteSortedVariatesToSpatialImage( std::string filename , std::string post , vnl_matrix<TComp> varmat, typename TImage::Pointer  mask,  vnl_matrix<TComp> data_mat , bool have_mask,vnl_vector<TComp> l_array,vnl_matrix<TComp> prior_mat )
+{
+	vnl_matrix<TComp> projections=data_mat*varmat;
+
+	std::string::size_type pos = filename.rfind( "." );
+	std::string filepre = std::string( filename, 0, pos );
+	std::string extension;
+	if ( pos != std::string::npos ){
+		extension = std::string( filename, pos, filename.length()-1);
+		if (extension==std::string(".gz")){
+			pos = filepre.rfind( "." );
+			extension = std::string( filepre, pos, filepre.length()-1 )+extension;
+			filepre = std::string( filepre, 0, pos );
+		}
+	}
+	std::string post2;
+	std::ofstream myfile;
+	std::string fnmp=filepre+std::string("projections")+post+std::string(".csv");
+	
+	std::vector<std::string> ColumnHeaders;
+	for (unsigned int nv=0; nv<projections.cols(); nv++)
+    {
+		std::string colname=std::string("Variate")+sccan_to_string<unsigned int>(nv);
+		ColumnHeaders.push_back( colname );
+    }
+	typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+	WriterType::Pointer writer = WriterType::New();
+	writer->SetFileName( fnmp.c_str() );
+	writer->SetColumnHeaders(ColumnHeaders);
+	writer->SetInput( &projections );
+	try
+    {
+		writer->Write();
+    }
+	catch (itk::ExceptionObject& exp)
+    {
+		std::cerr << "Exception caught!" << std::endl;
+		std::cerr << exp << std::endl;
+		return ;
+    }
+	
+	std::cout<<data_mat.cols()<<prior_mat.cols()<<data_mat.rows()<<prior_mat.rows()<<std::endl;
+	vnl_matrix<TComp> projectionsROI=data_mat*prior_mat.transpose();
+	
+	
+	std::string::size_type posROI = filename.rfind( "." );
+	std::string filepreROI = std::string( filename, 0, posROI );
+	std::string extensionROI;
+	if ( posROI != std::string::npos ){
+		extensionROI = std::string( filename, posROI, filename.length()-1);
+		if (extension==std::string(".gz")){
+			posROI = filepreROI.rfind( "." );
+			extensionROI = std::string( filepreROI, posROI, filepreROI.length()-1 )+extensionROI;
+			filepreROI = std::string( filepreROI, 0, posROI );
+		}
+	}
+	//std::string post2;
+	//std::ofstream myfile;
+	std::string fnmp_prior=filepreROI+std::string("projectionsROI")+post+std::string(".csv");
+	
+	std::vector<std::string> ColumnHeadersROI;
+	for (unsigned int nv=0; nv<projectionsROI.cols(); nv++)
+    {
+		std::string colnameROI=std::string("Variate")+sccan_to_string<unsigned int>(nv);
+		ColumnHeadersROI.push_back( colnameROI );
+    }
+	typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+	WriterType::Pointer writerROI = WriterType::New();
+	writerROI->SetFileName( fnmp_prior.c_str() );
+	writerROI->SetColumnHeaders(ColumnHeadersROI);
+	writerROI->SetInput( &projectionsROI );
+	try
+    {
+		writerROI->Write();
+    }
+	catch (itk::ExceptionObject& exp)
+    {
+		std::cerr << "Exception caught!" << std::endl;
+		std::cerr << exp << std::endl;
+		return ;
+    }
+	
+	
+	
+	
+	
+	
+	if ( have_mask ) {
+		std::cout << " have_mask " << have_mask << std::endl;
+		for (unsigned int vars=0; vars < varmat.columns(); vars++  ){
+			post2=post+sccan_to_string<unsigned int>(l_array.get(vars));
+			vnl_vector<TComp> temp=varmat.get_column(l_array.get(vars));
+			//std::cout<<" File Name "<<filename<<" POST "<<l_array.get(vars)<<std::endl;
+			WriteVectorToSpatialImage<TImage,TComp>( filename, post2, temp , mask);
+		}
+	}
+	else {
+		std::vector<std::string> ColumnHeaders;
+		// write out the array2D object
+		std::string fnmp=filepre+std::string("ViewVecs")+std::string(".csv");
+		for (unsigned int nv=0; nv<varmat.cols(); nv++)
+		{
+			std::string colname=std::string("Variate")+sccan_to_string<unsigned int>(nv);
+			ColumnHeaders.push_back( colname );
+		}
+		typedef itk::CSVNumericObjectFileWriter<double> WriterType;
+		WriterType::Pointer writer = WriterType::New();
+		writer->SetFileName( fnmp.c_str() );
+		writer->SetColumnHeaders(ColumnHeaders);
+		writer->SetInput( &varmat );
+		try
+		{
+			writer->Write();
+		}
+		catch (itk::ExceptionObject& exp)
+		{
+			std::cerr << "Exception caught!" << std::endl;
+			std::cerr << exp << std::endl;
+			return ;
+		}
+	}
+}
+
+
+
 
 template <class TImage,class TComp>
 vnl_matrix<TComp>
@@ -1204,7 +1336,11 @@ int SVD_One_View( itk::ants::CommandLineParser *parser, unsigned int permct , un
 		
 		//std::cout<<sccanobj->GetMatrixPriorROI().cols()<<sccanobj->GetMatrixPriorROI().rows()<<std::endl;
 		
-      WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask );
+      WriteSortedVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask,sccanobj->GetSortFinalLocArray(),priorROIMat );
+
+	
+	//	WriteVariatesToSpatialImage<ImageType,Scalar>( filename, post, sccanobj->GetVariatesP() , mask1 , sccanobj->GetMatrixP() , have_p_mask);
+
 		
 	// WriteVariatesToSpatialImage<ImageType,Scalar>( filename,post1,  (sccanobj->GetMatrixPriorROI()).transpose()  , mask1 ,sccanobj->GetMatrixP(), have_p_mask );	
 
