@@ -15,7 +15,7 @@
 \usepackage{epsfig,url}
 
 \newcommand{\argmax}{\operatornamewithlimits{argmax}}
-
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
 
 \begin{document}
 \vspace{-0.1in}
@@ -38,8 +38,8 @@ Typically, functional connectivity studies measure the level of correlation betw
 
 There are two predominant approaches for the analysis of functional connectivity, which are described below:
 \begin{itemize}
-\item {\bf Seed (ROI) Based Approach}:  This is a rather straightforward approach and involves computing the correlation between the time series of a given (preselected) {\it seed} brain region (ROI) against all the other brain regions, resulting in a set of functional connectivity map of the given given brain region~\cite{biswal1997simultaneous,cordes2000mapping}. These functional connectivity maps can then be used to construct {\it resting-state-networks} of functionally correlated regions in the brain~\cite{damoiseaux2006consistent,fox2005human,beckmann2005investigations}. The {\it seed} region can either be selected based on prior clinical knowledge or it can be selected from the activation map of a separate task dependent fMRI scan.
-\item {\bf Learning Based Approaches}: These approaches use statistical techniques to explore functional connectivity in the brain, obviating the need to define a {\it seed} region. Typical methods employed are Principal Component Analysis (PCA)~\cite{friston1998disconnection}, Independent Component Analysis (ICA) or its variants e.g. Group ICA~\cite{beckmann2005investigations,calhoun2001method,petrella2011default} or hierarchical methods~\cite{cordes2002hierarchical,salvador2005neurophysiological}. This class of methods strive to find a set of orthogonal or independent signals in the time series that can explain the resting state activation patterns. ICA based methods are the most popular methods in this setting as they can find a set of independent (uncorrelated) set of signals from whole brain voxel vise data and also due to the public availability of  tools like (Group ICA of fMRI Toolbox (GIFT)). Subsequently, one can create brain connectivity networks from the outputs of these approaches by computing correlations between the different (independent/orthogonal) signals they find.
+\item {\bf Seed (ROI) Based Approach}:  This is a rather straightforward approach and involves computing the correlation between the time series of a given (preselected) {\it seed} brain region (ROI) against all the other brain regions, resulting in a set of functional connectivity maps of the given brain regions~\cite{biswal1997simultaneous,cordes2000mapping}. These functional connectivity maps can then be used to construct {\it resting-state-networks} of functionally correlated regions in the brain~\cite{damoiseaux2006consistent,fox2005human,beckmann2005investigations}. The {\it seed} region can either be selected based on prior clinical knowledge or it can be selected from the activation map of a separate task dependent fMRI scan.
+\item {\bf Learning Based Approaches}: These approaches use statistical techniques to explore functional connectivity in the brain, obviating the need to define a {\it seed} region. Typical methods employed are Principal Component Analysis (PCA)~\cite{friston1998disconnection}, Independent Component Analysis (ICA) or its variants e.g. Group ICA~\cite{beckmann2005investigations,calhoun2001method,petrella2011default} or hierarchical methods~\cite{cordes2002hierarchical,salvador2005neurophysiological}. This class of methods strive to find a set of orthogonal or independent signals in the time series that can explain the resting state activation patterns. ICA based methods are the most popular methods in this setting as they can find a set of independent (uncorrelated) set of signals from whole brain voxel-wise data and also due to the public availability of  tools like (Group ICA of fMRI Toolbox (GIFT)). Subsequently, one can create brain connectivity networks from the outputs of these approaches by computing correlations between the different (independent/orthogonal) signals they find.
  \end{itemize} 
 
 
@@ -94,8 +94,8 @@ The remaining paper is organized as follows; in next section we provide the deta
 The class of methods encompassing sparse principal components analysis (SPCA)~\cite{zou2006sparse,Witten2009b,d2007direct} and singular value decomposition~\cite{sill2011robust} form the basis for the approach proposed here. 
 
 
-More formally, lets define a set of $n$, $t\times p$ (rows by columns) matrices $\{\bf X_m\}_{m=1}^n$ where $t$ is the number of total time points, $p$ is the number of total voxels and each ${\bf X}_m$ matrix derives from an observed subject's BOLD fMRI image. .
-Also, lets assume that we have a prior matrix {$\bf M(\lambda)$} (function of a parameter $\lambda$ which controls its strength) whose each row corresponds to a separate prior (total {\bf k} of them) and each column (total {\bf p} of them) contains the probability of a particular voxel belonging to that prior. 
+More formally, lets define a set of $n$, $t\times p$ (rows by columns) matrices $\{\bf X_m\}_{m=1}^n$ where $t$ is the number of total time points, $p$ is the number of total voxels and each ${\bf X}_m$ matrix derives from an observed subject's BOLD fMRI image.
+ Also, lets assume that we have a prior matrix {$\bf M$} whose each row corresponds to a separate prior (total {\bf k} of them) and each column (total {\bf p} of them) contains the probability of a particular voxel belonging to that prior. 
 
 
 We are interested in sparse decomposition of the ${\bf X}_m$ matrices constrained by the anatomical priors {\bf M} which should give us a $t \times k$ matrix for each subject where each of the $k$ eigenvectors explains the variance in the corresponding anatomical region specified by the prior.
@@ -108,19 +108,88 @@ A standard data driven approach PCA would ignore the prior matrix {\bf M} comple
 \label{pca}
 \end{equation}
 where {$\bf v_i^*$} is the $i^{th}$ direction of maximum variance (called eigenvector) of data matrix {\bf X}. These vectors when plotted on the image highlight regions which are
-relevant for explaining variance in the data. Since, we have ${\bf p \gg n}$, the above is an ill-posed problem and we need sparsity in eigenvectors, which gives rise to Sparse PCA. The objective is exactly the same as Equation~\ref{pca} except that now we have an additional sparsity penalty ($\|\bf v _i\|_1$) on eigenvectors.  Exact optimization of Sparse PCA is an NP-hard problem and usually its solved by relaxing the sparseness condition~\cite{zou2006sparse,Witten2009b}.
+relevant for explaining variance in the data. Since, we have ${\bf p \gg n}$, the above is an ill-posed problem and we need sparsity in eigenvectors, which gives rise to Sparse PCA. The objective is exactly the same as Equation~\ref{pca} except that now we have an additional sparsity penalty ($\|\bf v _i\|_0$) on eigenvectors.  Exact optimization of Sparse PCA is an NP-hard problem and usually its solved by relaxing the sparseness condition~\cite{zou2006sparse,Witten2009b}.
 
 
 
 
-Our proposed algorithm AC-SPCA builds on Equation~\ref{pca} and adds an additional term to the objective for incorporating prior information. Basically, it says that instead of finding the eigenvectors of the data covariance matrix (as a totally data driven approach would do), find the eigenvectors of the transformed data covariance matrix obtained by projecting it to the prior space. An important consequence of this is that we are not confining our data driven priors to lie in the original seed ROIs rather we are encouraging them to find ways to explain data variance but in this new ``prior projected'' space.  Also, note that instead of taking the prior as is, we smooth it as $M^s_i=\exp(\frac{M_i-1}{\lambda})$ before using it in our optimization. The modified objective is given below:
-\begin{equation}
+Our proposed algorithm AC-SPCA builds on Equation~\ref{pca} and adds an additional term to the objective for incorporating prior information. Basically, it says that instead of finding the eigenvectors of the data covariance matrix (as a totally data driven approach would do), find the eigenvectors of the transformed data covariance matrix obtained by ``regularizing'' it by the prior information. An important consequence of this is that we are not confining our data driven priors to lie in the original seed ROIs rather we are encouraging them to find ways to explain data variance but in this new ``prior regularized'' space. The modified objective is given below:
+\begin{eqnarray}
 \label{ppca}
-{\bf v_i^*}= \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}{\bf diag(M^s_i(\lambda))}{\bf C}{\bf v_i} - \eta\cdot\|\bf v_i \|_1
-\end{equation}
-where ${\bf M^s_i(\lambda)}$ is  the ``smoothed'' prior corresponding to the $i^{th}$ eigenvector and is itself a vector of size (${\bf 1\times p}$) and $\bf C$ is the data covariance matrix ($\bf X^{\top}X$). The {\bf diag} operator converts the ${\bf 1\times p}$ vector into a ${\bf p\times p}$ matrix and is used just for notational convenience.  $\lambda$ is a user tunable parameter which controls the tradeoff between the influence of data and prior and should be typically tuned on a held out validation set in the absence of other knowledge. Its easy to see that smaller values of $\lambda$ suggest that we trust prior more and as $\lambda$ is increased we want our eigenvectors {\bf v} to be influenced more and more by the data. Also, it is important to note that we set the sparsity parameter $\eta$ automatically as $\frac{Number\;\;of\;\;voxels\;\;in\;\;Prior\;\;ROI}{Total\;\;Number\;\;of\;\;Voxels\;\;in\;\;Brain}$. 
+{\bf v_i^*}&=& \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}\left((1-\lambda)\cdot{\bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}\right){\bf w_i}  \\
+\nonumber
+&&such\;that\;\|{\bf v_i}\|_0=\gamma
+\end{eqnarray}
+where ${\bf M^s_i}$ is  the ``smoothed'' prior corresponding to the $i^{th}$ eigenvector and is itself a vector of size (${\bf 1\times p}$). $\otimes$ is the outer product operator and is defined as $\bf MM^{\top}$.  $\lambda$ is a user tunable parameter which controls the tradeoff between the influence of data and prior and should be typically tuned on a held out validation set in the absence of other knowledge. 
 
-Figure~\ref{fig:priorvary} uses example face data to show the effect of varying the $\lambda$  parameter on the AC-PCA performance. As mentioned earlier, we choose $\lambda$ by cross-validation on a validation set.
+Its easy to see that smaller values of $\lambda$ suggest that we trust prior more and as $\lambda$ is increased we want our eigenvectors {\bf v} to be influenced more and more by the data. Sparseness is enforced by a soft-thresholding algorithm as in~\cite{zou2006sparse,Witten2009b}. We denote this function as $S(v,\gamma)$ and (in an adhoc manner) allow it to also reject isolated voxels (i.e. we provide a cluster threshold as in VBM). In our experiments, we typically set $\gamma$ to ensure that only $\sim5\%$ of the voxels have non zero weight.
+
+
+ It is important to note that the matrix ${(1-\lambda)\cdot \bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}$ is no longer symmetric, so after eigen decomposition, its left and right eigenvectors won't be the same. We are however interested in finding the left eigenvectors. 
+
+%Also, it is important to note that we set the sparsity parameter $\eta$ automatically as $\frac{Number\;\;of\;\;voxels\;\;in\;\;Prior\;\;ROI}{Total\;\;Number\;\;of\;\;Voxels\;\;in\;\;Brain}$. 
+
+%Figure~\ref{fig:priorvary} uses example face data to show the effect of varying the $\lambda$  parameter on the AC-PCA performance. As mentioned earlier, we choose $\lambda$ by cross-validation on a validation set.
+
+\subsection{An Algorithm for AC-SPCA}
+The algorithm for AC-SPCA presented below in Algorithms~\ref{algo1},~\ref{algo2}. In our initialization, we find a matrix {\bf U} which minimizes the reconstruction error  $\bf \|X - UV^{\top}\|^2$, where {\bf U} is $n\times k$ matrix and {\bf V} is a {$p \times k$} matrix. In our case {\bf V}, the set of eigenvectors are initialized by the prior matrix. We then factor (``partial'') out the effect of all other priors except the prior under consideration. Next we optimize the eigenvectors using Sparse Partial Conjugate Gradient (SPCG) algorithm, which is an iterative procedure and works by projecting the eigenvectors to the sparse solution space repeatedly, till convergence (based on rayleigh coefficient). It is important to note that in the SPCG algorithm, we use two engineering tricks which prevent us from explicitly computing the big $p\times p$ matrix.  First of all, for the multiplication $\bf X^{\top}Xv_i$, we first compute $\bf Xv_i$ and then multiply it with $\bf X^{\top}$, rather than multiplying $\bf X^{\top}X$ first. Secondly, when computing $({\bf M^s\otimes M^s}){\bf v_i}$, we first compute the inner product of ${\bf M^s_i}$ and $\bf v_i$, and then compute a second inner product of the result with  $\bf v_i$; its easy to verify that we get the answer as by directly computing $({\bf M^s\otimes M^s}){\bf v_i}$.
+
+\begin{algorithm}[htdp]
+\small \caption{\bf Anatomically Constrained Sparse Principal Component Analysis: AC-SPCA}
+\label{algo1}
+\begin{algorithmic}[1]
+\STATE Input:  \{{\bf X}, {$\bf M^s$}, $\lambda$, $\gamma$ \} .
+\STATE Normalize the data matrix {\bf X} by  mean centering it.
+\FOR {i=1 to k}
+\STATE Initialize the $i^{th}$ eigenvector $\bf v_{i} \gets M^s_i$ based on the corresponding prior.
+\STATE Compute {$\bf u_i$} i.e. the $i^{th}$ row of the $\bf U$ matrix by minimizing the reconstruction error as ${\bf u_i^*}= \argmin_{u_i} \|{\bf x_i} - {\bf u_i}\otimes {\bf v_i} \|_2^2$.
+\ENDFOR
+\FOR {i=1 to k}
+\STATE Compute the partial {\bf X} matrix as: ${\bf X}_{\backslash i}= {\bf X}- \sum_{j=1, j\neq i}^{k}  {\bf u_j}\otimes {\bf v_j}$
+\STATE  ${\bf v_i}$ $\gets$ {\bf SPCG}$({\bf X}_{\backslash i},\lambda,\gamma, {\bf v_i})$ //Perform Sparse Partial Conjugate Gradient.
+\STATE Normalize the eigenvector ${\bf v_i}$ $\gets$ ${\bf v_i}/\|{\bf v_i}\|$
+\STATE ${\bf v_i}$ $\gets$  $S(v,\gamma)$ //Soft-Max and Cluster Thresholding.
+\ENDFOR
+%\STATE j $\leftarrow$ j+1
+%\ENDWHILE
+\STATE Output:  $\{{\bf v}\}_{i=1}^{k}$
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\begin{algorithm}[htdp]
+\small \caption{\bf Sparse Partial Conjugate Gradient: SPCG}
+\label{algo2}
+\begin{algorithmic}[1]
+\STATE Input:  \{${\bf X}_{\backslash i},\lambda,\gamma, {\bf v_i}$ \} .
+\STATE Compute Rayleigh Coefficient $R^0$=$\frac{{\bf v}^{\top}{\bf X}_{\backslash i}{\bf v}}{{\bf v}^{\top}{\bf v}}$
+\STATE ${\bf e_i}$ $\gets$ ${\bf X}{\bf v_i}$ 
+\STATE ${\bf gX}_i$ $\gets$ $(1-\lambda)\cdot{\bf X^{\top}e_i}$  //Gradient of the data term in the objective.
+\STATE $f_i  \gets  <{\bf M^s_i, \bf v_i}>$ // $<,>$ indicates inner product.
+\STATE ${\bf gP}_i$ $\gets$ $\lambda\cdot <f_i,{\bf v_i}>$   //Gradient of the prior term in the objective.
+\STATE $j \gets 0$ //Iteration Counter.
+\STATE ${\bf p_i^j} \gets \lambda\cdot e_i + (1-\lambda)$ +{\bf gP}
+\STATE ${\bf v_i^j} \gets {\bf v_i}$
+\STATE ${\bf l_i^j} \gets {\bf v_i^j}$
+\WHILE {$R^j <R^{j-1}$}
+\STATE ${\bf n_i^{j}}$ $\gets$ $(1-\lambda)\cdot {\bf gX} + {\bf gP}$
+\STATE $\eta \gets  \|{\bf n_i^{j}}{\bf n_i^{j}}\|_2^2 / \|{\bf l_i^j}{\bf l_i^j}\|_2^2$
+\STATE ${\bf l_i^j} \gets {\bf n_i^j}$
+\STATE ${\bf v_i^{j}}$ $\gets$ $ {\bf v_i^{j}} + \eta\cdot {\bf n_i^{j}}$
+\STATE  ${\bf v_i^j}$ $\gets$ ${\bf v_i^j}/\|{\bf v_i^j}\|$
+\STATE ${\bf p_i^j} \gets \lambda\cdot e_i + (1-\lambda)$ +{\bf gP}
+\STATE Compute $R^j \gets <p_i^j,p_i^j>/<v_i^j,v_i^j>$ 
+\STATE $j \gets j+1$
+\ENDWHILE
+\STATE Output:  $\{{\bf v}\}_{i=1}^{k}$
+\end{algorithmic}
+\end{algorithm}
+
+%\STATE Soft-Max Sparseness:  ${\bf v_i^{j}}  \leftarrow (\|{\bf v_i^{j}}\|  - max({\bf v_i^{j}})*\eta)_+ Sign({\bf v_i^{j}})$ //Note that $\eta$ is set automatically as described earlier.
+
+
+
 
 \iffalse
 \begin{figure*}
@@ -131,38 +200,13 @@ Figure~\ref{fig:priorvary} uses example face data to show the effect of varying 
 \caption{(AC-PCA) outputs for $\lambda=[0.0,0.2,0.5,2.0,5.0,10.0]$ from left to right. Note that $\lambda =0$ corresponds to using only prior ROIs and as $\lambda$ is increased effect of data increases. This is evident from the fact that with increasing $\lambda$ our priors especially around {\em nose, eyes and eyebrows} are getting washed away.}
 \label{fig:priorvary}
 \end{figure*}
-\fi
-
-
-\subsection{An Algorithm for AC-PCA}
-Since our data matrices are huge, typical number of voxels in image ${\bf p}\approx 100000$, simple methods which use routines from R, MATLAB don't scale that well. Instead, we propose a fast and novel iterative algorithm in C++ (publicly available) for solving the above optimization problem. The algorithm is presented below in Algorithm~\ref{algo1}.
 
 
 
-\begin{algorithm}[htdp]
-\small \caption{\bf Anatomically Constrained Principal Component Analysis: AC-PCA}
-\label{algo1}
-\begin{algorithmic}[1]
-\STATE Normalize the data matrix {\bf X} by  mean centering it.
-\STATE Select the prior scale parameter $\lambda$.
-\STATE Uniformly initialize the $k$ eigenvectors $\bs v_{1,\ldots, k} \gets 1/p$ and set $j=0$.
 
-\WHILE {$\|{\bf v_{1,\ldots,k}^{j+1}-v_{1,\ldots,k}^{j}}\|$) $<$ $\epsilon$}
-\FOR {i=1 to k}
-\STATE ${\bf v_i^{j}}$ $\gets$ ${\bf Xv_i^{j-1}}$ //Implements modified Arnoldi Iteration algorithm
-\STATE ${\bf v_i^{j}}$ $\gets$ ${\bf X^{\top}v_i^{j}}$
-\STATE ${\bf v_i^{j}}$ $\gets$ ${\bf v_i^{j}}\cdot \bf M^s_i$ // Update the eigenvector estimate with prior information.
-\STATE Orthogonalize the eigenvector with respect to all other eigenvectors:\\ ${\bf v_i^{j}} \gets {\bf v_i^{j}} - \sum_{l <i} \frac{\bf v_i^{j} \bf v_l^{j}}{\bf v_l^{j} \bf v_l^{j}}  \bf v_l^{j}$
-\STATE Soft-Max Sparseness:  ${\bf v_i^{j}}  \leftarrow (\|{\bf v_i^{j}}\|  - max({\bf v_i^{j}})*\eta)_+ Sign({\bf v_i^{j}})$ //Note that $\eta$ is set automatically as described earlier.
-%\STATE Cluster Threhold: 
-\STATE Normalize the eigenvector ${\bf v_i^{j}}$ $\gets$ ${\bf v_i^{j}}/\|{\bf v_i^{j}}\|$
-\ENDFOR
-\STATE j $\leftarrow$ j+1
-\ENDWHILE
-\end{algorithmic}
-\end{algorithm}
 
-\iffalse
+
+
 \section{Experimental Results}
 In this section we show the performance of our approach on cortical thickness images. Our data consists of images from 222 individuals with equal number of males and females of whom 122 were diagnosed clinically with Mild Cognitive Impairment (MCI) and the remaining 100 were normal controls. The average age of the cohort was 71.33. %add info. about age and gender
 All images were acquired with a Siemens Trio 3.0 Tesla MRI scanner. The analysis of T1 images was done using publicly available Advanced Normalization Tools (ANTS, \url{http://www.picsl.upenn.edu/ANTS/}) and the associated pipelining framework PipeDream ({\url{http://sourceforge.net/projects/neuropipedream/}) which mapped each subject to an existing, elderly/neurodegenerative population template, built from images acquired from the same scanner and imaging parameters.
@@ -172,7 +216,7 @@ We used two cortical label (probabilistic ROIs) definitions for our experiments 
 
 We ran AC-PCA independently for each label set with varying values of prior strengths, $\lambda =[0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0]$.
 
-\iffalse
+
 \begin{figure*}
 \begin{center}
 \includegraphics[width=0.7\linewidth]{lpba.pdf} 
@@ -181,7 +225,7 @@ We ran AC-PCA independently for each label set with varying values of prior stre
 \caption{Results for LPBA40 labels. Left to right- Unconstrained PCA, prior LPBA labels, AC-PCA labels. The arrows show left frontal gyrus and the left superior temporal gyrus. The value of the prior strength $\lambda$ for AC-PCA is $0.2$, chosen on validation set. Note that not all the 55 anatomical priors can be seen in this slice.}
 \label{fig:priorlpba}
 \end{figure*}
-\fi
+
 
 \subsection{Qualitative Results}
 
@@ -195,7 +239,7 @@ Note that in the unconstrained PCA, the same label is assigned to parts of the l
 Another interesting observation is that both AC-PCA and unconstrained PCA have assigned  the same label to corresponding regions in the left and right hemispheres. This occurs less frequently in AC-PCA as we have constrained it via anatomical priors.  %The anatomical constraint is less effective for structures close to the mid-line of the brain because these structures are closer to the corresponding structure on the other hemisphere.
 %%since based on euclidean distance structures on opposite hemispheres which are close to each other can have same label.
 
-\iffalse
+
 \begin{figure*}
 \begin{center}
 \includegraphics[width=0.7\linewidth]{nirep.pdf} 
@@ -204,7 +248,7 @@ Another interesting observation is that both AC-PCA and unconstrained PCA have a
 \caption{Results for NIREP labels. Left to right- Unconstrained PCA, prior NIREP labels, AC-PCA labels. The value of the prior strength $\lambda$ for AC-PCA is $0.5$, chosen on validation set. Note that not all the 32 anatomical priors can be seen in this slice.}
 \label{fig:priornirep}
 \end{figure*}
-\fi
+
 
 \subsection{Classification of MCI vs Controls}
 
@@ -236,13 +280,13 @@ As can be seen from the table, the AC-PCA significantly (paired t-test) outperfo
 \caption{Test Set classification accuracies averaged over 10000 runs (More details in text). AC-PCA is significantly ($p-val <0.0001$ in paired t-test) better than Unconstrained PCA and ROI Cortical Labels}
 \end{center}
 \end{table}
-\fi
+
 
 \section{Conclusion}
 In this paper we proposed a novel approach for incorporating prior information in the form of anatomical priors into totally data driven approaches like PCA. We augmented the basic PCA objective to take into account prior anatomical information and proposed a fast modified Arnoldi iteration algorithm to solve the optimization problem. 
 We also illustrated the benefits of our approach over standard unconstrained PCA as well as ROI based analysis by experiments on cortical thickness images which shows the superiority of AC-PCA for MCI classification compared to ROI and unconstrained PCA (a totally data based approach).  Besides this, the labels output by AC-PCA readily lend themselves
 to interpretability by clinicians and other medical researchers as there is a one-one correspondence between the AC-PCA labels and prior anatomical labels, unlike totally data driven approaches like unconstrained PCA.
-
+\fi
 
 %\vspace{-0.2in}
 \bibliographystyle{IEEEbib}
