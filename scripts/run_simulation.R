@@ -7,7 +7,7 @@ CCA<-"~/code/sccan/bin/sccan "
 # define the parameters for the simulation 
  sparseness<-(-0.33) # for X, Y matrices
  testspatiallocalization<-1 # tests non-overlapping signals 
- nsub<-75 ; nvoxy<-100*(2-testspatiallocalization) ; nvoxx<-80*(2-testspatiallocalization) ; # size of simulated images 
+ nsub<-75 ; nvoxy<-1000*(2-testspatiallocalization) ; nvoxx<-280*(2-testspatiallocalization) ; # size of simulated images 
 # nsub<-20 ; nvoxy<-1 ; nvoxx<-5 ; # size of simulated images 
  noise<-0.05 # increase this to get extra noise
  totalSimulations<-1 # number of random repeats 
@@ -17,7 +17,7 @@ ptot2<-rep(1,totalSimulations)
 for ( sim in c(1:totalSimulations) ) {
 # simulate true signal Z
 Z<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
-Z<-(Z-mean(Z))/sd(Z)
+Z<-(Z-mean(Z))/apply(Z, 2, sd)
 # random signal
 ysig<-matrix(rnorm(nvoxy,0,1),nrow=1,ncol=nvoxy)
 Y<-Z%*%ysig+matrix(rnorm(nsub*nvoxy,0,1),nrow=nsub,ncol=nvoxy)
@@ -32,11 +32,11 @@ Z<-Zs
 # repeat for different true signal Z2
 Z2<-matrix(c(1:nsub)/nsub,nrow=nsub,ncol=1)
 Z2<-exp(Z2*Z2*Z2)
-# Z2<-(Z2)^(1/3)*(-1.)
+Z2<-(Z2)^(1/3)*(-1.)
 zsig<-matrix(rnorm(nsub,0,1),nrow=1,ncol=nsub) 
 Z2<-Z2+t(zsig)*noise
 # plot(Z2)
-Z2<-sample(Z2) # permute the signal 
+# Z2<-sample(Z2) # permute the signal 
 
 # random signal
 ysig<-matrix(rnorm(nvoxy,0,1),nrow=1,ncol=nvoxy)
