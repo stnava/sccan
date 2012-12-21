@@ -43,7 +43,7 @@ There are two predominant approaches for the analysis of functional connectivity
  \end{itemize} 
 
 
-The brain networks found by above approaches are represented as a set of vertices (brain regions) connected by edges which represent the strength of correlation between those two regions~\cite{he2010graph,stam2007graph}. Various independent studies (surveyed here~\cite{van2010exploring}) have consistently found a set of 8 functional connectivity networks in the brain. The networks are shown in Figure 1. One can use a set of key properties of the network graph e.g. clustering coefficient, centrality and modularity to get further insights into the flow of neuronal signals within a network~\cite{he2010graph,stam2007graph}.
+The brain networks found by above approaches are represented as a set of vertices (brain regions) connected by edges which represent the strength of correlation between those two regions~\cite{he2010graph,stam2007graph}. Various independent studies (surveyed here~\cite{van2010exploring}) have consistently found a set of 8 functional connectivity networks in the brain. One can use a set of key properties of the network graph e.g. clustering coefficient, centrality and modularity to get further insights into the flow of neuronal signals within a network~\cite{he2010graph,stam2007graph}.
 
 The above mentioned approaches for analyzing functional connectivity and constructing brain networks suffer from a variety of problems. Since the Group ICA based approaches do a group decomposition of the time series' images of the entire cohort, it has an averaging effect and erodes away any subject specific characteristics of the network. Moreover, since these approaches are totally data driven, they also lack the clinical interpretability of the results as there is no direct mapping from the regions they highlight and the regions which might be of interest to a clinician. 
 
@@ -116,7 +116,7 @@ relevant for explaining variance in the data. Since, we have ${\bf p \gg n}$, th
 Our proposed algorithm AC-SPCA builds on Equation~\ref{pca} and adds an additional term to the objective for incorporating prior information. Basically, it says that instead of finding the eigenvectors of the data covariance matrix (as a totally data driven approach would do), find the eigenvectors of the transformed data covariance matrix obtained by ``regularizing'' it by the prior information. An important consequence of this is that we are not confining our data driven priors to lie in the original seed ROIs rather we are encouraging them to find ways to explain data variance but in this new ``prior regularized'' space. The modified objective is given below:
 \begin{eqnarray}
 \label{ppca}
-{\bf v_i^*}&=& \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}\left((1-\lambda)\cdot{\bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}\right){\bf w_i}  \\
+{\bf v_i^*}&=& \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}\left((1-\lambda)\cdot{\bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}\right){\bf v_i}  \\
 \nonumber
 &&such\;that\;\|{\bf v_i}\|_0=\gamma
 \end{eqnarray}
@@ -125,7 +125,7 @@ where ${\bf M^s_i}$ is  the ``smoothed'' prior corresponding to the $i^{th}$ eig
 Its easy to see that smaller values of $\lambda$ suggest that we trust prior more and as $\lambda$ is increased we want our eigenvectors {\bf v} to be influenced more and more by the data. Sparseness is enforced by a soft-thresholding algorithm as in~\cite{zou2006sparse,Witten2009b}. We denote this function as $S(v,\gamma)$ and (in an adhoc manner) allow it to also reject isolated voxels (i.e. we provide a cluster threshold as in VBM). In our experiments, we typically set $\gamma$ to ensure that only $\sim5\%$ of the voxels have non zero weight.
 
 
- It is important to note that the matrix ${(1-\lambda)\cdot \bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}$ is no longer symmetric, so after eigen decomposition, its left and right eigenvectors won't be the same. We are however interested in finding the left eigenvectors. 
+% It is important to note that the matrix ${(1-\lambda)\cdot \bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}$ is no longer symmetric, so after eigen decomposition, its left and right eigenvectors won't be the same. We are however interested in finding the left eigenvectors. 
 
 %Also, it is important to note that we set the sparsity parameter $\eta$ automatically as $\frac{Number\;\;of\;\;voxels\;\;in\;\;Prior\;\;ROI}{Total\;\;Number\;\;of\;\;Voxels\;\;in\;\;Brain}$. 
 
@@ -200,7 +200,7 @@ The algorithm for AC-SPCA presented below in Algorithms~\ref{algo1},~\ref{algo2}
 \caption{(AC-PCA) outputs for $\lambda=[0.0,0.2,0.5,2.0,5.0,10.0]$ from left to right. Note that $\lambda =0$ corresponds to using only prior ROIs and as $\lambda$ is increased effect of data increases. This is evident from the fact that with increasing $\lambda$ our priors especially around {\em nose, eyes and eyebrows} are getting washed away.}
 \label{fig:priorvary}
 \end{figure*}
-
+\fi
 
 
 
@@ -208,13 +208,103 @@ The algorithm for AC-SPCA presented below in Algorithms~\ref{algo1},~\ref{algo2}
 
 
 \section{Experimental Results}
-In this section we show the performance of our approach on cortical thickness images. Our data consists of images from 222 individuals with equal number of males and females of whom 122 were diagnosed clinically with Mild Cognitive Impairment (MCI) and the remaining 100 were normal controls. The average age of the cohort was 71.33. %add info. about age and gender
-All images were acquired with a Siemens Trio 3.0 Tesla MRI scanner. The analysis of T1 images was done using publicly available Advanced Normalization Tools (ANTS, \url{http://www.picsl.upenn.edu/ANTS/}) and the associated pipelining framework PipeDream ({\url{http://sourceforge.net/projects/neuropipedream/}) which mapped each subject to an existing, elderly/neurodegenerative population template, built from images acquired from the same scanner and imaging parameters.
+In this section we show the performance of our approach on BOLD fMRI data. Our data consists of time series images of 59 individuals with 34 controls and 25 subjects diagnosed clinically with Mild Cognitive Impairment (MCI).  Each time series had a total of 120 points. The average age of the cohort was 70.37 and consisted of 28 females and 31 males.
 
-We used two cortical label (probabilistic ROIs) definitions for our experiments 1). Non-Rigid Image Registration Evaluation Project (NIREP),  (\url{http://www.nirep.org/}), 32 labels in total and  2). LONI Probabilistic Brain Atlas (LPBA40)~\cite{lpba}, 55 labels in total.
+We used the AAL labels (a total of 80 labels) as our seed ROIs~\cite{tzourio2002automated} and used AC-SPCA to create the constrained eigenvectors $\{\bf v_i\}_{i=1}^k$. We fixed the value of the prior parameter strength $\lambda$ as 0.95. Once we had the eigenvectors,  we used a total of 8 labels for our study on the default mode and hippocampus network. The 8 AAL ROIs that we used along with their modified counterparts after running AC-SPCA are shown in Figures~\ref{fig:priorcontrol} and~\ref{fig:priormci}.
 
 
-We ran AC-PCA independently for each label set with varying values of prior strengths, $\lambda =[0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0]$.
+
+Next, we computed the correlation between the mean BOLD signal across all the 120 time series points, for every pair of seed ROIs. These pair of correlations were used to construct the functional connectivity graph, by keeping only those edges which had a correlation higher than $0.2$. 
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=1\linewidth]{aalvspca_control101.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{Top Row shows the original  8 AAL ROIs and the bottom row shows the same ROIs modified by AC-SPCA for a randomly chosen control. 6 of these 8 ROIs are from the default mode network (Precuneus (L/R), Angular Gyrus (L/R), Frontal Medial Orbital Lobe (L/R)) and the remaining two are from left and right parts of hippocampus. }
+\label{fig:priorcontrol}
+\end{figure*}
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=01\linewidth]{aalvspca_mci220.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{The entire setting is same as Figure 1, except that these pair of ROIs are of a subject diagnosed with MCI.}
+\label{fig:priormci}
+\end{figure*}
+
+\subsection{MCI Classification}
+We used our functional connectivity graph network information for classifying controls vs MCI. In addition to that, we also used the network information to predict the {\it Delayed Recall} for each patient. 
+
+
+In all the experiments reported below, we perform a leave 5 out cross validation i.e. training on 54 and testing on 5, and this procedure was repeated a 1000 times. For MCI vs Control experiments, we used logistic regression for classification, whereas for Delayed Recall prediction we used a standard linear squares regression. 
+
+The base features that we used in our classification tasks were, {\it Education} of the subject, {\it gender}, {\it age}, MMSE test. In addition to this we used the degree of all the 8 nodes in the subjects network graph as well as hippocampal volume (total left and right) as well as separately for left and right hemisphere. 
+
+Our main findings are:
+\begin{enumerate}
+\item Using graph measurements along with hippocampal volume are a statistically significantly better predictor of MCI as well as Delayed Recall compared to using hippocampal volume alone for both AAL as well as AC-SPCA ROIs.
+\item Using graph measurements along with hippocampal volume for AC-SPCA ROIs are a statistically significantly better predictor of MCI as well as Delayed Recall compared to using graph measurements along with hippocampal volume for AAL ROI labels.
+\end{enumerate}
+The results are summarized in the tables below:
+
+\begin{table}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ ROI Set& Graph $+$ H  ($\mu\pm\sigma$) & H  ($\mu\pm\sigma$) & p-value  \\
+\hline
+AAL ROIs & 0.534 $\pm$ 0.184 &0.545 $\pm$ 0.173  &0.09\\
+AC-SPCA &  0.406 $\pm$ 0.182  &   0.545 $\pm $0.176 & $2.2e^{-16}$\\
+   \hline
+\end{tabular}
+\end{small}
+\vspace{0.1in}
+\caption{Cross validation $\%$ Errors for MCI classification. G $+$ H= Graph metrics and Hippocampal Volume as predictors. H= Only Hippocampal Volume as predictor. }
+\end{center}
+\end{table}
+
+
+\begin{table}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ ROI Set& G $+$ H $\%$ ($\mu\pm\sigma$) & H  $\%$ ($\mu\pm\sigma$) & p-value  \\
+\hline
+AAL ROIs & 11.02 $\pm$ 5.82 &   8.47 $\pm $ 4.46 & $2.2e^{-16}$\\
+AC-SPCA &  7.96 $\pm$ 5.09 & 8.30 $\pm$ 4.69    & 0.01 \\
+   \hline
+\end{tabular}
+\end{small}
+\vspace{0.1in}
+\caption{Mean Squared Errors for Delayed Recall prediction.  G $+$ H= Graph metrics and Hippocampal Volume as predictors. H= Only Hippocampal Volume as predictor }
+\end{center}
+\end{table}
+
+
+The obtained networks for the AAL labels and AC-SPCA labels are shown in Figure~\ref{networks}. As can be seen, the network for AC-SPCA is more sparse and hence more interpretable than the one obtained using AAL labels.  
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.45\linewidth]{graphaal.pdf} 
+\includegraphics[width=0.45\linewidth]{graphacspca.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{Left graph is for the AAL network and the right graph is for the AC-SPCA labels. The thickness of edge shows the strength of correlation. 1= Frontal Medial Orbital Lobe (R), 2= Frontal Medial Orbital Lobe (L), 3= Hippocampus (R), 4= Hippocampus (R), 5= Angular Gyrus (R), 6= Angular Gyrus (L), 7= Prucuneus (R), 8= Prucuneus (L).   }
+\label{networksi}
+\end{figure*}
+
+%All images were acquired with a Siemens Trio 3.0 Tesla MRI scanner. The analysis of T1 images was done using publicly available Advanced Normalization Tools (ANTS, \url{http://www.picsl.upenn.edu/ANTS/}) and the associated pipelining framework PipeDream ({\url{http://sourceforge.net/projects/neuropipedream/}) which mapped each subject to an existing, elderly/neurodegenerative population template, built from images acquired from the same scanner and imaging parameters.
+
+%We used two cortical label (probabilistic ROIs) definitions for our experiments 1). Non-Rigid Image Registration Evaluation Project (NIREP),  (\url{http://www.nirep.org/}), 32 labels in total and  2). LONI Probabilistic Brain Atlas (LPBA40)~\cite{lpba}, 55 labels in total.
+
+\iffalse
+We ran AC-SPCA independently for each label set with varying values of prior strengths, $\lambda =[0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0]$.
 
 
 \begin{figure*}
