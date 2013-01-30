@@ -1,0 +1,415 @@
+\documentclass{article}
+\usepackage{geometry,tikz}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\usepackage[round]{natbib}
+\newcommand{\Section}[1]{\vspace{-8pt}\section{\hskip-1em.~~#1}\vspace{-3pt}}
+\newcommand{\SubSection}[1]{\vspace{-3pt}\subsection{\hskip -1em.~~#1}\vspace{-3pt}}
+\newcommand{\X}{{\bf X}}
+\newcommand{\x}{{\bf x}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\y}{{\bf y}}
+\newcommand{\Z}{{\bf Z}}
+\newcommand{\z}{{\bf z}}
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\bSigma}{\boldsymbol \Sigma}
+\usepackage[boxed]{algorithm2e}
+\usepackage{amsmath,amssymb}
+%\usepackage{times}
+%\usepackage{setspace,verbatim}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+
+\begin{document}
+\vspace{-0.1in}
+\title{Generating Template Functional Connectivity Networks via Anatomically Constrained Sparse PCA}
+%\author{Anonymous}
+%\institute{Anonymous}
+\maketitle              
+%\vspace{-0.1in}
+\begin{abstract}
+We present a new framework for prior-constrained sparse decomposition of matrices derived from neuroimaging data and apply this method to functional network analysis of a clinically relevant population. Matrix decomposition methods are powerful dimensionality reduction tools that can aid interpretability of large-scale datasets.  However, the unconstrained nature of the optimization algorithms may make it difficult to interpret results in a specific application domain.  
+For instance, approaches like Group Independent Component Analysis (ICA) require post-hoc methods to derive subject specific networks and to identify the anatomical association of the derived independent components.  ICA approaches also average subject specific network characteristics and may be difficult to interpret at an individual level or in terms of the graph-based metrics that have recently gained popularity in fMRI analysis.  The traditional seed ROI-based approach to deriving networks from BOLD fMRI overcomes these problems but has shortcomings of its own.  Seed-based approaches may ``over-average'' within a region and may be sensitive to ROI placement, co-registration errors and the specific ROI boundaries. 
+
+In this paper, we propose a novel approach which integrates ideas from the matrix decomposition and the ROI paradigms.  We formulate our novel solution in terms of prior-constrained $\ell_1$ penalized principal component analysis. Like ICA, our approach seeks to identify a data-driven matrix decomposition of a matrix.  However, our approach,  Anatomically Constrained Sparse PCA (AC-SPCA), also constrains the individual components by a spatial anatomical prior. Consequently, AC-SPCA leads to statistically refined definitions of ROIs based on local covariance structure of the data matrix. AC-SPCA provides a principled way of incorporating prior information in the form of probabilistic or binary ROIs while still allowing the data to softly modify the original ROI definitions. 
+
+When applied to functional neuroimaging data, this allows us to construct subject specific networks with reduced sensitivity to ROI placement.  We evaluate our method within a classification paradigm.  We show that AC-SPCA graph metrics aid classification of early Mild Cognitive Impairment vs control subjects when compared to metrics derived from standard registration-based ROI definitions and a model based on standard demographics plus hippocampal volume.  Our results also reveal unique relationship between default mode network (DMN) and hippocampus network structure and psychometric measurements of memory. 
+\end{abstract}
+
+
+
+\section{Introduction and Related Work}
+
+
+The presence of large and diverse neuroimaging datasets has brought the importance of data analysis techniques into focus.  These issues are particularly salient in BOLD fMRI where recent papers have highlighted the sensitivity of this modality to specific analysis choices~\citep{carp6plurality,haller2009pitfalls}.  Network analysis of functional connectivity within the brain from BOLD data has received a significant amount of attention and is notorious for being sensitive to analysis decisions~\citep{dawson2012evaluation,eke2012pitfalls}. 
+
+Functional connectivity is defined as the temporal co-activation of neuronal patterns between anatomically separated regions of the brain~\citep{aertsen1989dynamics} and is an indicator of functional communication between these different regions.  Studying the brain as an integrative network of functionally interacting brain regions can shed new light on large scale neuronal communication in the brain and how this communication is impaired in neurodegenerative diseases~\citep{bullmore2009complex,mohammadi2009changes,seeley2009neurodegenerative}. 
+
+Typically, functional connectivity studies measure the level of correlation between the functional time-series of the different brain regions of resting-state blood oxygen level dependent (BOLD) signal~\citep{biswal1997simultaneous,damoiseaux2006consistent,salvador2005neurophysiological}.
+
+
+There are two predominant approaches for the analysis of functional connectivity, which are described below:
+\begin{itemize}
+\item {\bf Seed (ROI) Based Approach}:  This is a rather straightforward approach and involves computing the correlation between the time series of a given (preselected) {\it seed} brain region (ROI) against all the other brain regions, resulting in a set of functional connectivity maps of the given brain regions~\citep{biswal1997simultaneous,cordes2000mapping}. These functional connectivity maps can then be used to construct {\it resting-state-networks} of functionally correlated regions in the brain~\citep{damoiseaux2006consistent,fox2005human,beckmann2005investigations}. The {\it seed} region can either be selected based on prior clinical knowledge or it can be selected from the activation map of a separate task dependent fMRI scan.
+\item {\bf Learning Based Approaches}: These approaches use statistical techniques to explore functional connectivity in the brain, obviating the need to define a {\it seed} region. Typical methods employed are Principal Component Analysis (PCA)~\citep{friston1998disconnection}, Independent Component Analysis (ICA) or its variants e.g. Group ICA~\citep{beckmann2005investigations,calhoun2001method,petrella2011default} or hierarchical methods~\citep{cordes2002hierarchical,salvador2005neurophysiological}. This class of methods strive to find a set of orthogonal or independent signals in the time series that can explain the resting state activation patterns. ICA based methods are the most popular methods in this setting as they can find a set of independent (uncorrelated) set of signals from whole brain voxel-wise data and also due to the public availability of  tools like (Group ICA of fMRI Toolbox (GIFT)). Subsequently, one can create brain connectivity networks from the outputs of these approaches by computing correlations between the different (independent/orthogonal) signals they find.
+ \end{itemize} 
+
+
+The brain networks found by above approaches are represented as a set of vertices (brain regions) connected by edges which represent the strength of correlation between those two regions~\citep{he2010graph,stam2007graph}. Various independent studies (surveyed here~\citep{van2010exploring}) have consistently found a set of 8 functional connectivity networks in the brain. One can use a set of key properties of the network graph e.g. clustering coefficient, centrality and modularity to get further insights into the flow of neuronal signals within a network~\citep{he2010graph,stam2007graph}.
+
+
+The above mentioned approaches for analyzing functional connectivity and constructing brain networks suffer from a variety of problems. Since the Group ICA based approaches do a group decomposition of the time series' images of the entire cohort, it has an averaging effect and erodes away any subject specific characteristics of the network. Moreover, since these approaches are totally data driven, they also lack the clinical interpretability of the results. They require post-hoc methods to derive subject specific networks and to identify the anatomical association of the derived independent components. Also, there is no direct mapping from the regions they highlight and the regions which might be of interest to a clinician. 
+
+
+The seed (ROI) based approaches also suffer from the problem of averaging the signal and may be sensitive to ROI placement, co-registration errors and the specific ROI boundaries. These approaches assume that the signal lies totally within a predefined region, however, the important signal may have slightly different boundaries than the scientist's conception.  The data representation (or spatially varying noise) may
+also lead to strong or weak signal within different parts of the seed (ROI).
+Such dataset specific information is not taken into account by a
+traditional seed (ROI) based approach.  When effects are localized to the selected region, and that region is well-defined, a seed based analysis may
+provide the most sensitive testing method.  However, some conditions
+involve a network of regions that may not be fully identified.
+
+Due to these shortcomings and due to the fact that decreased/impaired functional connectivity in certain brain networks, for instance, the Default Mode Network (DMN) has association with neurodegenerative disorders e.g. Alzheimer's Disease (AD)~\citep{greicius2004default}, schizophrenia~\citep{liu2008disrupted,whitfield2009hyperactivity}, multiple sclerosis (MS)~\citep{lowe2008resting}, mild cognitive impairment (MCI)~\citep{petrella2011default}, it has become even more imperative to improve statistical analysis methods to efficiently leverage the scarce patient BOLD fMRI data that is typically available. 
+
+In this paper, we propose a method that integrates ideas from both the seed (ROI) based and learning based approaches. Our contributions in this paper are three fold.
+
+\begin{enumerate}
+\item We contribute a general method for prior-constrained sparse principal component analysis of high-dimensional matrices.
+\item A novel conjugate gradient based efficient method for optimization of the AC-SPCA objective. 
+\item Publicly available implementation of our approach in C++.
+\item Application of AC-SPCA to improve network extraction from BOLD data and an evaluation of these novel measurements in the context of mild cognitive impairment.  
+\end{enumerate}
+
+AC-SPCA allows an initial binary or probabilistic ROI to adapt to
+the underlying covariation within the data and thus has advantages of
+SPCA.  At the same time, AC-SPCA maintains proximity to (and the
+locality of) the original region and thus has advantages of the
+standard seed (ROI) approach.  AC-SPCA also maintains positivity in the
+estimated anatomically-constrained eigestor, thereby keeping seed (ROI)
+interpretability. This allows us to modify the definitions of labels to capture the variation in dataset (a given subject's time series) while still staying close to the initial seed (ROI) definitions. AC-SPCA therefore produces
+labelings with ``soft'' weighted averages and as we show in the
+experimental section, are more sensitive to the underlying
+brain data than a standard seed (ROI). One can define a set of seed ROIs using, for instance, Automated Anatomical Labels (AAL)~\citep{tzourio2002automated}.
+
+Our approach provides a principled way of incorporating priors in a totally data driven approach based on PCA. Our optimization objective provides a tradeoff between 1). staying close to the initial ROI definitions and 2). allowing data to lead the exploratory analysis by explaining variance through PCA. A good way to think about this is as ROI definitions forcing us to be {\em conservative} and staying close to the initial brain parcellation; on the other hand the SPCA component gives us {\em liberty} to be either more exploratory or more focused on the content of the given dataset. The tradeoff between the two competing paradigms is defined by user tunable (prior strength) parameter, which is chosen via cross validation on a separately held validation set. 
+
+AC-SPCA does a prior constrained sparse decomposition of each subject's time series image separately, so it doesn't suffer from the problem of averaging as Group ICA does. Moreover, the priors help us maintain a direct correspondence between the anatomy of the same regions across different subjects hence leading to better clinical interpretability.
+
+The remaining paper is organized as follows; in next section we provide the details of AC-SPCA and provide an algorithm which implements our approach. In Section 3, we provide experimental results in which we use our approach to graphically describe the default mode network (DMN) connectivity with hippocampus. We also use the connectivity patterns to classify MCI vs controls and also study the relationship between DMN hippocampus network structure and psychometric measurements of memory. We conclude with a brief summary in Section 4.
+
+
+ %This has lead to a substantial interest in using sophisticated statistical methods to analyze and explore this data. Methods like Principal Component Analysis (PCA), Independent Component Analysis (ICA), Canonical Correlation Analysis (CCA) and their robust and sparse variants~\citep{Witten2009b,Avants2010b} have been the workhorse of brain and neuro imaging fields as they provide key insights into the data in a totally data driven way. 
+
+%Particularly they find directions of maximum variance in data or its close variant and show the signal to lie in a small number of succinct regions in brain. 
+
+
+
+
+\section{ Anatomically Constrained Sparse Principal Component Analysis: AC-SPCA}
+The class of methods encompassing sparse principal components analysis (SPCA)~\citep{zou2006sparse,Witten2009b,d2007direct} and singular value decomposition~\citep{sill2011robust} form the basis for the approach proposed here. 
+
+
+More formally, lets define a set of $n$, $t\times p$ (rows by columns) matrices $\{\bf X_m\}_{m=1}^n$ where $t$ is the number of total time points, $p$ is the number of total voxels and each ${\bf X}_m$ matrix derives from an observed subject's BOLD fMRI image.
+ Also, lets assume that we have a prior matrix {$\bf M$} whose each row corresponds to a separate prior (total {\bf k} of them) and each column (total {\bf p} of them) contains the probability of a particular voxel belonging to that prior. 
+
+
+We are interested in sparse decomposition of the ${\bf X}_m$ matrices constrained by the anatomical priors {\bf M} which should give us a $t \times k$ matrix for each subject where each of the $k$ eigenvectors explains the variance in the corresponding anatomical region specified by the prior.
+
+
+A standard data driven approach PCA would ignore the prior matrix {\bf M} completely and just try to find combinations of voxels that explain the most variance. The objective it optimizes is:
+
+\begin{equation}
+{\bf v_i^*}= \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}{\bf X^{\top}X}{\bf v_i}
+\label{pca}
+\end{equation}
+where {$\bf v_i^*$} is the $i^{th}$ direction of maximum variance (called eigestor) of data matrix {\bf X}. These vectors when plotted on the image highlight regions which are
+relevant for explaining variance in the data. Since, we have ${\bf p \gg n}$, the above is an ill-posed problem and we need sparsity in eigenvectors, which gives rise to Sparse PCA. The objective is exactly the same as Equation~\ref{pca} except that now we have an additional sparsity penalty ($\|\bf v _i\|_0$) on eigenvectors.  Exact optimization of Sparse PCA is an NP-hard problem and usually its solved by relaxing the sparseness condition~\citep{zou2006sparse,Witten2009b}.
+
+
+
+
+Our proposed algorithm AC-SPCA builds on Equation~\ref{pca} and adds an additional term to the objective for incorporating prior information. Basically, it says that instead of finding the eigenvectors of the data covariance matrix (as a totally data driven approach would do), find the eigenvectors of the transformed data covariance matrix obtained by ``regularizing'' it by the prior information. An important consequence of this is that we are not confining our data driven priors to lie in the original seed ROIs rather we are encouraging them to find ways to explain data variance but in this new ``prior regularized'' space. The modified objective is given below:
+\iffalse
+\begin{eqnarray}
+\label{ppca}
+{\bf v_i^*}&=& \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}\left((1-\lambda)\cdot{\bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}\right){\bf v_i}  \\
+\nonumber
+&&such\;that\;\|{\bf v_i}\|_0=\gamma
+\end{eqnarray}
+\fi
+\begin{eqnarray}
+\label{ppca}
+{\bf v_i^*}&=& \argmax_{{\bf v_i},{\bf \|v_i\|}=1} {\bf v_i}^{\top}\left((1-\lambda)\cdot{\bf X^{\top}_{\backslash i}X_{\backslash i} +  \lambda\cdot M_iM_i^{\top}}\right){\bf v_i}  \\
+\nonumber
+&&such\;that\;\|{\bf v_i}\|_0=\gamma
+\end{eqnarray}
+
+where ${\bf M}_i$ is  the prior corresponding to the $i^{th}$ eigestor and is itself a vector of size (${\bf 1\times p}$). ${\bf X}_{\backslash i}$ is the partial {\bf X} matrix, i.e. the data matrix with the effect of all but the $i^{th}$ eigestor factored out (See Step 8 of Algorithm 1). $\lambda$ is a user tunable parameter which controls the tradeoff between the influence of data and prior and should be typically tuned on a held out validation set in the absence of other knowledge. 
+
+Its easy to see that smaller values of $\lambda$ suggest that we trust prior more and as $\lambda$ is increased we want our eigenvectors {\bf v} to be influenced more and more by the data. Sparseness is enforced by a soft-thresholding algorithm as in~\citep{zou2006sparse,Witten2009b}. We denote this function as $S(v,\gamma)$ and (in an adhoc manner) allow it to also reject isolated voxels (i.e. we provide a cluster threshold as in VBM). In our experiments, we typically set $\gamma$ to ensure that only $\sim5\%$ of the voxels have non zero weight.
+
+
+% It is important to note that the matrix ${(1-\lambda)\cdot \bf X^{\top}X +  \lambda\cdot M^s_i\otimes M^s_i}$ is no longer symmetric, so after eigen decomposition, its left and right eigenvectors won't be the same. We are however interested in finding the left eigenvectors. 
+
+%Also, it is important to note that we set the sparsity parameter $\eta$ automatically as $\frac{Number\;\;of\;\;voxels\;\;in\;\;Prior\;\;ROI}{Total\;\;Number\;\;of\;\;Voxels\;\;in\;\;Brain}$. 
+
+%Figure~\ref{fig:priorvary} uses example face data to show the effect of varying the $\lambda$  parameter on the AC-PCA performance. As mentioned earlier, we choose $\lambda$ by cross-validation on a validation set.
+
+\subsection{An Algorithm for AC-SPCA}
+The algorithm for AC-SPCA presented below in Algorithms~\ref{algo1},~\ref{algo2}. In our initialization, we find a matrix {\bf U} which minimizes the reconstruction error  $\bf \|X - UV^{\top}\|^2$, where {\bf U} is $n\times k$ matrix and {\bf V} is a {$p \times k$} matrix. In our case {\bf V}, the set of eigenvectors are initialized by the prior matrix. We then factor (``partial'') out the effect of all other priors except the prior under consideration. Next we optimize the eigenvectors using Sparse Partial Conjugate Gradient (SPCG) algorithm, which is an iterative procedure and works by projecting the eigenvectors to the sparse solution space repeatedly, till convergence (based on rayleigh coefficient). It is important to note that in the SPCG algorithm, we use two engineering tricks which prevent us from explicitly computing the big $p\times p$ matrix.  First of all, for the multiplication $\bf X^{\top}Xv_i$, we first compute $\bf Xv_i$ and then multiply it with $\bf X^{\top}$, rather than multiplying $\bf X^{\top}X$ first. Secondly, when computing $({\bf M_iM_i^{\top}}){\bf v_i}$, we first compute the inner product of ${\bf M_i}$ and $\bf v_i$, and then compute a second inner product of the result with  $\bf v_i$; its easy to verify that we get the answer as by directly computing $({\bf M_iM_i^{\top}}){\bf v_i}$.
+
+\begin{algorithm}
+\small \caption{\bf Anatomically Constrained Sparse Principal Component Analysis: AC-SPCA}
+\label{algo1}
+\KwIn { {\bf X}, {$\bf M$}, $\lambda$, $\gamma$. }
+Normalize the data matrix {\bf X} by  mean centering it\;
+\For{i=1 to k}{
+	Initialize the $i^{th}$ eigestor $\bf v_{i} \gets M_i$ based on the corresponding prior\;
+	Compute {$\bf u_i$} i.e. the $i^{th}$ row of the $\bf U$ matrix by minimizing the reconstruction error as ${\bf u_i^*}= \argmin_{u_i} \|{\bf x_i} - {\bf u_i}\otimes {\bf v_i} \|_2^2$\;
+}
+\For {i=1 to k}{
+	Compute the partial {\bf X} matrix: ${\bf X}_{\backslash i}= {\bf X}- \sum_{j=1, j\neq i}^{k}  {\bf u_j}\otimes {\bf v_j}$\;
+	${\bf v_i}$ $\gets$ {\bf SPCG}$({\bf X}_{\backslash i}, {\bf M_i}, \lambda,\gamma, {\bf v_i}, numIterations)$ //Perform Sparse Partial Conjugate Gradient\;
+	Normalize the eigestor ${\bf v_i}$ $\gets$ ${\bf v_i}/\|{\bf v_i}\|$\;
+	${\bf v_i}$ $\gets$  $S(v,\gamma)$ //Soft-Max and Cluster Thresholding\;
+	}
+\KwOut {$\{{\bf v}\}_{i=1}^{k}$}
+\end{algorithm}
+
+
+\begin{algorithm}
+\small \caption{\bf Sparse Partial Conjugate Gradient: SPCG}
+\label{algo2}
+\KwIn  {${\bf A}, {q}, \delta,\mu, {w}$, n.}
+$j \gets 0$ //Iteration Counter\;
+${ p} \gets (1-\delta) \cdot {\bf A}w + \delta \cdot qq^{\top}w$\;
+Initialize  Rayleigh Coefficient  $R$=0, $R_{old}=-1$\;
+g $\gets$ w\;
+bestW $\gets$ w\;
+
+\While {$R >R_{old}$ $\&\&$ j $<$ n}{
+	$\mu=1$\;
+	t $\gets$ $qq^{\top}w$\;
+	s $\gets$  ${\bf A}^{\top}\times ({\bf A}\times w)$\;
+         s $\gets$  $(1-\delta)\cdot$ s + $\delta\cdot$ t\;
+         $\mu \gets \frac{s\cdot s}{g\cdot g}$\;
+         g $\gets$ s\;
+         $w \gets w + s\times \mu \times$ gradStep //gradStep chosen as $0.1$\;
+         Sparsify($w$)\;
+         $w \gets \frac{w}{\|w\|}$\;
+         ${p} \gets (1-\delta) \cdot {\bf A}w + \delta\cdot qq^{\top}w$\;
+        $R_{old}=R$\;
+	Compute $R \gets \frac{p\cdot p}{w\cdot w}$\;
+	$j \gets j+1$\;
+	\If {$R > R_{old}$ $\|$ j==1}{
+	bestW $\gets$ w\;
+	}
+}
+w $\gets$ bestW\;
+\KwOut {$\{{w}\}$}
+\end{algorithm}
+
+
+
+%\STATE Soft-Max Sparseness:  ${\bf v_i^{j}}  \leftarrow (\|{\bf v_i^{j}}\|  - max({\bf v_i^{j}})*\eta)_+ Sign({\bf v_i^{j}})$ //Note that $\eta$ is set automatically as described earlier.
+
+
+
+
+\iffalse
+\begin{figure*}
+\begin{center}
+\includegraphics[width=\linewidth]{fig2.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{(AC-PCA) outputs for $\lambda=[0.0,0.2,0.5,2.0,5.0,10.0]$ from left to right. Note that $\lambda =0$ corresponds to using only prior ROIs and as $\lambda$ is increased effect of data increases. This is evident from the fact that with increasing $\lambda$ our priors especially around {\em nose, eyes and eyebrows} are getting washed away.}
+\label{fig:priorvary}
+\end{figure*}
+\fi
+
+
+
+
+
+
+\section{Experimental Results}
+In this section we show the performance of our approach on BOLD fMRI data. Our data consists of time series images of 59 individuals with 34 controls and 25 subjects diagnosed clinically with Mild Cognitive Impairment (MCI).  Each time series had a total of 120 points. The average age of the cohort was 70.37 and consisted of 28 females and 31 males.
+
+We used the AAL labels (a total of 80 labels) as our seed ROIs~\citep{tzourio2002automated} and used AC-SPCA to create the constrained eigenvectors $\{\bf v_i\}_{i=1}^k$. We fixed the value of the prior parameter strength $\lambda$ as 0.95. Once we had the eigenvectors,  we used a total of 8 labels for our study on the default mode and hippocampus network. The 8 AAL ROIs that we used along with their modified counterparts after running AC-SPCA are shown in Figures~\ref{fig:priorcontrol} and~\ref{fig:priormci}.
+
+
+
+Next, we computed the correlation between the mean BOLD signal across all the 120 time series points, for every pair of seed ROIs. These pair of correlations were used to construct the functional connectivity graph, by keeping only those edges which had a correlation higher than $0.2$. 
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=1\linewidth]{aalvspca_control101.pdf} 
+\end{center}
+\vspace{-0.3in}
+\caption{Top Row shows the original  8 AAL ROIs and the bottom row shows the same ROIs modified by AC-SPCA for a randomly chosen control. 6 of these 8 ROIs are from the default mode network (Precuneus (L/R), Angular Gyrus (L/R), Frontal Medial Orbital Lobe (L/R)) and the remaining two are from left and right parts of hippocampus. }
+\label{fig:priorcontrol}
+\end{figure*}
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=01\linewidth]{aalvspca_mci220.pdf} 
+\end{center}
+\vspace{-0.3in}
+\caption{The entire setting is same as Figure 1, except that these pair of ROIs are of a subject diagnosed with MCI.}
+\label{fig:priormci}
+\end{figure*}
+
+\subsection{MCI Classification}
+We used our functional connectivity graph network information for classifying controls vs MCI. In addition to that, we also used the network information to predict the {\it Delayed Recall} for each patient. 
+
+
+In all the experiments reported below, we perform a leave 5 out cross validation i.e. training on 54 and testing on 5, and this procedure was repeated a 1000 times. For MCI vs Control experiments, we used logistic regression for classification, whereas for Delayed Recall prediction we used a standard linear squares regression. 
+
+The base features that we used in our classification tasks were, {\it Education} of the subject, {\it gender}, {\it age}, MMSE test. In addition to this we used the degree of all the 8 nodes in the subjects network graph as well as hippocampal volume (total left and right) as well as separately for left and right hemisphere. 
+
+Our main findings are:
+\begin{enumerate}
+\item Using graph measurements along with hippocampal volume are a statistically significantly better predictor of MCI as well as Delayed Recall compared to using hippocampal volume alone for both AAL as well as AC-SPCA ROIs.
+\item Using graph measurements along with hippocampal volume for AC-SPCA ROIs are a statistically significantly better predictor of MCI as well as Delayed Recall compared to using graph measurements along with hippocampal volume for AAL ROI labels.
+\end{enumerate}
+The results are summarized in the tables below:
+
+\begin{table}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ ROI Set& Graph $+$ H  ($\mu\pm\sigma$) & H  ($\mu\pm\sigma$) & p-value  \\
+\hline
+AAL ROIs & 0.534 $\pm$ 0.184 &0.545 $\pm$ 0.173  &0.09\\
+AC-SPCA &  0.406 $\pm$ 0.182  &   0.545 $\pm $0.176 & $2.2e^{-16}$\\
+   \hline
+\end{tabular}
+\end{small}
+\vspace{0.1in}
+\caption{Cross validation $\%$ Errors for MCI classification. G $+$ H= Graph metrics and Hippocampal Volume as predictors. H= Only Hippocampal Volume as predictor. }
+\end{center}
+\end{table}
+
+
+\begin{table}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ ROI Set& G $+$ H $\%$ ($\mu\pm\sigma$) & H  $\%$ ($\mu\pm\sigma$) & p-value  \\
+\hline
+AAL ROIs & 11.02 $\pm$ 5.82 &   8.47 $\pm $ 4.46 & $2.2e^{-16}$\\
+AC-SPCA &  7.96 $\pm$ 5.09 & 8.30 $\pm$ 4.69    & 0.01 \\
+   \hline
+\end{tabular}
+\end{small}
+\vspace{0.1in}
+\caption{Mean Squared Errors for Delayed Recall prediction.  G $+$ H= Graph metrics and Hippocampal Volume as predictors. H= Only Hippocampal Volume as predictor }
+\end{center}
+\end{table}
+
+
+The obtained networks for the AAL labels and AC-SPCA labels are shown in Figure~\ref{networks}. As can be seen, the network for AC-SPCA is more sparse and hence more interpretable than the one obtained using AAL labels.  
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.45\linewidth]{graphaal.pdf} 
+\includegraphics[width=0.45\linewidth]{graphacspca.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{Left graph is for the AAL network and the right graph is for the AC-SPCA labels. The thickness of edge shows the strength of correlation. 1= Frontal Medial Orbital Lobe (R), 2= Frontal Medial Orbital Lobe (L), 3= Hippocampus (R), 4= Hippocampus (R), 5= Angular Gyrus (R), 6= Angular Gyrus (L), 7= Prucuneus (R), 8= Prucuneus (L).   }
+\label{networksi}
+\end{figure*}
+
+%All images were acquired with a Siemens Trio 3.0 Tesla MRI scanner. The analysis of T1 images was done using publicly available Advanced Normalization Tools (ANTS, \url{http://www.picsl.upenn.edu/ANTS/}) and the associated pipelining framework PipeDream ({\url{http://sourceforge.net/projects/neuropipedream/}) which mapped each subject to an existing, elderly/neurodegenerative population template, built from images acquired from the same scanner and imaging parameters.
+
+%We used two cortical label (probabilistic ROIs) definitions for our experiments 1). Non-Rigid Image Registration Evaluation Project (NIREP),  (\url{http://www.nirep.org/}), 32 labels in total and  2). LONI Probabilistic Brain Atlas (LPBA40)~\citep{lpba}, 55 labels in total.
+
+\iffalse
+We ran AC-SPCA independently for each label set with varying values of prior strengths, $\lambda =[0.1,0.2,0.5,1.0,2.0,5.0,10.0,20.0]$.
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.7\linewidth]{lpba.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{Results for LPBA40 labels. Left to right- Unconstrained PCA, prior LPBA labels, AC-PCA labels. The arrows show left frontal gyrus and the left superior temporal gyrus. The value of the prior strength $\lambda$ for AC-PCA is $0.2$, chosen on validation set. Note that not all the 55 anatomical priors can be seen in this slice.}
+\label{fig:priorlpba}
+\end{figure*}
+
+
+\subsection{Qualitative Results}
+
+The figures below show slices of axial and sagittal section labelings for unconstrained PCA, true cortical labels (NIREP and LPBA40) and prior constrained PCA (AC-PCA).
+
+% As can be seen from the figures, the prior constrained labelings have been modified from their prior anatomical definitions (i.e. NIREP or LPBA) based on evidence from data. However, unlike unconstrained PCA, the AC-PCA labels are more spatially constrained and do not generate the same label for distant but correlated brain structures. 
+%As can be seen from the figures, there is a one-one correspondence between prior anatomical labels and the labeling generated by AC-PCA as we have constrained them to stay near to their prior labels, however such a correspondence does not exist between the labels generated by unconstrained PCA and prior labels  
+
+Note that in the unconstrained PCA, the same label is assigned to parts of the left frontal gyrus and the left superior temporal gyrus (shown by arrows in figure) since it has no notion of anatomy; on the other hand, AC-PCA, since it is anatomical prior driven does not join distant structures which aids interpretability.
+
+Another interesting observation is that both AC-PCA and unconstrained PCA have assigned  the same label to corresponding regions in the left and right hemispheres. This occurs less frequently in AC-PCA as we have constrained it via anatomical priors.  %The anatomical constraint is less effective for structures close to the mid-line of the brain because these structures are closer to the corresponding structure on the other hemisphere.
+%%since based on euclidean distance structures on opposite hemispheres which are close to each other can have same label.
+
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=0.7\linewidth]{nirep.pdf} 
+\end{center}
+\vspace{-0.2in}
+\caption{Results for NIREP labels. Left to right- Unconstrained PCA, prior NIREP labels, AC-PCA labels. The value of the prior strength $\lambda$ for AC-PCA is $0.5$, chosen on validation set. Note that not all the 32 anatomical priors can be seen in this slice.}
+\label{fig:priornirep}
+\end{figure*}
+
+
+\subsection{Classification of MCI vs Controls}
+
+We hypothesize that AC-PCA will improve over basic ROIs on (MCI vs Controls) classification results by allowing the summary
+measurements derived from the imaging data to adapt to the underlying signal.  We also hypothesize that AC-PCA locality will improve over
+unconstrained PCA-based classification.
+
+We use the projections (eigenvectors projected onto the data matrix) resulting from unconstrained PCA, AC-PCA and prior cortical labels to distinguish individuals with Mild Cognitive Impairment (MCI) from normal aging individuals~\citep{Zhou2011,Chen2010}. 
+Since it is a classification problem, we used logistic regression and randomly split the data into training ($80\%$), validation ($10\%$) and testing ($10\%$). Firstly, we use cross validation to determine the best value of prior strength parameter ($\lambda$); we train on the training data and test on validation data with varying prior strengths as mentioned above and then choose the best value of prior strength as the one which gave the least classification error on the validation set.  The best prior strength value was $\lambda =0.5$ for NIREP labels and $\lambda=0.2$ for LPBA40 labels. 
+
+Next, with these values of $\lambda$ we trained AC-PCA on the entire training and validation set and tested on the test set. This whole procedure was repeated 10000 times and the classification accuracies are given in Table 1.
+
+As can be seen from the table, the AC-PCA significantly (paired t-test) outperforms unconstrained PCA as well as the approach which just uses cortical ROI labels hence leading to a classifier which can better distinguish MCI patients from normal controls. 
+
+
+\begin{table}
+\begin{center}
+\begin{small}
+\begin{tabular}{|c|c|c|c|}
+\hline
+ Label Set& Unconstrained PCA ($\mu\pm\sigma$) & ROI Cortical Labels ($\mu\pm\sigma$) & AC-PCA ($\mu\pm\sigma$)  \\
+\hline
+ NIREP& $62.58\% \pm 4.5\%$&$66.05\pm 3.9\%$ &${\bf 67.96\%\pm 2.3\%}$\\
+ LPBA40&$62.58\% \pm 4.5\%$&$65.95\%\pm3.6\%$ &${\bf 67.15\%\pm 3.2\%}$\\ 
+   \hline
+\end{tabular}
+\end{small}
+\vspace{0.1in}
+\caption{Test Set classification accuracies averaged over 10000 runs (More details in text). AC-PCA is significantly ($p-val <0.0001$ in paired t-test) better than Unconstrained PCA and ROI Cortical Labels}
+\end{center}
+\end{table}
+
+
+\section{Conclusion}
+In this paper we proposed a novel approach for incorporating prior information in the form of anatomical priors into totally data driven approaches like PCA. We augmented the basic PCA objective to take into account prior anatomical information and proposed a fast modified Arnoldi iteration algorithm to solve the optimization problem. 
+We also illustrated the benefits of our approach over standard unconstrained PCA as well as ROI based analysis by experiments on cortical thickness images which shows the superiority of AC-PCA for MCI classification compared to ROI and unconstrained PCA (a totally data based approach).  Besides this, the labels output by AC-PCA readily lend themselves
+to interpretability by clinicians and other medical researchers as there is a one-one correspondence between the AC-PCA labels and prior anatomical labels, unlike totally data driven approaches like unconstrained PCA.
+\fi
+
+%\vspace{-0.2in}
+\bibliographystyle{plainnat}
+\bibliography{neuroimage}
+
+
+\end{document}
+
