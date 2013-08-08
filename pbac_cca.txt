@@ -1,0 +1,43 @@
+\documentclass{elsarticle}
+\usepackage{amsfonts,xcolor}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\newcommand{\X}{\mathrm{X}}
+\newcommand{\Xh}{\hat{\mathrm{X}}}
+\newcommand{\transpose}{^\mathrm{T}}
+\usepackage{geometry}
+\usepackage{url}
+\usepackage[boxed]{algorithm2e}
+\usepackage{algorithmicx,algpseudocode}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+
+\begin{document}
+<<setup, include=FALSE, cache=FALSE,eval=FALSE>>=
+options(xtable.comment = FALSE)
+options(replace.assign=TRUE,width=90)
+options( digits = 4 )
+# knit_hooks$set(rgl = hook_rgl)
+# head(hook_rgl)  # the hook function is defined as this
+library(ANTsR)
+library(boot)
+library(xtable)
+library(grid)
+library(png)
+library(abind)
+library(grDevices)
+@
+
+\title{CCA}
+\author{Brian B. Avants}
+\begin{abstract}
+x
+\end{abstract}
+\maketitle
+\section{Introduction}
+
+\cite{Norman2006}
+
+\bibliographystyle{IEEEtran}
+\bibliography{src/cca}
+\end{document}

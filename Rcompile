@@ -1,0 +1,10 @@
+#!/usr/bin/env Rscript
+library(knitr)
+knit('pbac_cca.Rnw',tangle=TRUE)
+knit('pbac_cca.Rnw',tangle=FALSE)
+for ( i in c(1,2,3) ) {
+  system('pdflatex pbac_cca ')
+  system('bibtex pbac_cca ')
+}
+system('rm *log *aux *blg *tex')
+
