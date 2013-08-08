@@ -1,1 +1,0 @@
-/sccan --sparse-svd-prior [faces.mhd,Stirling_Front_Facemask.nii,listPrior.txt,Stirling_Front_Facemask.nii,priorScaleList.csv,0.05] -n 7 -o facesp05.nii
