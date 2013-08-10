@@ -128,30 +128,30 @@ lookatrows<-grep("adj",names(demog))
 testnames=names(demog)
 agenthelike<-c(13:15,176)
 agenthelike<-c(13:15)
-offset<-length(agenthelike)
-offset<-0
+offset<-length(agenthelike)  # this will add the age / mmse to the matrix 
+offset<-0                               # only pbac 
 testlist<-1:5
 for ( opt in testlist ){ # 
 if ( opt == 1 ) {
   lookatrows<-c(agenthelike,46:48,63) ; nam<-'exec' # exec + demog
-  lookatrows<-c(46:48,63) ; nam<-'exec' # exec + demog
+  if ( offset == 0 ) lookatrows<-c(46:48,63) ; nam<-'exec' # exec + demog
 }
 if ( opt == 2 ) {
   lookatrows<-c(agenthelike,50:54) ; nam<-'lang' # lang + demog
-  lookatrows<-c(50:54) ; nam<-'lang' # lang + demog
+  if ( offset == 0 ) lookatrows<-c(50:54) ; nam<-'lang' # lang + demog
 }
 if ( opt == 3 ) {
- lookatrows<-c(agenthelike,59:61) ; nam<-'mem' # mem + demog
- lookatrows<-c(59:61) ; nam<-'mem' # mem + demog
+  lookatrows<-c(agenthelike,59:61) ; nam<-'mem' # mem + demog
+  if ( offset == 0 ) lookatrows<-c(59:61) ; nam<-'mem' # mem + demog
 }
 if ( opt == 4 ) {
   lookatrows<-c(agenthelike,56,57) ; nam<-'vs' # vs + demog
-  lookatrows<-c(56,57) ; nam<-'vs' # vs + demog
+  if ( offset == 0 ) lookatrows<-c(56,57) ; nam<-'vs' # vs + demog
 }
 if ( opt == 5 ) {
   lookatrows<-c(agenthelike,36,37,39,40,41) ; nam<-'behav' # behav + demog
   lookatrows<-c(agenthelike,37:43) ; nam<-'behav' # behav + demog
-  lookatrows<-c(37:43) ; nam<-'behav' # behav + demog
+  if ( offset == 0 ) lookatrows<-c(37:43) ; nam<-'behav' # behav + demog
 }
 print(opt)
 print(names(demog)[lookatrows])
