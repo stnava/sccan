@@ -291,6 +291,7 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
     }
   sigfrac <- sum( upvs < 0.05 ) / length( mask )
   print( paste("0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
+  if ( sigfrac < 0.01 ) sigfrac <- 0.01 
   qvsvm <- 1 - upvs
   qvsvm <- ( qvsvm - min( qvsm ) ) 
   qvsvm <-  qvsvm / max( qvsvm )
