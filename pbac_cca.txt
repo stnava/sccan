@@ -289,6 +289,7 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
         setTxtProgressBar( progress, i )
       }
     }
+  print( paste("0.05",sum( upvs < 0.05 ) / length( mask ) * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
   qvsvm <- 1 - upvs
   qvsvm <- ( qvsvm - min( qvsm ) ) 
   qvsvm <-  qvsvm / max( qvsvm )
