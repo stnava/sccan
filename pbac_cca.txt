@@ -49,6 +49,8 @@ The Philadelphia Brief Assessment of Cognition9,10 (PBAC) was developed to provi
 
 The current study extends previous research with the PBAC (Libon et al., 2011) by examining the gray matter neuroimaging correlates of PBAC’s cognitive and social measurements in a large number of AD and FTLD patients.  We employ a new data-driven machine learning technique, sparse canonical correlation analysis for neuroimaging (SCCAN), to associate such high-dimensional imaging measurements with the full information provided by a multivariate psychometric battery such as PBAC.  Specifically, this approach allows an optimal weighting of psychometric sub-scales (as opposed to averaging their values) such that the relationship with neuroimaging is maximized.  At the same time, SCCAN optimizes and selects regions of gray matter (GM) to maximize correlation with psychometrics.  This results in a set of gray matter regions that may be interpreted as the network most-associated with the given psychometric domain.  SCCAN previously identified covariation between GM and diffusion tensor imaging white matter (WM) changes that optimally discriminate between CSF- and autopsy-defined patients with AD and FTLD11.  The purpose of the current research is to test the hypothesis that SCCAN may employ individual PBAC sub-scales to extract GM networks that are significantly affected in patients with a specific phenotypic diagnosis.  This would provide additional criterion validity for both the PBAC and multivariate techniques such as SCCAN, and establish a novel strategy for performing multivariate analyses of brain and behavior. 
 
+MACHINE LEARNING BACKGROUND SECTION
+
 
 \section{Methods}
 \subsection{Patients:}  Individuals participating in the current research were drawn from a corpus of 270 patients, previously described10.  Dementia patients were evaluated by experienced behavioral neurologists (AC, HBC, RGG, MG) and classified clinically on the basis of previously published criteria2, 12-14.  A research diagnosis was made on the basis of an independent review of a semi-structured history obtained from patients and their families and a detailed neurologic examination.  At least two trained reviewers from a consensus committee (inter-rater reliability, r= 0.91, p< 0.001) confirmed patients’ clinical diagnosis and presence of a specific dementia syndrome involving AD or FTLD. Discrepancies were resolved based on group discussion and follow-up assessment.  The PBAC was not used for the initial diagnosis of research participants.  
@@ -114,7 +116,8 @@ Dr. Grossman receives support from the National Institutes of Health (AG32953, A
 library(ANTsR)
 require(visreg) ; library(vegan)
 DIR<-paste(getwd(),'/data/',sep='')
-myres<-list()
+resMV<-list()
+resUV<-list()
 ##########################################################################
 ##########################################################################
 demog<-read.csv(paste(DIR,'PBAC_current.csv',sep=''),na.strings = ".")
@@ -265,8 +268,35 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
   dev.off()
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
-  myres<- lappend( myres , c( nam, coefficients(summary(fit))[2,4] ) )
+  resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
+
+# now do the univariate equivalent
+  unames<-names(demog)[grep("scale_adj",names(demog))]
+  if ( nam == "exec" ) myform<-as.formula( paste( unames[1], "  ~ vox  " ) )
+  if ( nam == "lang" ) myform<-as.formula( paste( unames[2], "  ~ vox  " ) )
+  if ( nam == "vs" ) myform<-as.formula( paste( unames[3], "  ~ vox  " ) )
+  if ( nam == "mem" ) myform<-as.formula( paste( unames[5], "  ~ vox  " ) )
+  if ( nam == "behav" ) myform<-as.formula( paste( unames[6], "  ~ vox  " ) )
+  upvs<-rep(NA,sum(mask))
+  progress <- txtProgressBar( min = 0, max = ncol(trainmat), style = 3 )
+  for ( i in 1:ncol(trainmat) )
+    {
+    vox<-trainmat[,i]
+    fit<-lm( myform,  data=demog[permutesubs,] )
+    upvs[i]<-coefficients(summary(fit))[2,4]
+    if( i %% 1000 == 0 )
+      {
+        setTxtProgressBar( progress, i )
+      }
+    }
+  qvsm<-matrix( 1 - upvs , nrow=1 )
+  qvsm[ is.na( qvsm ) ]<-0
+  vox<-testmat  %*% t( qvsm  )
+  fit<-lm( myform,  data=demog[permutesubs2,] )
+  resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
+  print( summary( fit ) ) 
   print( paste(nam,'done') )
+
 }
 
 
