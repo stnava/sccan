@@ -114,6 +114,7 @@ Dr. Grossman receives support from the National Institutes of Health (AG32953, A
 library(ANTsR)
 require(visreg) ; library(vegan)
 DIR<-paste(getwd(),'/data/',sep='')
+myres<-list()
 ##########################################################################
 ##########################################################################
 demog<-read.csv(paste(DIR,'PBAC_current.csv',sep=''),na.strings = ".")
@@ -264,6 +265,7 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
   dev.off()
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
+  myres<- lappend( myres , c( nam, coefficients(summary(fit))[2,4] ) )
   print( paste(nam,'done') )
 }
 
