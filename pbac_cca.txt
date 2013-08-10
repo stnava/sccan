@@ -296,6 +296,9 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   qvsm[ is.na( qvsm ) ]<-0
   vox<-testmat  %*% t( qvsm  )
   fit<-lm( myform,  data=demog[permutesubs2,] )
+  uvimg<-antsImageClone( maskimg )
+  uvimg[ mask ]<-upvs 
+  antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
   resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
   print( summary( fit ) ) 
   print( paste(nam,'done') )
