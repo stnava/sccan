@@ -270,8 +270,8 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
   resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
 
-# now do the univariate equivalent
-  unames<-names(demog)[grep("scale_adj",names(demog))]
+# do the univariate test to get the sparseness param 
+ unames<-names(demog)[grep("scale_adj",names(demog))]
   if ( nam == "exec" ) myform<-as.formula( paste( unames[1], "  ~ vox  " ) )
   if ( nam == "lang" ) myform<-as.formula( paste( unames[2], "  ~ vox  " ) )
   if ( nam == "vs" ) myform<-as.formula( paste( unames[3], "  ~ vox  " ) )
@@ -289,7 +289,8 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
         setTxtProgressBar( progress, i )
       }
     }
-  print( paste("0.05",sum( upvs < 0.05 ) / length( mask ) * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
+  sigfrac <- sum( upvs < 0.05 ) / length( mask )
+  print( paste("0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
   qvsvm <- 1 - upvs
   qvsvm <- ( qvsvm - min( qvsm ) ) 
   qvsvm <-  qvsvm / max( qvsvm )
@@ -302,6 +303,26 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
   resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
   print( summary( fit ) ) 
+
+# now do the multi-variate equivalent
+
+ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=10,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
+myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
+myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
+myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
+myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
+
+  imaging<-myproj2a[,1]
+  cognition<-myproj2b[,1] 
+  fit<-lm( cognition ~ imaging )
+  print( summary( fit ) )
+  pdf(paste('sccanpredict',nam,'_',sigfrac,'.pdf',sep=''))
+  mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,sep='')
+  visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
+  dev.off()
+  antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
+  resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
+
   print( paste(nam,'done') )
 
 }
