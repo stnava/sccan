@@ -223,32 +223,11 @@ for ( x in (offset+1):nc ) {
  ct<-ct+1
 }
 cogmat<-decostand(cogmat,method='standardize',margin=2)
-
-agemat<-matrix(NA,nsub,length(agenthelike))
-ct<-1
-for ( x in 1:length(agenthelike) ) {
-  agemat[,ct]<-as.numeric(demog[WHICH,as.numeric(fullrows[x])])
-  ct<-ct+1
-}
 nw<-1:ncol(cogmat)
 #
-# now document this particular study
-# df<-data.frame(demog[WHICH,])
-# write.csv(df,paste(DIR,'studyvars/',nam,'.csv',sep=''),row.names=F,quote=F)
-# pre<-paste(DIR,"studyvars/pbac_sub_matrix",sep='')
-# onametn<-paste(pre,nam,"age_train.csv",sep='')
-# write.csv(agemat[permutesubs,],onametn,row.names=F,quote=FALSE) 
-# onamett<-paste(pre,nam,"age_test.csv",sep='')
-# write.csv(agemat[permutesubs2,],onamett,row.names=F,quote=FALSE) 
-#############################################################################################
-# onametn<-paste(pre,nam,"train.csv",sep='')
-# write.csv(cogmat[permutesubs,nw],onametn,row.names=F,quote=FALSE) 
-# onamett<-paste(pre,nam,"test.csv",sep='')
-# write.csv(cogmat[permutesubs2,nw],onamett,row.names=F,quote=FALSE) 
-#
-#
 #######################################################################
-thmask<-paste(DIR,"gmask_2mmb.nii.gz",sep='')
+#
+ thmask<-paste(DIR,"gmask_2mmb.nii.gz",sep='')
 maskimg<-antsImageRead(thmask,3)
 mask<-maskimg == 1
 trainmat<-matrix(NA,length(permutesubs),sum(mask))
@@ -270,7 +249,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
 
 
-ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c(0.1,-1),nvecs=2,its=5,cthresh=c(200,0),perms=0,uselong=0,z=0,smooth=1 )
+ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c(0.1,-1),nvecs=2,its=5,cthresh=c(50,0),perms=0,uselong=0,z=0,smooth=1 )
 myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
 myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
 myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
@@ -284,6 +263,7 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,sep='')
   visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
   dev.off()
+  antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
   print( paste(nam,'done') )
 }
 
