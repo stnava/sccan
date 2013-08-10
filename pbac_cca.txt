@@ -277,7 +277,7 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
   if ( nam == "vs" ) myform<-as.formula( paste( unames[3], "  ~ vox  " ) )
   if ( nam == "mem" ) myform<-as.formula( paste( unames[5], "  ~ vox  " ) )
   if ( nam == "behav" ) myform<-as.formula( paste( unames[6], "  ~ vox  " ) )
-  upvs<-rep(NA,sum(mask))
+  upvs<-rep(1,sum(mask))
   progress <- txtProgressBar( min = 0, max = ncol(trainmat), style = 3 )
   for ( i in 1:ncol(trainmat) )
     {
@@ -289,7 +289,10 @@ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 )
         setTxtProgressBar( progress, i )
       }
     }
-  qvsm<-matrix( 1 - upvs , nrow=1 )
+  qvsvm <- 1 - upvs
+  qvsvm <- ( qvsvm - min( qvsm ) ) 
+  qvsvm <-  qvsvm / max( qvsvm )
+  qvsm<-matrix( upvs , nrow=1 )
   qvsm[ is.na( qvsm ) ]<-0
   vox<-testmat  %*% t( qvsm  )
   fit<-lm( myform,  data=demog[permutesubs2,] )
