@@ -253,27 +253,34 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
 # do the univariate test to get the sparseness param 
   print("UNIVARIATE")
-  unames<-names(demog)[grep("scale_adj",names(demog))]
-  if ( nam == "exec" ) myform<-as.formula( paste( unames[1], "  ~ vox  " ) )
-  if ( nam == "lang" ) myform<-as.formula( paste( unames[2], "  ~ vox  " ) )
-  if ( nam == "vs" ) myform<-as.formula( paste( unames[3], "  ~ vox  " ) )
-  if ( nam == "mem" ) myform<-as.formula( paste( unames[5], "  ~ vox  " ) )
-  if ( nam == "behav" ) myform<-as.formula( paste( unames[6], "  ~ vox  " ) )
-  upvs<-rep(1,sum(mask))
-  print( myform )	
-  progress <- txtProgressBar( min = 0, max = ncol(trainmat), style = 3 )
-  for ( i in 1:ncol(trainmat) )
-    {
-    vox<-trainmat[,i]
-    fit<-lm( myform,  data=demog[permutesubs,] )
-    upvs[i]<-coefficients(summary(fit))[2,4]
-    if( i %% 1000 == 0 )
-      {
-        setTxtProgressBar( progress, i )
-      }
-    }
-  sigfrac <- sum( upvs < 0.05 ) / length( mask )
-  print( paste("UVar-Significance0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
+   unames<-names(demog)[grep("scale_adj",names(demog))]
+   voxside<-" ~ vox + age + edu + mmse "
+   if ( nam == "exec" ) myform<-as.formula( paste( unames[1], voxside ) )
+   if ( nam == "lang" ) myform<-as.formula( paste( unames[2], voxside ) )
+   if ( nam == "vs" ) myform<-as.formula( paste( unames[3], voxside ) )
+   if ( nam == "mem" ) myform<-as.formula( paste( unames[5], voxside ) )
+   if ( nam == "behav" ) myform<-as.formula( paste( unames[6], voxside ) )
+   print( myform )
+   bynum<-100
+   ss<-seq(1,ncol(trainmat),by=bynum)
+   ntests<-length( ss )
+   progress <- txtProgressBar( min = 0, max = ntests,  style = 3 )
+   upvs<-rep(1, ntests )
+   ict<-1
+   for ( i in ss )
+     {
+     vox<-trainmat[,i]
+     fit<-lm( myform,  data=demog[permutesubs,] )
+     upvs[ict]<-coefficients(summary(fit))[2,4]
+     if( i %% 1000 == 0 )
+       {
+         setTxtProgressBar( progress, i )
+       }
+     ict<-ict+1
+     }
+   sigfrac <- sum( upvs < 0.05 ) / ntests * 5.0
+   print("")
+   print( paste("UVar-Significance0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
   if ( sigfrac < 0.01 ) sigfrac <- 0.01 
   qvsm <- 1 - upvs
   qvsm <- ( qvsm - min( qvsm ) ) 
@@ -289,8 +296,8 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
   print( summary( fit ) ) 
 
 # now do the multi-variate equivalent
-  print("MULTIVARIATE")
-ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=10,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
+  print(paste("MULTIVARIATE",sigfrac))
+ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
 myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
 myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
 myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
