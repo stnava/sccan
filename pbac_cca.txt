@@ -303,7 +303,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  sparlist<-(c(1:20)/100) 
  corrlist<-list()
  for ( sigfrac in sparlist ) {
-   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(0,0),perms=0,uselong=0,z=-0.75,smooth=1 )
+   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
    myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
    myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 )
    corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
