@@ -118,6 +118,7 @@ require(visreg) ; library(vegan)
 DIR<-paste(getwd(),'/data/',sep='')
 resMV<-list()
 resUV<-list()
+sparMV<-list()
 ##########################################################################
 ##########################################################################
 demog<-read.csv(paste(DIR,'PBAC_current.csv',sep=''),na.strings = ".")
@@ -326,8 +327,8 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
   dev.off()
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
   resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
-
-  print( paste(nam,'done') )
+  sparMV<-lappend( sparMV , sigfrac )
+  print( paste(nam,sigfrac,'done') )
 
 }
 
