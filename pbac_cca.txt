@@ -32,7 +32,7 @@ library(grDevices)
 to Multivariate Cognitive Measures in Neurodegenerative Diseases}
 \author{Brian B. Avants}
 \begin{abstract}
-This study establishes that sparse canonical correlation analysis (SCCAN) identifies generalizable cortical networks that relate to domain-specific subscales of the Philadelphia Brief Assessment of Cognition (PBAC) psychometric battery.  By using a training and separate testing stage, we find that PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning correlate with unique and distributed areas of reduced GM density.  A parallel univariate framework fails to identify, from the training data, regions that are upheld in the left-out test dataset. The cohort includes 172 patients with Alzheimer’s disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome.  The analysis is implemented with open-source software for which we provide examples in the text.  In conclusion, we show that multivariate techniques identify biologically-plausible brain regions supporting specific cognitive domains.  The findings are identified in training data and confirmed in test data. 
+This study establishes that sparse canonical correlation analysis (SCCAN) identifies generalizable, structural MRI-derived cortical networks that relate to five distinctive categories of cognition.  We obtain multivariate psychometrics from the domain-specific subscales of the Philadelphia Brief Assessment of Cognition (PBAC).  By using a training and separate testing stage, we find that PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning correlate with unique and distributed areas of reduced GM density.  In contrast, a parallel univariate framework fails to identify, from the training data, regions that are upheld in the left-out test dataset. The cohort includes 172 patients with Alzheimer’s disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome.  The analysis is implemented with open-source software for which we provide examples in the text.  In conclusion, we show that multivariate techniques identify biologically-plausible brain regions supporting specific cognitive domains.  The findings are identified in training data and confirmed in test data. 
 \end{abstract}
 \begin{keyword}
 Alzheimer disease; frontotemporal lobar degeneration; Philadelphia Brief Assessment of Cognition, PBAC, MRI, sparse canonical correlation analysis.
@@ -120,6 +120,7 @@ tem<-antsImageRead( paste(DIR,'ch2bet.nii.gz',sep='') , 3 )
 resMV<-list()
 resUV<-list()
 if ( ! exists("sparMV") ) sparMV<-list()
+if ( length( sparMV ) != 5 ) sparMV<-list()
 ##########################################################################
 ##########################################################################
 demog<-read.csv(paste(DIR,'PBAC_current.csv',sep=''),na.strings = ".")
@@ -250,8 +251,8 @@ for ( fn in imglist[permutesubs2] ) {
   testmat[ct,]<-subset( vec, mask )
   ct<-ct+1
 }
-trainmat<-residuals( lm( trainmat ~  age +  edu , data=demog[permutesubs,] ) )
-testmat<-residuals( lm( testmat ~  age +  edu , data=demog[permutesubs2,] ) )
+# trainmat<-residuals( lm( trainmat ~  age +  edu , data=demog[permutesubs,] ) )
+# testmat<-residuals( lm( testmat ~  age +  edu , data=demog[permutesubs2,] ) )
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
@@ -311,7 +312,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
    corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
  }
  corrlist<-unlist( unlist(corrlist) )
- fit<-lm( corrlist ~ sparlist )
+ fit<-lm( corrlist ~ sparlist + I(sparlist^2) )
  pdf(paste('sccan_param_',nam,'.pdf',sep=''))
  mytitle<-paste('SCCAN Parameter Selection: Thickness & ',nam,sep='')
  visreg(fit,main=mytitle,xlab='Sparseness',ylab='SCCAN correlation')
@@ -324,6 +325,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
  myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
+ print(as.matrix( ff$eig2 ) )
   imaging<-myproj2a[,1]
   cognition<-myproj2b[,1]
   myform<-as.formula( " cognition ~ imaging " )
@@ -344,7 +346,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
                  antsImageRead(getANTsRData('mnia'),3) )
   }
   gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE )
-  print( xtable( gcoords$templatepoints ) , file=paste(nam,'_network.tex',sep='') )
+  print( xtable( gcoords$templatepoints ) , file=paste(nam,'_network.txt',sep='') )
   print( paste(nam,sigfrac,'done') )
 
 }
