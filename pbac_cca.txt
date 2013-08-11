@@ -206,7 +206,7 @@ tt1p<-0 ; tt2p<-0 ; tt3p<-0 ; rval<-0.8
 ct<-1
 while ( tt1p < rval | tt2p < rval | tt3p < rval & ct < 550 ) {
   permutesubsin<-sample(1:nsub)
-  w1<-round(length(permutesubsin)*0.5) # subset selection
+  w1<-round(length(permutesubsin)*0.52) # subset selection
   w2<-w1+1
   permutesubs<-permutesubsin[1:w1]# seq(1,nsub,by=2)
   permutesubs2<-permutesubsin[w2:nsub]# seq(2,nsub,by=2)
@@ -248,65 +248,78 @@ for ( fn in imglist[permutesubs2] ) {
   testmat[ct,]<-subset( vec, mask )
   ct<-ct+1
 }
+trainmat<-residuals( lm( trainmat ~  age +  edu + mmse , data=demog[permutesubs,] ) )
+testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,] ) )
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
 # do the univariate test to get the sparseness param 
   print("UNIVARIATE")
    unames<-names(demog)[grep("scale_adj",names(demog))]
-   voxside<-" ~ vox + age + edu + mmse "
+   voxside<-" ~ vox "
    if ( nam == "exec" ) myform<-as.formula( paste( unames[1], voxside ) )
    if ( nam == "lang" ) myform<-as.formula( paste( unames[2], voxside ) )
    if ( nam == "vs" ) myform<-as.formula( paste( unames[3], voxside ) )
    if ( nam == "mem" ) myform<-as.formula( paste( unames[5], voxside ) )
    if ( nam == "behav" ) myform<-as.formula( paste( unames[6], voxside ) )
    print( myform )
-   bynum<-100
+   bynum<-10
    ss<-seq(1,ncol(trainmat),by=bynum)
    ntests<-length( ss )
    progress <- txtProgressBar( min = 0, max = ntests,  style = 3 )
-   upvs<-rep(1, ntests )
-   ict<-1
+   upvs<-rep(1, ncol(trainmat) )
    for ( i in ss )
      {
      vox<-trainmat[,i]
      fit<-lm( myform,  data=demog[permutesubs,] )
-     upvs[ict]<-coefficients(summary(fit))[2,4]
+     upvs[i]<-coefficients(summary(fit))[2,4]
      if( i %% 1000 == 0 )
        {
          setTxtProgressBar( progress, i )
        }
-     ict<-ict+1
-     }
-   sigfrac <- sum( upvs < 0.05 ) / ntests * 5.0
+    }
+   sigfrac <- sum( upvs < 0.05 , na.rm=T ) / ntests * 5.0
    print("")
    print( paste("UVar-Significance0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
   if ( sigfrac < 0.01 ) sigfrac <- 0.01 
+  upvs[ is.na( upvs ) ]<-1
+  upvs[ upvs > 0.05 ]<-1
   qvsm <- 1 - upvs
   qvsm <- ( qvsm - min( qvsm ) ) 
   qvsm <-  qvsm / max( qvsm )
   qvsm<-matrix( upvs , nrow=1 )
-  qvsm[ is.na( qvsm ) ]<-0
   vox<-testmat  %*% t( qvsm  )
   fit<-lm( myform,  data=demog[permutesubs2,] )
   uvimg<-antsImageClone( maskimg )
-  uvimg[ mask ]<-upvs 
+  uvimg[ mask ]<- ( 1 - upvs  )
   antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
   resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
   print( summary( fit ) ) 
 
 # now do the multi-variate equivalent
-  print(paste("MULTIVARIATE",sigfrac))
-ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
-myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
-myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
-myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
-myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
-
+ # now do the multi-variate equivalent
+ print(paste("MULTIVARIATE",sigfrac))
+ sparlist<-(c(1:20)/100) 
+ corrlist<-list()
+ for ( sigfrac in sparlist ) {
+   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(0,0),perms=0,uselong=0,z=-0.75,smooth=1 )
+   myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
+   myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 )
+   corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
+ }
+ corrlist<-unlist( unlist(corrlist) )
+ plot( sparlist, corrlist )
+ sigfrac<-sparlist[  which( corrlist == max( corrlist )  ) ]
+ ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
+ myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
+ myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
+ myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
+ myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
   imaging<-myproj2a[,1]
-  cognition<-myproj2b[,1] 
-  fit<-lm( cognition ~ imaging )
-  print( summary( fit ) )
+  cognition<-myproj2b[,1]
+  myform<-as.formula( " cognition ~ imaging " )
+  fit<-lm(  myform ,data=demog[permutesubs2,] )
+  print( summary( fit ) )		       
   pdf(paste('sccanpredict',nam,'_',sigfrac,'.pdf',sep=''))
   mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,sep='')
   visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
