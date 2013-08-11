@@ -32,7 +32,7 @@ library(grDevices)
 to Multivariate Cognitive Measures in Neurodegenerative Diseases}
 \author{Brian B. Avants}
 \begin{abstract}
-We use novel multivariate statistical methods to associate network level gray matter (GM) atrophy with multiple domain-specific psychometric measures in patients with Alzheimer’s disease (AD) or frontotemporal lobar degeneration (FTLD). Ninety-nine patients with Alzheimer’s disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome were studied. Sparse canonical correlation analysis (SCCAN) was used to relate GM density to the Philadelphia Brief Assessment of Cognition (PBAC) psychometric battery. PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning were associated with unique areas of reduced GM density, and these informed clinical diagnosis. In conclusion, multivariate techniques associate diagnostically-relevant cognitive deficits with biologically-plausible brain regions in neurodegenerative diseases.
+This study establishes that sparse canonical correlation analysis (SCCAN) identifies generalizable cortical networks that relate to domain-specific subscales of the Philadelphia Brief Assessment of Cognition (PBAC) psychometric battery.  By using a training and separate testing stage, we find that PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning correlate with unique and distributed areas of reduced GM density.  A parallel univariate framework fails to identify, from the training data, regions that are upheld in the left-out test dataset. The cohort includes 172 patients with Alzheimer’s disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome.  The analysis is implemented with open-source software for which we provide examples in the text.  In conclusion, we show that multivariate techniques identify biologically-plausible brain regions supporting specific cognitive domains.  The findings are identified in training data and confirmed in test data. 
 \end{abstract}
 \begin{keyword}
 Alzheimer disease; frontotemporal lobar degeneration; Philadelphia Brief Assessment of Cognition, PBAC, MRI, sparse canonical correlation analysis.
@@ -116,9 +116,10 @@ Dr. Grossman receives support from the National Institutes of Health (AG32953, A
 library(ANTsR)
 require(visreg) ; library(vegan)
 DIR<-paste(getwd(),'/data/',sep='')
+tem<-antsImageRead( paste(DIR,'ch2bet.nii.gz',sep='') , 3 )
 resMV<-list()
 resUV<-list()
-sparMV<-list()
+if ( ! exists("sparMV") ) sparMV<-list()
 ##########################################################################
 ##########################################################################
 demog<-read.csv(paste(DIR,'PBAC_current.csv',sep=''),na.strings = ".")
@@ -134,8 +135,8 @@ offset<-0                               # only pbac
 testlist<-1:5
 for ( opt in testlist ){ # 
 if ( opt == 1 ) {
-  lookatrows<-c(agenthelike,46:48,63) ; nam<-'exec' # exec + demog
-  if ( offset == 0 ) lookatrows<-c(46:48,63) ; nam<-'exec' # exec + demog
+  lookatrows<-c(agenthelike,46:48) ; nam<-'exec' # exec + demog
+  if ( offset == 0 ) lookatrows<-c(46:48) ; nam<-'exec' # exec + demog
 }
 if ( opt == 2 ) {
   lookatrows<-c(agenthelike,50:54) ; nam<-'lang' # lang + demog
@@ -249,8 +250,8 @@ for ( fn in imglist[permutesubs2] ) {
   testmat[ct,]<-subset( vec, mask )
   ct<-ct+1
 }
-trainmat<-residuals( lm( trainmat ~  age +  edu + mmse , data=demog[permutesubs,] ) )
-testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,] ) )
+trainmat<-residuals( lm( trainmat ~  age +  edu , data=demog[permutesubs,] ) )
+testmat<-residuals( lm( testmat ~  age +  edu , data=demog[permutesubs2,] ) )
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
@@ -300,18 +301,25 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
 # now do the multi-variate equivalent
  # now do the multi-variate equivalent
  print(paste("MULTIVARIATE",sigfrac))
+ if ( length( sparMV ) < 5 ) {
  sparlist<-(c(1:20)/100) 
  corrlist<-list()
  for ( sigfrac in sparlist ) {
-   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
+   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(50,0),perms=0,uselong=0,z=0,smooth=1 )
    myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
    myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 )
    corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
  }
  corrlist<-unlist( unlist(corrlist) )
- plot( sparlist, corrlist )
+ fit<-lm( corrlist ~ sparlist )
+ pdf(paste('sccan_param_',nam,'.pdf',sep=''))
+ mytitle<-paste('SCCAN Parameter Selection: Thickness & ',nam,sep='')
+ visreg(fit,main=mytitle,xlab='Sparseness',ylab='SCCAN correlation')
+ dev.off()
  sigfrac<-sparlist[  which( corrlist == max( corrlist )  ) ]
- ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=2,its=25,cthresh=c(0,0),perms=0,uselong=0,z=0,smooth=1 )
+ sparMV<-lappend( sparMV , sigfrac )
+ }  else sigfrac<-sparMV[[ opt ]] 
+ ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=25,cthresh=c(50,0),perms=0,uselong=0,z=0,smooth=1 )
  myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
  myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
@@ -321,13 +329,22 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
   myform<-as.formula( " cognition ~ imaging " )
   fit<-lm(  myform ,data=demog[permutesubs2,] )
   print( summary( fit ) )		       
-  pdf(paste('sccanpredict',nam,'_',sigfrac,'.pdf',sep=''))
-  mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,sep='')
+  pdf(paste('sccanpredict',nam,'.pdf',sep=''))
+  mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,round(sigfrac*100),sep='')
   visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
   dev.off()
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
   resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
-  sparMV<-lappend( sparMV , sigfrac )
+
+# finally, get the coordinates of this object 
+ clust <- labelClusters(  ff$eig1[[1]] , minClusterSize=50, minThresh=1.e-5, maxThresh=1)
+ if ( ! exists("mymni") ) {
+    mymni<-list( antsImageRead(getANTsRData('mni'),3), 
+                 antsImageRead(getANTsRData('mnib'),3), 
+                 antsImageRead(getANTsRData('mnia'),3) )
+  }
+  gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE )
+  print( xtable( gcoords$templatepoints ) , file=paste(nam,'_network.tex',sep='') )
   print( paste(nam,sigfrac,'done') )
 
 }
