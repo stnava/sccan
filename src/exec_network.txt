@@ -1,0 +1,19 @@
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrll}
+  \hline
+ & x & y & z & t & label & Brodmann & AAL \\ 
+  \hline
+1 & -55.00 & -43.00 & 9.00 &   0 &   1 & 22 & Temporal\_Mid\_L \\ 
+  2 & -46.00 & -24.00 & 13.00 &   0 &   2 & 48 & Temporal\_Sup\_L \\ 
+  3 & -54.00 & -43.00 & 35.00 &   0 &   3 & 40 & SupraMarginal\_L \\ 
+  4 & -61.00 & -28.00 & 31.00 &   0 &   4 & 2 & SupraMarginal\_L \\ 
+  5 & 58.00 & -30.00 & 13.00 &   0 &   5 & 42 & Temporal\_Sup\_R \\ 
+  6 & -57.00 & 3.00 & -1.00 &   0 &   6 & 48 & Temporal\_Sup\_L \\ 
+  7 & 53.00 & -7.00 & 6.00 &   0 &   7 & 48 & Heschl\_R \\ 
+  8 & -16.00 & -56.00 & 8.00 &   0 &   8 & 17 & Calcarine\_L \\ 
+  9 & -16.00 & -60.00 & 26.00 &   0 &   9 & 23 & Cuneus\_L \\ 
+   \hline
+\end{tabular}
+\caption{The approximate Talairach coordinates and AAL labels for network  exec .} 
+\end{table}

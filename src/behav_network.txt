@@ -1,0 +1,10 @@
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrll}
+  \hline
+ & x & y & z & t & label & Brodmann & AAL \\ 
+  \hline
+1 & 22.00 & 42.00 & -16.00 &   0 &   1 & 11 & Frontal\_Mid\_Orb\_R \\ 
+   \hline
+\end{tabular}
+\end{table}

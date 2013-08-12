@@ -1,0 +1,20 @@
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrll}
+  \hline
+ & x & y & z & t & label & Brodmann & AAL \\ 
+  \hline
+1 & -53.00 & -62.00 & -7.00 &   0 &   1 & 37 & Temporal\_Inf\_L \\ 
+  2 & -42.00 & -77.00 & 15.00 &   0 &   2 & 19 & Occipital\_Mid\_L \\ 
+  3 & -61.00 & -26.00 & 21.00 &   0 &   3 & 48 & Temporal\_Sup\_L \\ 
+  4 & -15.00 & -54.00 & 12.00 &   0 &   4 & 17 & Calcarine\_L \\ 
+  5 & -45.00 & -48.00 & -15.00 &   0 &   5 & 37 & Fusiform\_L \\ 
+  6 & -4.00 & -35.00 & 33.00 &   0 &   6 & 23 & Cingulum\_Mid\_L \\ 
+  7 & -37.00 & -20.00 & 8.00 &   0 &   7 & 48 & Insula\_L \\ 
+  8 & -64.00 & -43.00 & -6.00 &   0 &   8 & 20 & Temporal\_Mid\_L \\ 
+  9 & 17.00 & 1.00 & -12.00 &   0 &   9 & 48 &  \\ 
+  10 & -34.00 & -90.00 & 4.00 &   0 &  10 & 18 & Occipital\_Mid\_L \\ 
+   \hline
+\end{tabular}
+\caption{The approximate Talairach coordinates and AAL labels for network  mem .} 
+\end{table}
