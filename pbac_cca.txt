@@ -122,8 +122,7 @@ This protocol allows us to compare a joint multivariate feature selector that id
 
 \section{Results}
 
-\subsection{Univariate: PBAC Sub-Scales and GM Density}  
-No univariate outcome measurement achieves significance when relating brain and behavior in the test data.  That is, the correlation between PBAC-sub-scale$_\text{test}$ with $X_\text{test} u$ is weak in each of the five PBAC sub-scales. 
+\subsection{Univariate: PBAC Sub-Scales and GM Density} No univariate outcome measurement achieves significance when relating brain and behavior in the test data.  That is, the correlation between PBAC-sub-scale$_\text{test}$ with $X_\text{test} u$ is weak in each of the five PBAC sub-scales (all p-value $> 0.1$).  However, the relationship between PBAC-sub-scale$_\text{train}$ with $X_\text{train} u$ is strong, as expected (all p-value $< 0.01$).  This indicates that, at least in this dataset, naive univariate feature selection overfits to the training data.  
 
 \subsection{Multivariate: PBAC Sub-Scales and GM Density}  
 We found significant associations between GM density and each of the five PBAC sub-scales consistent with putative neuroanatomical substrates at the Bonferroni-corrected $p < 0.05$ level.  As summarized in Figure 1, PBAC-defined behavior/ social comportment was related to bilateral ventral and medial frontal and insula atrophy that is more prominent on the right than the left.  Poor memory was related to bilateral precuneus, bilateral hippocampus, and bilateral posterior temporal atrophy more prominently on the left than the right.  Significant visuospatial/ constructional impairment was related to bilateral posterior temporal-occipital and bilateral parietal-occipital atrophy.  Impaired language was related to left temporal and left temporal-parietal atrophy extending into left anterior temporal and left inferior frontal regions.  Executive deficits were related to bilateral dorsal and lateral prefrontal atrophy. 
@@ -164,6 +163,8 @@ Dr. Grossman receives support from the National Institutes of Health (AG32953, A
 
 \section{ANTsR Example Code for SCCAN}
 
+We first load the relevant libraries for this analysis.
+
 <<libs, include=TRUE, cache=FALSE,eval=FALSE>>=
 suppressPackageStartupMessages( library(ANTsR) )
 library(xtable)
@@ -173,6 +174,8 @@ library(visreg)
 library(vegan)
 library( visreg )
 @
+
+Several organizational steps are not included.  The key steps of univariate and multivariate feature selection, along with assessment on testing data, are shown below. 
 
 <<cca1,include=FALSE, eval=FALSE,echo=FALSE>>=
 
@@ -383,26 +386,25 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
      upvs[i]<-coefficients(summary(fit))[2,4]
      if( i %% 1000 == 0 )
        {
-         setTxtProgressBar( progress, i )
+       setTxtProgressBar( progress, i )
        }
-    }
-   sigfrac <- sum( upvs < 0.05 , na.rm=T ) / ntests * 5.0
+     }  
+   sigthresh <- 0.01
    print("")
-   print( paste("UVar-Significance0.05", sigfrac * 100,"0.01",sum( upvs < 0.01 ) / length( mask ) * 100 ) )
-  if ( sigfrac < 0.01 ) sigfrac <- 0.01 
-  upvs[ is.na( upvs ) ]<-1
-  upvs[ upvs > 0.01 ]<-1
-  qvsm <- 1 - upvs
-  qvsm <- ( qvsm - min( qvsm ) ) 
-  qvsm <-  qvsm / max( qvsm )
-  qvsm<-matrix( upvs , nrow=1 )
-  vox<-testmat  %*% t( qvsm  )
-  fit<-lm( myform,  data=demog[permutesubs2,] )
-  uvimg<-antsImageClone( maskimg )
-  uvimg[ mask ]<- ( 1 - upvs  )
-  antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
-  resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
-  print( summary( fit ) ) 
+   sigfrac <- sum( upvs < 0.05 , na.rm=T ) / ntests * 5.0
+   upvs[ is.na( upvs ) ]<-1
+   qvsm <- upvs
+   qvsm[ upvs < sigthresh ]<-1
+   qvsm[ upvs >= sigthresh ]<-0
+   qvsm <- qvsm / sum( qvsm )
+   qvsm <-matrix( qvsm , nrow=1 )
+   vox  <- testmat  %*% t( qvsm  )
+   fit  <-lm( myform,  data=demog[permutesubs2,] )
+   print( summary( fit ) )
+   uvimg<-antsImageClone( maskimg )
+   uvimg[ mask ]<- ( 1 - upvs  )
+   antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
+   resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
 
 # now do the multi-variate equivalent
  print(paste("MULTIVARIATE "))
