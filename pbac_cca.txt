@@ -26,7 +26,7 @@ options( digits = 4 )
 to Multivariate Cognitive Measures in Neurodegenerative Diseases}
 \author{Brian B. Avants}
 \begin{abstract}
-This study establishes that sparse canonical correlation analysis (SCCAN) identifies generalizable, structural MRI-derived cortical networks that relate to five distinct categories of cognition.  We obtain multivariate psychometrics from the domain-specific subscales of the Philadelphia Brief Assessment of Cognition (PBAC).  By using a training and separate testing stage, we find that PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning correlate with unique and distributed areas of reduced GM density.  In contrast, a parallel univariate framework fails to identify, from the training data, regions that are upheld in the left-out test dataset. The cohort includes 164 patients with Alzheimer's disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome.  The analysis is implemented with open-source software for which we provide examples in the text.  In conclusion, we show that multivariate techniques identify biologically-plausible brain regions supporting specific cognitive domains.  The findings are identified in training data and confirmed in test data. 
+This study establishes that sparse canonical correlation analysis (SCCAN) identifies generalizable, structural MRI-derived cortical networks that relate to five distinct categories of cognition.  We obtain multivariate psychometrics from the domain-specific subscales of the Philadelphia Brief Assessment of Cognition (PBAC).  By using a training and separate testing stage, we find that PBAC-defined cognitive domains of language, visuospatial functioning, episodic memory, executive control, and social functioning correlate with unique and distributed areas of reduced GM density.  In contrast, a parallel univariate framework fails to identify, from the training data, regions that are also significant in the left-out test dataset. The cohort includes 164 patients with Alzheimer's disease, behavioral-variant frontotemporal dementia, semantic variant primary progressive aphasia, non-fluent/agrammatic primary progressive aphasia, or corticobasal syndrome.  The analysis is implemented with open-source software for which we provide examples in the text.  In conclusion, we show that multivariate techniques identify biologically-plausible brain regions supporting specific cognitive domains.  The findings are identified in training data and confirmed in test data. 
 \end{abstract}
 \begin{keyword}
 Alzheimer disease; frontotemporal lobar degeneration; Philadelphia Brief Assessment of Cognition, PBAC, MRI, sparse canonical correlation analysis.
@@ -81,29 +81,40 @@ We employed the SCCAN implementation of sparse CCA to directly associate the fiv
 %                                         arg max   Corr( X x, Y y)  -  w || x ||  - v || y ||, 
 %			     subject to:    x  >= 0,
 %
-\begin{gather} 
+\begin{eqnarray} 
 \label{eq:cca}
+ x^\star,~y^\star  =
 \underset{x,y}{\operatorname{arg\,max}} \quad~
-~~\frac{x~X^T ~Y~y}{\| X x \|~\| Y y \|}~\\ \notag \text{subject to} \\ \notag \sum_j
+ ~~\frac{x~X^T ~Y~y}{\| X x \|~\| Y y \|}~\\ \notag \text{subject to} \\ \notag \sum_j
 \|x^j\|_1 \leq s,~~ x^j \ge 0,
-\end{gather} where $s$ determines the sparseness level and $\|\cdot\|_1$ denotes the $\ell_1$ norm. The $\ell_1$ norm forces the solution $x$ to be sparse i.e. have zero value over the majority of the brain.  In this application, we do not enforce sparseness on the $y$ vector as it is relatively small, i.e. $q << n$.  SCCAN's objective function can be optimized even when the matrices are “fat” i.e. $p >> n$, often the case in neuroimaging studies.  Due to the non-linear (even np-hard) nature of subset selection (sparse optimization) from a large matrix, optimizing for a single canonical variate pair, $x, y$, involves a nonlinear gradient descent on the objective function above. 
+\end{eqnarray} where $x^\star$, $y^\star$ are the optimal solution vectors, $x^j$ denotes the $j^\text{th}$ entry of $x$, $s$ determines the sparseness level and $\|\cdot\|_1$ denotes the $\ell_1$ norm. The $\ell_1$ norm forces the solution $x$ to be sparse i.e. have zero value over the majority of the brain.  In this application, we do not enforce sparseness on the $y$ vector as it is relatively small, i.e. $q << n$.  SCCAN's objective function can be optimized even when the matrices are “fat” i.e. $p >> n$, often the case in neuroimaging studies.  Due to the non-linear (even np-hard) nature of subset selection (sparse optimization) from a large matrix, optimizing for a single canonical variate pair, $x, y$, involves a nonlinear gradient descent on the objective function above. 
 The analytical gradient of the objective function (ignoring the $\ell_1$
 and positivity constraints) w.r.t. $x$ is:
 \begin{gather}
 \label{eq:ccagrad}
 X^T Y y - \frac{1}{2} X^T X x \| X x \| \| Y y \|. 
 \end{gather}
-Following this gradient will cause the solution $x$ to leave the
+Following this gradient will cause the candidate solution $x$ to leave the
 permissible solution space and, as such, we follow the gradient update
 step with a projection step as in
 \cite{Polak1997,schwartz_family_1997}.  The projection step involves a
 standard soft-thresholding operation used in $\ell_1$ optimization
-which is easily modified to included positivity constraints
+which is easily modified to include positivity constraints
 \cite{donoho_-noising_1995,tibshirani_regression_1996,elad_why_2006,witten_extensions_2009-1}.
 The gradient for $y$ is obtained at the same time as that for $x$ with a simple switching of
-indices. 
+variables.  Following, we refer to $x^\star$ as $x$ and $y^\star$ as $y$.  
 
-SCCAN therefore produces a sparse projection vector acting on GM voxels that, taken as a set, maximally correlate with the user-selected PBAC domain of interest.  Here we use the working memory/executive, language, visuospatial, memory, and social/behavioral PBAC sub-scales, thus requiring only five direct multivariate tests, i.e., one for each cognitive domain.  The sparse eigenvectors that emerge from SCCAN identify the brain regions supporting the specific PBAC domain that was passed to the algorithm as the second view.  In this study, we restrict the SCCAN eigenvectors to be positive.  Thus, each eigenvector can be reinterpreted (by forcing the sum of the solution vector to equal one) as a weighted average of values over a restricted region of GM, like a region of interest \cite{11,20}.  The implementation details are available in the Advanced Normalization Toolkit's \verb sccan.cxx ~program which contains the SCCAN source code.  The significance of SCCAN results may be tested by permuting one of the two views over many different simulations.  One then compares the correlation value produced by the original ordering of the data to the correlations produced over the $N$ permutations. Large $N$ (typically $>1000$) is needed to provide a reasonable sampling of the empirical null distribution.  In this analysis, we use a training and testing paradigm \footnote{as recommended by reviewers} to avoid permutation testing and to allow us to perform parameter selection (for $s$) on the training dataset in a manner that is independent of the test dataset. 
+SCCAN therefore produces a sparse projection vector acting on GM voxels that, taken as a set, maximally correlate with the user-selected PBAC domain of interest.  Here we use the working memory/executive, language, visuospatial, memory, and social/behavioral PBAC sub-scales, thus requiring only five direct multivariate tests, i.e., one for each cognitive domain.  The sparse eigenvectors that emerge from SCCAN identify the brain regions supporting the specific PBAC domain that was passed to the algorithm as the second view.  In this study, we restrict the SCCAN eigenvectors to be positive.  Thus, each eigenvector can be reinterpreted as a weighted average of values over a restricted region of GM, like a region of interest \cite{11,20}.  This may be achieved in a post-processing step that sets the sum of the solution vector, $x$ or $y$, to equal one.  The implementation details are available in the Advanced Normalization Toolkit's \verb sccan.cxx ~program which contains the SCCAN source code.  The significance of SCCAN results may be tested by permuting one of the two views over many different simulations.  One then compares the correlation value produced by the original ordering of the data to the correlations produced over the $N$ permutations. Large $N$ (typically $>1000$) is needed to provide a reasonable sampling of the empirical null distribution.  In this analysis, we use a training and testing paradigm \footnote{as recommended by reviewers} to avoid permutation testing and to allow us to perform parameter selection (for $s$) on the training dataset in a manner that is independent of the test dataset. 
+
+\begin{figure*}[th] \centering
+\includegraphics[width=0.18\textwidth]{./figs/sccan_param_behav.pdf}
+\includegraphics[width=0.18\textwidth]{./figs/sccan_param_exec.pdf}
+\includegraphics[width=0.18\textwidth]{./figs/sccan_param_lang.pdf}
+\includegraphics[width=0.18\textwidth]{./figs/sccan_param_mem.pdf}
+\includegraphics[width=0.18\textwidth]{./figs/sccan_param_vs.pdf}
+\caption{A one parameter search over sparseness, in the training dataset, allows us to identify the optimal sparseness parameter for each cognitive domain.  The network variables $x^\star$ and $y^\star$ that arise from SCCAN computed at the optimal sparseness level will be evaluated in the test dataset for reproducibility.}
+\label{fig:study}
+\end{figure*}
 
 \subsection{Parameter Selection}  
 \subsubsection{Image Processing}
@@ -122,10 +133,12 @@ This protocol allows us to compare a joint multivariate feature selector that id
 
 \section{Results}
 
-\subsection{Univariate: PBAC Sub-Scales and GM Density} No univariate outcome measurement achieves significance when relating brain and behavior in the test data.  That is, the correlation between PBAC-sub-scale$_\text{test}$ with $X_\text{test} u$ is weak in each of the five PBAC sub-scales (all p-value $> 0.1$).  However, the relationship between PBAC-sub-scale$_\text{train}$ with $X_\text{train} u$ is strong, as expected (all p-value $< 0.01$).  This indicates that, at least in this dataset, naive univariate feature selection overfits to the training data.  
+We residualized the input matrices with respect to age, educational level (in years) and MMSE before sending them to the univariate and multivariate outcome procedure outlined in Figure~\ref{fig:study}.  
+
+\subsection{Univariate: PBAC Sub-Scales and GM Density} No univariate outcome measurement achieves significance when relating brain and behavior in the test data.  That is, the correlation between PBAC-sub-scale$_\text{test}$ with $X_\text{test} u$ is weak in each of the five PBAC sub-scales (p-values: exec 0.93,  language 0.078,  memory 0.85, visuospatial 0.66, behavioral 0.78).  However, the relationship between PBAC-sub-scale$_\text{train}$ with $X_\text{train} u$ is strong, as expected (all p-value $< 0.01$).  This indicates that, at least in this dataset, naive univariate feature selection overfits to the training data.  
 
 \subsection{Multivariate: PBAC Sub-Scales and GM Density}  
-We found significant associations between GM density and each of the five PBAC sub-scales consistent with putative neuroanatomical substrates at the Bonferroni-corrected $p < 0.05$ level.  As summarized in Figure 1, PBAC-defined behavior/ social comportment was related to bilateral ventral and medial frontal and insula atrophy that is more prominent on the right than the left.  Poor memory was related to bilateral precuneus, bilateral hippocampus, and bilateral posterior temporal atrophy more prominently on the left than the right.  Significant visuospatial/ constructional impairment was related to bilateral posterior temporal-occipital and bilateral parietal-occipital atrophy.  Impaired language was related to left temporal and left temporal-parietal atrophy extending into left anterior temporal and left inferior frontal regions.  Executive deficits were related to bilateral dorsal and lateral prefrontal atrophy. 
+We found significant associations between GM density and each of the five PBAC sub-scales consistent with putative neuroanatomical substrates at the Bonferroni-corrected $p < 0.05$ level.  The raw p-values are exec 0.0001,  language 0.001,  memory 0.0001, visuospatial 0.001, behavioral 0.0001.  As summarized in Figure 1, PBAC-defined behavior/ social comportment was related to bilateral ventral and medial frontal and insula atrophy that is more prominent on the right than the left.  Poor memory was related to bilateral precuneus, bilateral hippocampus, and bilateral posterior temporal atrophy more prominently on the left than the right.  Significant visuospatial/ constructional impairment was related to bilateral posterior temporal-occipital and bilateral parietal-occipital atrophy.  Impaired language was related to left temporal and left temporal-parietal atrophy extending into left anterior temporal and left inferior frontal regions.  Executive deficits were related to bilateral dorsal and lateral prefrontal atrophy. 
 
 \input{src/behav_network.txt}
 
@@ -140,6 +153,8 @@ We found significant associations between GM density and each of the five PBAC s
 \subsection{Clinical Diagnosis and GM Density} PBAC sub-scales have previously been shown to differentiate between AD and FTLD, and between FTLD phenotypes9,10.  Linear regression was used to relate GM density to the diagnosis of interest while controlling for co-variates including age, education, disease duration.  Here, diagnosis is a binary predictor where a single patient group was compared to all other subjects not in the group of interest.  Results confirm that the weighted average GM density associated with most PBAC sub-scale was significantly related to diagnosis.  Specifically, PBAC behavior/social-related GM regions were related to bvFTD (p< 0.001).  Likewise, PBAC language-related GM regions were related to svPPA (p< 0.008).  PBAC memory-related GM regions were related to AD (p< 0.017) and PBAC visuospatial/ constructional-related GM regions were related to CBS (p< 0.001).  PBAC working memory/ executive-related GM regions were not related to one specific clinical diagnosis.  
 
 \section{Discussion}
+This study establishes that sparse canonical correlation analysis finds repeatable relationships between multivariate psychometric batteries and network level gray matter density measurements.  
+
 The PBAC was designed as a screening instrument to assess overall dementia severity and to differentiate between neurodegenerative syndromes within the AD and FTLD spectrum.  Previous research with the PBAC found a significant correlation between the total PBAC score and the MMSE9,10, thus demonstrating that performance on the instrument reasonably captures overall dementia severity.  PBAC sub-scales also show good clinical utility in distinguishing between AD and FTLD, and between FTLD-spectrum phenotypes using sub-scale cut scores.  The psychometric qualities of the PBAC include good internal consistency among the tests within each PBAC sub-scale and highly significant intra-class correlations between PBAC sub-scales and standard neuropsychological tests10.  PBAC sub-scales also show good clinical utility in distinguishing between AD and FTLD, and between FTLD-related phenotypes using sub-scale cut scores.
 
 The current research used novel imaging methods to provide further evidence for the criterion validity of the PBAC by associating PBAC sub-scale test performance with corresponding areas of GM atrophy.  We found relationships between PBAC-defined areas of GM atrophy, specific domains of cognitive impairment, and clinical diagnosis.  Patients with AD are known to present with striking memory impairment as well as atrophy involving the hippocampus, precuneus and related anatomic structures.  In the current research, the PBAC-memory sub-scale was associated with a clinical diagnosis of AD and GM atrophy involving bilateral hippocampus and precuneus.  Hippocampal and precuneus involvement in clinically-defined patients with anterograde amnesia and AD is well known22,23.  Moreover, prior research with AD and amnesic mild cognitive impairment suggests that these areas are part of a neurocognitive network for memory that also includes superior temporal gyrus24,25.  
@@ -154,6 +169,9 @@ Finally, the PBAC-working memory/ executive sub-scale is related to dorsal and l
 The identified relationships between impaired neurocognitive GM networks and clinically-defined diagnoses in dementia underscore the power of SCCAN over traditional univariate approaches to imaging analysis.  In prior research37, a large group of patients with bvFTD, svPPA and nfPPA were evaluated with ACE and a MRI visual rating scale that graded temporal and frontal lobe atrophy on a 5-point scale38.  In that study, 100% of svPPA patients were judged to have abnormal scans, 71% nfPPA patients were judged to have abnormal scans only 47% of bvFTD patients had abnormal scans.  The cognitive measure was significantly correlated with atrophy in all regions that were measured.  By contrast, there was no general correlation demonstrating increasing behavioral abnormalities with any areas of the brain.  However, for a subset of bvFTD patients, greater behavioral disturbance was correlated with greater atrophy involving bifrontal regions.
 
 Using SCCAN, by comparison, massive dimensionality reduction significantly enhances the empirical ability to detect these clinical-neuroimaging relationships.  Prior work demonstrated the advantages of SCCAN in combining GM and diffusion tensor imaging data to distinguish between autopsy- and CSF-defined cases of AD and FTLD39,40.  The results of the current study reveal that SCCAN is capable of associating multi-dimensional psychometric and neuroimaging data to reveal the large-scale neural networks that are degraded when cognition is compromised in neurodegenerative conditions like AD and FTLD.
+
+There are several caveats to this study, one of which is the comparison to univariate feature selection: smoothing etc. 
+
 
 This research is not without limitations.  First, the PBAC was not designed nor should it be used to as a substitute for a comprehensive neuropsychological evaluation. This is reflected most clearly in the modest ability of the executive/working memory sub-scale to detect a specific group of patients with prefrontal disease.  Second, the sample size for several groups was relatively modest.  The results of the present study will require confirmation with larger groups of patients.  Third, virtually all work with the PBAC has been confined to differentiating AD from FTLD and to distinguishing between FTLD phenotypes.  The utility of the PBAC in other populations such as Parkinson's disease, amyotrophic lateral sclerosis, and Mild Cognitive Impairment requires further examination.  Finally, SCCAN associated some unexpected brain regions with a specific cognitive domain.  For example, the insula was associated with the memory sub-scale and an area of the ventral temporal lobe with executive functioning.  Additional work is needed to understand the basis for these associations.  With these limitations in mind, the current study suggests good criterion validity for the PBAC to differentiate between AD and FTLD-related phenotypes, and the power of a multivariate analytic approach such as SCCAN to demonstrate these effects.  
 
@@ -172,7 +190,6 @@ library(abind)
 library(grDevices)
 library(visreg) 
 library(vegan)
-library( visreg )
 @
 
 Several organizational steps are not included.  The key steps of univariate and multivariate feature selection, along with assessment on testing data, are shown below. 
@@ -183,8 +200,9 @@ Several organizational steps are not included.  The key steps of univariate and 
 DIR<-paste(getwd(),'/data/',sep='')
 tem<-antsImageRead( paste(DIR,'ch2bet.nii.gz',sep='') , 3 )
 resMV<-list()
-resUV<-list()
-if ( ! exists("sparMV") ) sparMV<-list()
+if ( ! exists("resUV") ) resUV<-list()
+if ( length( resUV ) != 5 ) resUV<-list()
+ if ( ! exists("sparMV") ) sparMV<-list()
 if ( length( sparMV ) != 5 ) sparMV<-list()
 ##########################################################################
 ##########################################################################
@@ -365,6 +383,7 @@ testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,]
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
+  if ( length( resUV ) != 5 ) {
 # do the univariate test to get the sparseness param 
   print("UNIVARIATE")
   voxside<-" ~ vox "
@@ -405,14 +424,16 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
    uvimg[ mask ]<- ( 1 - upvs  )
    antsImageWrite(  uvimg , paste(DIR,nam,"_uv.nii.gz",sep='') )
    resUV <- lappend( resUV , c( nam, coefficients(summary(fit))[2,4] ) )
-
+   } # resUV length
 # now do the multi-variate equivalent
  print(paste("MULTIVARIATE "))
+ clustthresh<-10
  if ( length( sparMV ) < 5 ) {
- sparlist<-(c(1:40)/400) 
+ sparlist<-(c(1:20)/100) 
  corrlist<-list()
  for ( sigfrac in sparlist ) {
-   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),    sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(10,0),perms=0,uselong=0,z=0,smooth=1 )
+   print(paste("SEARCH:",sigfrac))
+   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),    sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 , robust = 1 )
    myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
    myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 )
    corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
@@ -421,7 +442,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  fit<-lm( corrlist ~ sparlist + I(sparlist^2) )
  pdf(paste('sccan_param_',nam,'.pdf',sep=''))
  mytitle<-paste('SCCAN Parameter Selection: Thickness & ',nam,sep='')
- visreg(fit,main=mytitle,xlab='Sparseness',ylab='SCCAN correlation')
+ visreg(fit,main=mytitle,xlab='Sparseness',ylab='SCCAN correlation',cex.main=2,cex.lab=2 )
  dev.off()
  sigfrac<-sparlist[  which( corrlist == max( corrlist )  ) ]
  sp<-data.frame( sparlist = (c(1:200)/1000) ) 
@@ -429,7 +450,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  sigfrac<-sp$sparlist[  which.max( pc ) ]
  sparMV<-lappend( sparMV , sigfrac )
  }  else sigfrac<-sparMV[[ opt ]] 
- ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(10,0),perms=0,uselong=0,z=0,smooth=1 )
+ ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 )
  myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
  myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
@@ -445,10 +466,11 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
 <<cca3,include=TRUE, eval=FALSE,echo=FALSE>>=
   pdf(paste('sccanpredict',nam,'.pdf',sep=''))
   mytitle<-paste('Testing SCCAN Prediction: Thickness & ',nam,round(sigfrac*100),sep='')
-  visreg(fit,main=mytitle,xlab='Thickness',ylab=nam)
+  visreg(fit,main=mytitle,xlab='Thickness',ylab=nam,cex.main=2,cex.lab=2)
   dev.off()
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
-  resMV<- lappend( resMV , c( nam, coefficients(summary(fit))[2,4] ) )
+  mypv<-coefficients(summary(fit))[2,4] 
+  resMV<- lappend( resMV , c( nam, mypv ) )
 
 # finally, get the coordinates of this object 
  clust <- labelClusters(  ff$eig1[[1]] , minClusterSize=50, minThresh=1.e-5, maxThresh=1)
@@ -458,9 +480,8 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
                  antsImageRead(getANTsRData('mnia'),3) )
   }
   gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE, outprefix = "/tmp/Z" )
-  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,'.' ) ), file=paste('./src/',nam,'_network.txt',sep='') )
-  print( xtable( gcoords$templatepoints ) , file=paste(nam,'_network.txt',sep='') )
-  print( paste(nam,sigfrac,'done') )
+  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,'.' ) ), file=paste('./src/',nam,'_network.txt',sep='') )
+ print( paste(nam,sigfrac,'done') )
 
 }
 
