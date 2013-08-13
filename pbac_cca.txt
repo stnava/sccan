@@ -409,7 +409,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
 # now do the multi-variate equivalent
  print(paste("MULTIVARIATE "))
  if ( length( sparMV ) < 5 ) {
- sparlist<-(c(1:20)/100) 
+ sparlist<-(c(1:40)/400) 
  corrlist<-list()
  for ( sigfrac in sparlist ) {
    ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),    sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(10,0),perms=0,uselong=0,z=0,smooth=1 )
