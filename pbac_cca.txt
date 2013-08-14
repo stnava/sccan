@@ -202,7 +202,8 @@ This protocol allows us to compare a joint multivariate feature selector that id
 
 \section{Results}
 
-We residualized the input matrices with respect to age, educational level (in years) and MMSE before sending them to the univariate and multivariate outcome procedure outlined in Figure~\ref{fig:study}.  
+% We residualized the input matrices with respect to age, educational level (in years) and MMSE before 
+%  sending them to the univariate and multivariate outcome procedure outlined in Figure~\ref{fig:study}.  
 
 \subsection{Univariate: PBAC Sub-Scales and GM Density} No univariate outcome measurement achieves significance when relating brain and behavior in the test data.  That is, the correlation between PBAC-sub-scale$_\text{test}$ with $X_\text{test} u$ is weak in each of the five PBAC sub-scales (p-values: exec 0.93,  language 0.078,  memory 0.85, visuospatial 0.66, behavioral 0.78).  However, the relationship between PBAC-sub-scale$_\text{train}$ with $X_\text{train} u$ is strong, as expected (all p-value $< 0.01$).  This indicates that, at least in this dataset, naive univariate feature selection overfits to the training data.  
 
@@ -276,6 +277,9 @@ Several organizational steps are not included.  The key steps of univariate and 
 ####################
 DIR<-paste(getwd(),'/data/',sep='')
 tem<-antsImageRead( paste(DIR,'ch2bet.nii.gz',sep='') , 3 )
+projMV1<-list()
+projMV2<-list()
+imgMV<-list()
 resMV<-list()
 if ( ! exists("resUV") ) resUV<-list()
 if ( length( resUV ) != 5 ) resUV<-list()
@@ -404,7 +408,7 @@ fullrows<-fullrows[2:length(fullrows)]
 nc<-length(fullrows)
 tt1p<-0 ; tt2p<-0 ; tt3p<-0 ; rval<-0.8
 ct<-1
-set.seed(5)
+set.seed( 10 ) # 5
 while ( tt1p < rval | tt2p < rval | tt3p < rval & ct < 550 ) {
   permutesubsin<-sample(1:nsub)
   w1<-round(length(permutesubsin)*0.52) # subset selection
@@ -453,13 +457,15 @@ for ( fn in imglist[permutesubs2] ) {
   testmat[ct,]<-subset( vec, mask )
   ct<-ct+1
 }
-@
 
-<<cca2,include=TRUE, eval=FALSE,echo=TRUE>>=
 # trainmat<-residuals( lm( trainmat ~  age +  edu + mmse , data=demog[permutesubs,] ) )
 # testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,] ) )
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
+
+@
+
+<<cca2,include=TRUE, eval=FALSE,echo=TRUE>>=
 
   if ( length( resUV ) != 5  & FALSE ) {
 # do the univariate test to get the sparseness param 
@@ -528,13 +534,13 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  sigfrac<-sp$sparlist[  which.max( pc ) ]
  sparMV<-lappend( sparMV , sigfrac )
  }  else sigfrac<-sparMV[[ opt ]] 
- ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 ,robust=2)
+ ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 ,robust=1)
  myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
  myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
  cogweights <-c( round( ff$eig2*1000 )/1000 )
-print( cogweights )
+  print( cogweights )
   imaging<-myproj2a[,1]
   cognition<-myproj2b[,1]
   myform<-as.formula( " cognition ~ imaging " )
@@ -551,7 +557,10 @@ print( cogweights )
   mypvr<-round(mypv*10000)/10000
   visreg(fit,main=mytitle,xlab=paste('Thickness p-val',mypvr),ylab=nam,cex.main=2,cex.lab=2)
   dev.off()
+  imgMV<- lappend( imgMV ,  ff$eig1[[1]] )
   resMV<- lappend( resMV , c( nam, mypv ) )
+  projMV1<-lappend(  projMV1, myproj1a )
+  projMV2<-lappend(  projMV2, myproj1b )
   antsImageWrite(  ff$eig1[[1]] , paste(DIR,nam,".nii.gz",sep='') )
 
 # finally, get the coordinates of this object 
@@ -562,7 +571,7 @@ print( cogweights )
                  antsImageRead(getANTsRData('mnia'),3) )
   }
   gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE, outprefix = "/tmp/Z" )
-  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,' and sparseness',sigfrac,'.'," Weights on the multivariate PBAC sub-scale are",toString(cogweights),"." ), label=paste("tab:",nam,sep='') ), file=paste('./src/',nam,'_network.txt',sep='') )
+  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,' and sparseness',sigfrac,'.'," Weights on the multivariate PBAC sub-scale ( the ",toString("$y$"),") are",toString(cogweights),"." ), label=paste("tab:",nam,sep='') ), file=paste('./src/',nam,'_network.txt',sep='') )
 
 
 
@@ -602,6 +611,14 @@ print( cogweights )
  print( paste(nam,sigfrac,'done') )
 
 }
+
+for ( img in imgMV ) {
+  ImageMath(3,img,"TruncateImageIntensity",img,0.05,0.95)
+  ResampleImageBySpacing(list(3, img, img ,0.99,0.995,0.99)) 
+}
+mycols<-c("blue","green","magenta","yellow","red")
+plotANTsImage(myantsimage = ch2, functional =imgMV, threshold = "10x255", color =mycols, axis = 3,slices="38x116x2",quality=2,outname="figs/sccan_Ax.jpg")
+plotANTsImage(myantsimage = ch2, functional =imgMV, threshold = "10x255", color =mycols, axis = 1,slices="28x166x2",quality=2,outname="figs/sccan_Sag.jpg")
 
 
 @ 
