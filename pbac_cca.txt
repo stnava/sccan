@@ -144,6 +144,51 @@ We can also compute a parallel univariate outcome, $\text{Outcome}_\text{univari
 
 This protocol allows us to compare a joint multivariate feature selector that identifies weights on PBAC sub-scale values ($y$) and the brain ($x$) with a univariate feature selector acting only on the brain ($u$).  While the univariate approach does not weight the PBAC-sub-scale, it does use a standard average of the sub-scales commonly used in PBAC assessment.  Thus, we compare a new, fully multivariate approach, to an existing standard approach.  One may argue that the threshold selected to binarize the $u$ vector is arbitrary.  However, this is a common/standard style of analysis employed in univariate methods, i.e. select a significance threshold and accept the results as the truth.  The univariate solutions do not survive multiple comparisons correction so we had no choice but to use uncorrected p-values as feature selectors.
 
+\begin{figure*}[th] \centering
+\includegraphics[width=0.22\textwidth]{./figs/sccanpredictbehav.pdf}
+\includegraphics[width=0.25\textwidth]{./figs/ren_behav_anterior.png}
+\includegraphics[width=0.25\textwidth]{./figs/ren_behav_lateral.png}
+\includegraphics[width=0.22\textwidth]{./figs/pbac_image_behav}
+\caption{We visualize the correlation between $X_\text{test} x^\star$ and $Y_\text{test} y^\star$ for each of the five PBAC sub-scales.}
+\label{fig:test}
+\end{figure*}
+
+
+\begin{figure*}[th] \centering
+\includegraphics[width=0.22\textwidth]{./figs/sccanpredictexec.pdf}
+\includegraphics[width=0.25\textwidth]{./figs/ren_exec_anterior.png}
+\includegraphics[width=0.25\textwidth]{./figs/ren_exec_lateral.png}
+\includegraphics[width=0.22\textwidth]{./figs/pbac_image_exec}
+\caption{We visualize the correlation between $X_\text{test} x^\star$ and $Y_\text{test} y^\star$ for each of the five PBAC sub-scales.}
+\label{fig:test}
+\end{figure*}
+
+\begin{figure*}[th] \centering
+\includegraphics[width=0.22\textwidth]{./figs/sccanpredictlang.pdf}
+\includegraphics[width=0.25\textwidth]{./figs/ren_lang_anterior.png}
+\includegraphics[width=0.25\textwidth]{./figs/ren_lang_lateral.png}
+\includegraphics[width=0.22\textwidth]{./figs/pbac_image_lang}
+\caption{We visualize the correlation between $X_\text{test} x^\star$ and $Y_\text{test} y^\star$ for each of the five PBAC sub-scales.}
+\label{fig:test}
+\end{figure*}
+
+\begin{figure*}[th] \centering
+\includegraphics[width=0.22\textwidth]{./figs/sccanpredictmem.pdf}
+\includegraphics[width=0.25\textwidth]{./figs/ren_mem_anterior.png}
+\includegraphics[width=0.25\textwidth]{./figs/ren_mem_lateral.png}
+\includegraphics[width=0.22\textwidth]{./figs/pbac_image_mem}
+\caption{We visualize the correlation between $X_\text{test} x^\star$ and $Y_\text{test} y^\star$ for each of the five PBAC sub-scales.}
+\label{fig:test}
+\end{figure*}
+
+\begin{figure*}[th] \centering
+\includegraphics[width=0.22\textwidth]{./figs/sccanpredictvs.pdf}
+\includegraphics[width=0.25\textwidth]{./figs/ren_vs_anterior.png}
+\includegraphics[width=0.25\textwidth]{./figs/ren_vs_lateral.png}
+\includegraphics[width=0.22\textwidth]{./figs/pbac_image_vs}
+\caption{We visualize the correlation between $X_\text{test} x^\star$ and $Y_\text{test} y^\star$ for each of the five PBAC sub-scales.}
+\label{fig:test}
+\end{figure*}
 
 \begin{figure*}[th] \centering
 \includegraphics[width=0.4\textwidth]{./figs/sccanpredictbehav.pdf}
@@ -164,9 +209,7 @@ We residualized the input matrices with respect to age, educational level (in ye
 \subsection{Multivariate: PBAC Sub-Scales and GM Density}  
 Based on training data, we found, in testing data, significant associations between GM density and each of the five PBAC sub-scales consistent with putative neuroanatomical substrates at the Bonferroni-corrected $p < 0.05$ level.  Scatterplots are in Figure~\ref{fig:test} where raw p-values are also reported (rounded below 0.001 to 0).  
 
-\noindent {\em Reporting Multivariate Results:}  We display SCCAN {\em pseudo}-eigenvectors on the brain in a manner that is similar to traditional voxel-based analysis, as in Figure~\ref{fig:results}.  As mentioned in the Methods section, these weight vectors are similar to weighted averages in that the difference between these vectors and a traditional weighted average is only a scalar multiplication.  Therefore, the effect on a correlation is NULL.  We also tabulate results in Talairach coordinates similar to traditional methods (e.g. Table~\ref{tab:behav}).  In the tables, we annotate the Talairach coordinate of each spatial component of the {\em pseudo}-eigenvector such that we gain a degree of spatial resolution in the interpretation of SCCAN results.  However, a key point is that p-values are assessed over the relationships computed from the entire operation on the multivariate dataset (e.g. $Corr(X_\text{test} x^\star,Y_\text{test} y^\star)$).
-
-EXPLAIN HOW TABLE IS MADE --- APPROXIMATION of BRODMANN, TAL, AAL
+\noindent {\em Reporting Multivariate Results:}  We display SCCAN {\em pseudo}-eigenvectors on the brain in a manner that is similar to traditional voxel-based analysis, as in Figure~\ref{fig:results}.  As mentioned in the Methods section, these weight vectors are similar to weighted averages in that the difference between these vectors and a traditional weighted average is only a scalar multiplication.  Therefore, the effect on a correlation is null.  We also tabulate results in Talairach coordinates similar to traditional methods (e.g. Table~\ref{tab:behav}).  However, instead of plotting coordinates of peak p-values, we annotate the Talairach coordinate of each spatial component of the {\em pseudo}-eigenvector such that we gain a degree of spatial resolution in the interpretation of SCCAN results.  Despite using a familiar reporting system, the key point is that p-values are assessed over the relationships computed from the entire operation on the multivariate dataset (e.g. $Corr(X_\text{test} x^\star,Y_\text{test} y^\star)$).  Thus, we are reporting the collection of neuroanatomical data points that contribute to the relationship with cognition as opposed to a single point.  We estimate Brodmann areas and AAL labels from the label sets included with mricron \cite{Rorden2007a}.
 
 As summarized in Figure~\ref{fig:results} and Table~\ref{tab:behav}, PBAC-defined behavior/ social comportment was related to bilateral ventral and medial frontal and insula atrophy that is more prominent on the right than the left.  The memory sub-scales (Table~\ref{tab:mem}) was related to bilateral precuneus, bilateral hippocampus, and bilateral posterior temporal atrophy more prominently on the left than the right.  Significant visuospatial/ constructional impairment (Table~\ref{tab:vs}) was related to bilateral posterior temporal-occipital and bilateral parietal-occipital atrophy.  The language sub-scale (Table~\ref{tab:lang}) was related to left temporal and left temporal-parietal atrophy extending into left anterior temporal and left inferior frontal regions.  Executive deficits were related to bilateral dorsal and lateral prefrontal atrophy---FIXME.  The executive network is described in Table~\ref{tab:exec}.  
 
@@ -413,8 +456,8 @@ for ( fn in imglist[permutesubs2] ) {
 @
 
 <<cca2,include=TRUE, eval=FALSE,echo=TRUE>>=
-trainmat<-residuals( lm( trainmat ~  age +  edu + mmse , data=demog[permutesubs,] ) )
-testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,] ) )
+# trainmat<-residuals( lm( trainmat ~  age +  edu + mmse , data=demog[permutesubs,] ) )
+# testmat<-residuals( lm( testmat ~  age +  edu + mmse , data=demog[permutesubs2,] ) )
 testmat<-(decostand( testmat , method='standardize',margin=2))
 trainmat<-(decostand( trainmat , method='standardize',margin=2))
 
@@ -464,11 +507,11 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  print(paste("MULTIVARIATE "))
  clustthresh<-100
  if ( length( sparMV ) < 5 ) {
- sparlist<-( seq(1,30,by=3) / 100 ) 
+ sparlist<-( seq(1,50,by=4) / 100 ) 
  corrlist<-list()
  for ( sigfrac in sparlist ) {
    print(paste("SEARCH:",sigfrac))
-   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),    sparseness=c( sigfrac ,-1),nvecs=1,its=1,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 , robust = 0 )
+   ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),    sparseness=c( sigfrac ,-1),nvecs=1,its=1,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 , robust = 1 )
    myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
    myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 )
    corrlist<-lappend( corrlist ,  cor.test( myproj1a, myproj1b)$est )
@@ -485,12 +528,13 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
  sigfrac<-sp$sparlist[  which.max( pc ) ]
  sparMV<-lappend( sparMV , sigfrac )
  }  else sigfrac<-sparMV[[ opt ]] 
- ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 )
+ ff<-sparseDecom2( inmatrix = list( trainmat,cogmat[permutesubs,nw] )  ,  inmask = c(maskimg, NA),  sparseness=c( sigfrac ,-1),nvecs=1,its=15,cthresh=c(clustthresh,0),perms=0,uselong=0,z=0,smooth=1 ,robust=2)
  myproj1a<-trainmat %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj1b<-cogmat[permutesubs,nw] %*% as.matrix( ff$eig2 ) 
  myproj2a<-testmat  %*% t( imageListToMatrix( ff$eig1 , maskimg ) )
  myproj2b<-cogmat[permutesubs2,nw] %*% as.matrix( ff$eig2 ) 
- print(as.matrix( ff$eig2 ) )
+ cogweights <-c( round( ff$eig2*1000 )/1000 )
+print( cogweights )
   imaging<-myproj2a[,1]
   cognition<-myproj2b[,1]
   myform<-as.formula( " cognition ~ imaging " )
@@ -518,7 +562,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
                  antsImageRead(getANTsRData('mnia'),3) )
   }
   gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE, outprefix = "/tmp/Z" )
-  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,'.' ), label=paste("tab:",nam,sep='') ), file=paste('./src/',nam,'_network.txt',sep='') )
+  print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,' and sparseness',sigfrac,'.'," Weights on the multivariate PBAC sub-scale are",toString(cogweights),"." ), label=paste("tab:",nam,sep='') ), file=paste('./src/',nam,'_network.txt',sep='') )
 
 
 
@@ -547,7 +591,8 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
    cnt<-getCentroids( myblob, clustparam = 5, threshparam = 0.25 )
 #   bren<-renderSurfaceFunction( surfimg =list( glassbrain ) ,
 #    alphasurf=0.1,smoothsval = 1 , smoothfval = 0.0, funcimg=list(myblob) , alphafunc=1 )
-   bren<-renderSurfaceFunction( surfimg =list( glassbrain ) ,alphasurf=0.1 ,smoothsval = 1.5 )
+#   bren<-renderSurfaceFunction( surfimg =list( glassbrain ) ,alphasurf=0.1 ,smoothsval = 1.5 )
+    bren<-renderSurfaceFunction( surfimg =list( glassbrain ) ,alphasurf=0.1 ,smoothsval = 1.5 , funcimg=list(myblob) , alphafunc=0.125 )
    plotBasicNetwork( centroids =  cnt$centroids , bren )
    par3d(userMatrix=lateralLeft, windowRect=c(25,25,325,325), zoom=0.7)
    rgl.snapshot(paste("figs/ren_",nam,"_lateral.png",sep=''))
