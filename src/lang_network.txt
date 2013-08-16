@@ -4,15 +4,13 @@
   \hline
  & x & y & z & t & label & Brodmann & AAL \\ 
   \hline
-1 & -44.00 & -39.00 & -18.00 &   0 &   1 & 20 & Temporal\_Inf\_L \\ 
-  2 & -55.00 & -65.00 & 0.00 &   0 &   2 & 37 & Temporal\_Mid\_L \\ 
-  3 & -27.00 & -39.00 & -10.00 &   0 &   3 & 30 & ParaHippocampal\_L \\ 
-  4 & -63.00 & -43.00 & -17.00 &   0 &   4 & 20 &  \\ 
-  5 & -49.00 & -62.00 & -14.00 &   0 &   5 & 37 & Fusiform\_L \\ 
-  6 & -65.00 & -36.00 & 3.00 &   0 &   6 & 22 & Temporal\_Mid\_L \\ 
-  7 & -6.00 & -57.00 & 35.00 &   0 &   7 & 0 & Precuneus\_L \\ 
-  8 & -6.00 & -54.00 & 23.00 &   0 &   8 & 23 & Precuneus\_L \\ 
+1 & -65.00 & -38.00 & -8.00 &   0 &   1 & 20 & Temporal\_Mid\_L \\ 
+  2 & -44.00 & -37.00 & -19.00 &   0 &   2 & 20 & Temporal\_Inf\_L \\ 
+  3 & -26.00 & -36.00 & -11.00 &   0 &   3 & 30 & ParaHippocampal\_L \\ 
+  4 & -5.00 & -56.00 & 21.00 &   0 &   4 & 23 & Precuneus\_L \\ 
+  5 & -59.00 & -62.00 & -1.00 &   0 &   5 & 37 & Temporal\_Inf\_L \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  lang .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  lang  with significance 1.88126888339026e-10  and sparseness 0.109 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.052, 0.026, 0.024, 0.037, 0.006) .} 
+\label{tab:lang}
 \end{table}
