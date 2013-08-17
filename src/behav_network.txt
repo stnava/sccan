@@ -8,6 +8,6 @@
   2 & -6.00 & 37.00 & -18.00 &   0 &   2 & 11 & Rectus\_L \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  behav  with significance 3.858610279463e-06  and sparseness 0.034 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.028, 0.039, 0.035, 0.008, 0.014, 0.008) .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  behav  with significance 3.86e-06  and sparseness 0.034 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are 0.028, 0.039, 0.035, 0.008, 0.014, 0.008.} 
 \label{tab:behav}
 \end{table}

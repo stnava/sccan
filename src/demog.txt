@@ -9,7 +9,7 @@
   3 & nfaPPA & 15.00 & 66.2/10.64 & 14.27/2.25 & 20.73/7.94 \\ 
   4 & svPPA & 14.00 & 63.21/5.85 & 17.64/2.34 & 19.14/10.16 \\ 
   5 & CBS & 24.00 & 62.42/8.52 & 14.33/2.46 & 22.29/3.94 \\ 
-  6 & NC & 56.00 & 64.88/8.86 & 15.38/2.76 & 20.55/8.33 \\ 
+  6 & NC & 56.00 & 64.88/8.86 & 15.38/2.76 & 27.55/8.33 \\ 
    \hline
 \end{tabular}
 \caption{The demographics for this study of 164 subjects are listed as mean/standard deviation in each column.  For the testing and training split, subjects are matched on age, education and MMSE.  MMSE= Mini-Mental State Examination, AD= Alzheimer’s disease, bvFTD= behavioral variant of frontotemporal dementia, nfaPPA= non-fluent agrammatic variant of primary progressive aphasia; svPPA= semantic variant of primary progressive aphasia, CBS= corticobasal syndrome, NC= normal control.} 
