@@ -561,7 +561,7 @@ trainmat<-(decostand( trainmat , method='standardize',margin=2))
                  antsImageRead(getANTsRData('mnib'),3), 
                  antsImageRead(getANTsRData('mnia'),3) )
   }
-  gcoords<-getTemplateCoordinates( list(tem,clust) , mymni , convertToTal = TRUE, outprefix = "/tmp/Z" )
+  gcoords<-getTemplateCoordinates( list(tem,ff$eig1[[1]] ) , mymni , convertToTal = TRUE, outprefix = "/tmp/Z" )
   print( xtable( gcoords$templatepoints, caption=paste('The approximate Talairach coordinates and AAL labels for network ',nam,' with significance',mypv,' and sparseness',sigfrac,'.'," Weights on the multivariate PBAC sub-scale ( the ",toString("$y$"),") are",toString(cogweights),"." ), label=paste("tab:",nam,sep='') ), file=paste('./src/',nam,'_network.txt',sep='') )
 
 

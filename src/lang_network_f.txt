@@ -11,6 +11,6 @@
   5 & -54.00 & -60.00 & -16.00 &   0 &   5 & 37 & Temporal\_Inf\_L \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  lang  with significance 3.25992038061099e-10  and sparseness 0.109 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.051, 0.006, 0.035, 0.03, 0.013) .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  lang  with significance 3.26e-10  and sparseness 0.109 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are 0.051, 0.006, 0.035, 0.03, 0.013.} 
 \label{tab:lang}
 \end{table}

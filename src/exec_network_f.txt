@@ -17,6 +17,6 @@
   11 & -9.00 & -45.00 & 35.00 &   0 &  11 & 0 & Cingulum\_Mid\_L \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  exec  with significance 9.30777426845567e-07  and sparseness 0.159 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.031, 0.054, 0.038) .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  exec  with significance 9.31e-07  and sparseness 0.159 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are 0.031, 0.054, 0.038.} 
 \label{tab:exec}
 \end{table}

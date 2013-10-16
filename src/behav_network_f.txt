@@ -9,6 +9,6 @@
   3 & 4.00 & 39.00 & 23.00 &   0 &   3 & 32 & Cingulum\_Ant\_R \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  behav  with significance 1.31433781821608e-06  and sparseness 0.034 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.029, 0.027, 0.028, 0.017, 0.017, 0.016) .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  behav  with significance 1.31e-06  and sparseness 0.034 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are 0.029, 0.027, 0.028, 0.017, 0.017, 0.016.} 
 \label{tab:behav}
 \end{table}

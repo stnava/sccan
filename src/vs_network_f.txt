@@ -17,6 +17,6 @@
   11 & -30.00 & -86.00 & 26.00 &   0 &  11 & 19 & Occipital\_Mid\_L \\ 
    \hline
 \end{tabular}
-\caption{The approximate Talairach coordinates and AAL labels for network  vs  with significance 0.000674035633773976  and sparseness 0.13 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are c(0.065, 0.054) .} 
+\caption{The approximate Talairach coordinates and AAL labels for network  vs  with significance 0.0007 and sparseness 0.13 .  Weights on the multivariate PBAC sub-scale ( the  $y$ ) are 0.065, 0.054.} 
 \label{tab:vs}
 \end{table}
